@@ -20,13 +20,7 @@ const ALLOWLIST = new Set<string>([
 function listFiles(): string[] {
   const r = spawnSync(
     'git',
-    [
-      'ls-files',
-      '--',
-      'packages/**/*.ts',
-      'packages/**/*.tsx',
-      'packages/**/*.json',
-    ],
+    ['ls-files', '--', 'packages/**/*.ts', 'packages/**/*.tsx', 'packages/**/*.json'],
     { cwd: REPO_ROOT, encoding: 'utf8', shell: true },
   );
   if (r.status !== 0) {
@@ -43,8 +37,8 @@ function listFiles(): string[] {
 // Paths that never need a sibling README. Files inside
 // `packages/<name>/src/` are documented by the package's
 // top-level README.md and (when relevant) by an src/README.md.
-// The check still flags every .ts outside src/ that is not in
-// the file-level allowlist.
+// The check still flags every .ts, .tsx, and .json file
+// outside src/ that is not in the file-level allowlist.
 function isInSrcFolder(path: string): boolean {
   return /\/src\//.test(path);
 }
