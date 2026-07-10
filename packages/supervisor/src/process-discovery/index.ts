@@ -23,11 +23,13 @@ export interface ProcessDiscovery {
   list(): Promise<readonly ProcessRow[]>;
 }
 
-async function spawnLines(
-  cmd: readonly string[],
-): Promise<readonly string[]> {
+function spawnLines(cmd: readonly string[]): Promise<readonly string[]> {
+  const head = cmd[0];
+  if (head === undefined || head.length === 0) {
+    return Promise.reject(new Error('spawnLines: empty command'));
+  }
   return new Promise<readonly string[]>((resolve, reject) => {
-    const child = spawn(cmd[0]!, cmd.slice(1), { stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn(head, cmd.slice(1), { stdio: ['ignore', 'pipe', 'pipe'] });
     const out: Buffer[] = [];
     const err: Buffer[] = [];
     child.stdout.on('data', (chunk: Buffer) => {
@@ -43,7 +45,12 @@ async function spawnLines(
         return;
       }
       const text = Buffer.concat(out).toString('utf8');
-      resolve(text.split('\n').map((l) => l.trim()).filter((l) => l.length > 0));
+      resolve(
+        text
+          .split('\n')
+          .map((line) => line.trim())
+          .filter((line) => line.length > 0),
+      );
     });
   });
 }
@@ -122,11 +129,14 @@ export class MacPsDiscovery implements ProcessDiscovery {
 
 /**
  * Windows walker: shells out to `wmic process get
- * ProcessId,ParentProcessId,Name /FORMAT:CSV`. CSV header order:
- * `Node,ParentProcessId,ProcessId`. We parse defensively because
- * `wmic` is deprecated on recent Windows; if it fails the
- * caller sees an empty list and the supervisor falls back to
- * extension‑reported terminal identity.
+ * ProcessId,ParentProcessId,Name /FORMAT:CSV`. The CSV always
+ * prepends a leading `Node` column (the hostname), so the
+ * header is `Node,Name,ParentProcessId,ProcessId`. We map by
+ * header name rather than position so column reordering does
+ * not silently corrupt the output. `wmic` is deprecated on
+ * recent Windows; if it fails the caller sees an empty list and
+ * the supervisor falls back to extension‑reported terminal
+ * identity.
  */
 export class WindowsWmicDiscovery implements ProcessDiscovery {
   async list(): Promise<readonly ProcessRow[]> {
@@ -142,19 +152,38 @@ export class WindowsWmicDiscovery implements ProcessDiscovery {
     } catch {
       return [];
     }
-    if (lines.length < 2) return [];
-    const rows: ProcessRow[] = [];
-    for (const line of lines.slice(1)) {
-      const cols = line.split(',');
-      if (cols.length < 3) continue;
-      const name = cols[0] ?? '';
-      const ppid = Number(cols[1]);
-      const pid = Number(cols[2]);
-      if (!Number.isFinite(pid) || !Number.isFinite(ppid)) continue;
-      rows.push({ pid, ppid, command: name });
-    }
-    return rows;
+    return parseWmicCsv(lines);
   }
+}
+
+/**
+ * Parse the CSV output of `wmic process get ... /FORMAT:CSV`.
+ *
+ * The header always starts with `Node` (the hostname) followed
+ * by the requested columns in the order the operator typed them.
+ * Parsing by header name keeps us correct regardless of column
+ * order, so future query reordering does not silently corrupt
+ * the output.
+ *
+ * Exported for unit testing.
+ */
+export function parseWmicCsv(lines: readonly string[]): readonly ProcessRow[] {
+  if (lines.length < 2) return [];
+  const header = lines[0]?.split(',') ?? [];
+  const idxName = header.indexOf('Name');
+  const idxPpid = header.indexOf('ParentProcessId');
+  const idxPid = header.indexOf('ProcessId');
+  if (idxName < 0 || idxPpid < 0 || idxPid < 0) return [];
+  const rows: ProcessRow[] = [];
+  for (const line of lines.slice(1)) {
+    const cols = line.split(',');
+    const name = cols[idxName] ?? '';
+    const ppid = Number(cols[idxPpid]);
+    const pid = Number(cols[idxPid]);
+    if (!Number.isFinite(pid) || !Number.isFinite(ppid)) continue;
+    rows.push({ pid, ppid, command: name });
+  }
+  return rows;
 }
 
 export type SupportedPlatform = 'linux' | 'darwin' | 'win32';

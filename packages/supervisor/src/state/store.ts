@@ -11,13 +11,7 @@
 import type { ResolvedIdentity } from '../identity/resolve.js';
 
 /** Six discrete states, lifted from the v1 predecessor. */
-export type Status =
-  | 'idle'
-  | 'thinking'
-  | 'running-tool'
-  | 'waiting-input'
-  | 'done'
-  | 'error';
+export type Status = 'idle' | 'thinking' | 'running-tool' | 'waiting-input' | 'done' | 'error';
 
 /**
  * A row in the live state map. `parentKey` is set only for
@@ -40,6 +34,7 @@ export interface ProcessEntry {
 
 export class StateStore {
   private readonly entries = new Map<string, ProcessEntry>();
+  private readonly subagentCounters = new Map<string, number>();
 
   /** Total entry count, including virtual subagent nodes. */
   size(): number {
@@ -73,14 +68,24 @@ export class StateStore {
   /**
    * Upsert a virtual subagent child. The child shares the
    * parent's identity but is nested under it in the tree.
+   *
+   * If the supplied `childKey` already exists we mint a unique
+   * suffix from a per‑parent counter so two subagents opened at
+   * the same timestamp (or without a `toolUseId`) cannot collide.
    */
-  upsertSubagent(parentKey: string, childKey: string, at: string): void {
+  upsertSubagent(parentKey: string, childKey: string, at: string): string {
     const parent = this.entries.get(parentKey);
     if (parent === undefined) {
       throw new Error(`upsertSubagent: unknown parent ${parentKey}`);
     }
+    let finalKey = childKey;
+    if (this.entries.has(finalKey)) {
+      const counter = (this.subagentCounters.get(parentKey) ?? 0) + 1;
+      this.subagentCounters.set(parentKey, counter);
+      finalKey = `${childKey}#${counter}`;
+    }
     const child: ProcessEntry = {
-      key: childKey,
+      key: finalKey,
       status: 'running-tool',
       at,
       cwd: parent.cwd,
@@ -89,7 +94,8 @@ export class StateStore {
       ...(parent.pid !== undefined ? { pid: parent.pid } : {}),
       ...(parent.pidChain !== undefined ? { pidChain: parent.pidChain } : {}),
     };
-    this.entries.set(childKey, child);
+    this.entries.set(finalKey, child);
+    return finalKey;
   }
 
   /**
@@ -105,12 +111,7 @@ export class StateStore {
 
   closeSubagentOf(parentKey: string, at: string): boolean {
     const candidates = Array.from(this.entries.values())
-      .filter(
-        (e) =>
-          e.parentKey === parentKey &&
-          e.status !== 'done' &&
-          e.status !== 'error',
-      )
+      .filter((e) => e.parentKey === parentKey && e.status !== 'done' && e.status !== 'error')
       .sort((a, b) => (a.at < b.at ? 1 : -1));
     const target = candidates[0];
     if (target === undefined) return false;
@@ -153,9 +154,7 @@ export class StateStore {
       ...(enrich.sessionId !== undefined ? { sessionId: enrich.sessionId } : {}),
       ...(enrich.agent !== undefined ? { agent: enrich.agent } : {}),
       ...(enrich.pidChain !== undefined ? { pidChain: enrich.pidChain } : {}),
-      ...(enrich.terminalName !== undefined
-        ? { terminalName: enrich.terminalName }
-        : {}),
+      ...(enrich.terminalName !== undefined ? { terminalName: enrich.terminalName } : {}),
     };
     this.entries.set(identity.key, next);
     return prev;

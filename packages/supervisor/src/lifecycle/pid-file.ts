@@ -41,21 +41,12 @@ export function pidFilePath(opts: LifecycleOptions): PidPath {
   switch (platform()) {
     case 'linux': {
       const xdg = process.env['XDG_RUNTIME_DIR'];
-      const base =
-        xdg !== undefined && xdg.length > 0
-          ? xdg
-          : join(homedir(), '.cache');
+      const base = xdg !== undefined && xdg.length > 0 ? xdg : join(homedir(), '.cache');
       return { path: join(base, 'hookorama', 'supervisor.pid') };
     }
     case 'darwin':
       return {
-        path: join(
-          homedir(),
-          'Library',
-          'Application Support',
-          'dev.hookorama',
-          'supervisor.pid',
-        ),
+        path: join(homedir(), 'Library', 'Application Support', 'dev.hookorama', 'supervisor.pid'),
       };
     case 'win32': {
       const local = process.env['LOCALAPPDATA'] ?? join(homedir(), 'AppData', 'Local');
@@ -72,7 +63,9 @@ export function pidFilePath(opts: LifecycleOptions): PidPath {
  * free and the caller should write its own PID.
  *
  * Atomic on POSIX because `writeFile` does an O_CREAT|O_EXCL
- * dance when the parent directory exists.
+ * dance when the parent directory exists. If a stale PID file
+ * (owner dead) is present, it is removed before the new write
+ * so a daemon can restart after a crash.
  */
 export async function acquirePidSlot(
   target: PidPath,
@@ -85,6 +78,7 @@ export async function acquirePidSlot(
     if (Number.isFinite(existing) && isProcessRunning(existing)) {
       return { acquired: false, existingPid: existing };
     }
+    await rm(target.path, { force: true });
   }
   await writeFile(target.path, `${myPid}\n`, { flag: 'wx' });
   return { acquired: true };

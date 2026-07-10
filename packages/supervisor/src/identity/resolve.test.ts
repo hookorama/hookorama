@@ -51,15 +51,14 @@ describe('normaliseCwd', () => {
     expect(normaliseCwd('/a/b\\')).toBe('/a/b');
   });
 
-  test('lowercases Windows drive letters', () => {
-    expect(normaliseCwd('C:\\Users\\Alice')).toBe('c:\\Users\\Alice');
+  test('lowercases Windows drive letters and canonicalises separators', () => {
+    expect(normaliseCwd('C:\\Users\\Alice')).toBe('c:/Users/Alice');
     expect(normaliseCwd('C:/Users/Alice')).toBe('c:/Users/Alice');
+    expect(normaliseCwd('c:\\Users\\Alice')).toBe('c:/Users/Alice');
   });
 
   test('leaves POSIX paths untouched', () => {
-    expect(normaliseCwd('/Users/alice/Projects/Hookorama')).toBe(
-      '/Users/alice/Projects/Hookorama',
-    );
+    expect(normaliseCwd('/Users/alice/Projects/Hookorama')).toBe('/Users/alice/Projects/Hookorama');
   });
 
   test('returns the empty string unchanged', () => {

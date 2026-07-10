@@ -13,8 +13,6 @@ export function isProcessRunning(pid: number): boolean {
     process.kill(pid, 0);
     return true;
   } catch (err: unknown) {
-    const code = (err as { code?: string }).code;
-    if (code === 'EPERM') return true;
-    return false;
+    return (err as { code?: string }).code === 'EPERM';
   }
 }

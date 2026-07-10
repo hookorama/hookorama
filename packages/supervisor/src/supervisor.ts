@@ -46,8 +46,6 @@ export class Supervisor {
     });
   }
 
-  /** Test‑only constructor that bypasses `process.platform` discovery. */
-
   /** Open terminals reported by the extension. */
   openTerminals(): OpenTerminal[] {
     return Array.from(this.openTerminalsByPid.values());
@@ -63,7 +61,13 @@ export class Supervisor {
   async start(): Promise<boolean> {
     this.pidSlot = await acquirePidSlot(this.pidFile, process.pid);
     if (!this.pidSlot.acquired) return false;
-    await this.seedFromProcessDiscovery();
+    try {
+      await this.seedFromProcessDiscovery();
+    } catch (err) {
+      this.pidSlot = null;
+      await releasePidSlot(this.pidFile);
+      throw err;
+    }
     return true;
   }
 
@@ -102,11 +106,7 @@ export class Supervisor {
     readonly agent?: string;
     readonly status: Status;
   }): ResolvedIdentity | null {
-    const identity = resolveIdentity(
-      input.pidChain,
-      input.cwd,
-      this.openTerminals(),
-    );
+    const identity = resolveIdentity(input.pidChain, input.cwd, this.openTerminals());
     if (identity === null) return null;
     this.store.applyEvent(identity, input.status, this.now().toISOString(), {
       ...(input.sessionId !== undefined ? { sessionId: input.sessionId } : {}),
@@ -117,11 +117,11 @@ export class Supervisor {
   }
 
   startSubagent(identity: ResolvedIdentity, at: string, toolUseId?: string): string {
-    const childKey = toolUseId !== undefined
-      ? `${identity.key}:subagent:${toolUseId}`
-      : `${identity.key}:subagent:${at}`;
-    this.store.upsertSubagent(identity.key, childKey, at);
-    return childKey;
+    const desired =
+      toolUseId !== undefined
+        ? `${identity.key}:subagent:${toolUseId}`
+        : `${identity.key}:subagent:${at}`;
+    return this.store.upsertSubagent(identity.key, desired, at);
   }
 
   endSubagent(
