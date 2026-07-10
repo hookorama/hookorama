@@ -8,26 +8,26 @@ const TERMINALS: readonly OpenTerminal[] = [
 
 describe('resolveIdentity', () => {
   test('prefers pid when it matches an open terminal', () => {
-    const r = resolveIdentity([100], '/Users/alice/projects/other', TERMINALS);
-    expect(r).not.toBeNull();
-    expect(r?.kind).toBe('pid');
-    expect(r?.key).toBe('pid:100');
-    expect(r?.pid).toBe(100);
-    expect(r?.cwd).toBe('/Users/alice/projects/hookorama');
+    const result = resolveIdentity([100], '/Users/alice/projects/other', TERMINALS);
+    expect(result).not.toBeNull();
+    expect(result?.kind).toBe('pid');
+    expect(result?.key).toBe('pid:100');
+    expect(result?.pid).toBe(100);
+    expect(result?.cwd).toBe('/Users/alice/projects/hookorama');
   });
 
   test('falls back to cwd when no pid matches', () => {
-    const r = resolveIdentity([999], '/Users/alice/projects/lone', TERMINALS);
-    expect(r).not.toBeNull();
-    expect(r?.kind).toBe('cwd');
-    expect(r?.key).toBe('cwd:/Users/alice/projects/lone');
-    expect(r?.pid).toBeUndefined();
+    const result = resolveIdentity([999], '/Users/alice/projects/lone', TERMINALS);
+    expect(result).not.toBeNull();
+    expect(result?.kind).toBe('cwd');
+    expect(result?.key).toBe('cwd:/Users/alice/projects/lone');
+    expect(result?.pid).toBeUndefined();
   });
 
   test('walks pidChain and picks the first match', () => {
-    const r = resolveIdentity([1, 2, 200, 3], undefined, TERMINALS);
-    expect(r?.kind).toBe('pid');
-    expect(r?.pid).toBe(200);
+    const result = resolveIdentity([1, 2, 200, 3], undefined, TERMINALS);
+    expect(result?.kind).toBe('pid');
+    expect(result?.pid).toBe(200);
   });
 
   test('returns null when both pidChain and cwd are missing', () => {
@@ -36,12 +36,13 @@ describe('resolveIdentity', () => {
   });
 
   test('ignores invalid pids in the chain', () => {
-    expect(resolveIdentity([0, -1, NaN, 100], undefined, TERMINALS)?.pid).toBe(100);
+    const result = resolveIdentity([0, -1, NaN, 100], undefined, TERMINALS);
+    expect(result?.pid).toBe(100);
   });
 
   test('session_id is never used as a key (smoke check)', () => {
-    const r = resolveIdentity([100], undefined, TERMINALS);
-    expect(r?.key).not.toContain('session');
+    const result = resolveIdentity([100], undefined, TERMINALS);
+    expect(result?.key).not.toContain('session');
   });
 });
 

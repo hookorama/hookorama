@@ -86,27 +86,27 @@ export function resolveIdentity(
  * form for the key.
  */
 export function normaliseCwd(cwd: string): string {
-  let s = cwd.trim();
-  if (s.length === 0) return s;
+  let input = cwd.trim();
+  if (input.length === 0) return input;
   // Detect Windows‑style paths: a drive letter prefix like "C:" or
   // any string containing a backslash. On those paths, collapse all
   // separators to forward slash and lowercase the drive letter so
   // "C:\Users\Alice" and "C:/Users/Alice" produce the same key.
-  const isWindowsPath = s.length >= 2 && s[1] === ':';
+  const isWindowsPath = input.length >= 2 && input[1] === ':';
   if (isWindowsPath) {
-    s = s.replace(/\\/g, '/');
+    input = input.replace(/\\/g, '/');
   }
   // Strip trailing separators (POSIX "/" or, after the replace above,
   // the Windows "/" form). Keep a leading "/" on POSIX roots intact.
-  while (s.length > 1 && (s.endsWith('/') || s.endsWith('\\'))) {
-    s = s.slice(0, -1);
+  while (input.length > 1 && (input.endsWith('/') || input.endsWith('\\'))) {
+    input = input.slice(0, -1);
   }
   // Lowercase Windows drive letter: "C:/foo" → "c:/foo".
   if (isWindowsPath) {
-    const firstChar = s[0];
+    const firstChar = input[0];
     if (firstChar !== undefined && /[A-Z]/.test(firstChar)) {
-      s = firstChar.toLowerCase() + s.slice(1);
+      input = firstChar.toLowerCase() + input.slice(1);
     }
   }
-  return s;
+  return input;
 }

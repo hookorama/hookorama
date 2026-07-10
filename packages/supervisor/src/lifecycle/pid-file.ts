@@ -92,7 +92,7 @@ export async function releasePidSlot(target: PidPath): Promise<void> {
   await rm(target.path, { force: true });
 }
 
-function dirname(p: string): string {
-  const i = Math.max(p.lastIndexOf('/'), p.lastIndexOf('\\'));
-  return i === -1 ? '.' : p.slice(0, i) || '.';
+function dirname(path: string): string {
+  const slashIdx = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
+  return slashIdx === -1 ? '.' : path.slice(0, slashIdx) || '.';
 }
