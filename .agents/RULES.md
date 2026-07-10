@@ -24,7 +24,10 @@
 | `README.md` | `.agents/rules/readme.md.rule` | Top-level pointer to `AGENTS.md` and the project status table. |
 | `LICENSE` | `.agents/rules/license.rule` | MIT license text; not a doc, but lives in the `.md` check universe. |
 | `docs/adr/README.md` | `.agents/rules/adr-readme.md.rule` | Defines what an ADR is, when to write one, and the format. |
-| `docs/adr/NNNN-*.md` | `.agents/rules/adr.md.rule` | One ADR per product/architecture decision; cites principles, jobs, and traceability. |
+| `docs/adr/*.md` | `.agents/rules/adr.md.rule` | One ADR per product/architecture decision; cites principles, jobs, and traceability. The README is allowlisted; numbered ADRs match this glob. |
+| `SPEC.md` | `.agents/rules/spec.md.rule` | Component index — one row per shipped component, grows with each ADR. |
+| `ROADMAP.md` | `.agents/rules/roadmap.md.rule` | Ordered phase plan; each phase cites the ADRs it ships. |
+| `CHANGELOG.md` | `.agents/rules/changelog.md.rule` | Keep-a-changelog log; entries added by the PR that ships each phase. |
 | `.agents/README.md` | `.agents/rules/agents-readme.md.rule` | How `.agents/` is organised and what lives where. |
 | `.agents/RULES.md` | `.agents/rules/agents-rules.md.rule` | This index; covered by its own rule so the rule file references itself. |
 | `.agents/skills/<name>/SKILL.md` | `.agents/rules/skill.md.rule` | A procedure activated by name when its `when to use` matches the task. |

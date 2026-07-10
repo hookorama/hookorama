@@ -1,0 +1,73 @@
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { Supervisor } from './supervisor.js';
+
+describe('Supervisor', () => {
+  let work: string;
+  let pidPath: string;
+
+  beforeEach(() => {
+    work = mkdtempSync(join(tmpdir(), 'hookorama-supervisor-'));
+    pidPath = join(work, 'supervisor.pid');
+  });
+
+  afterEach(() => {
+    rmSync(work, { recursive: true, force: true });
+  });
+
+  test('start acquires the PID slot when free', async () => {
+    const s = new Supervisor({ lifecycle: { customPidPath: pidPath }, discovery: null });
+    expect(await s.start()).toBe(true);
+    await s.stop();
+  });
+
+  test('start refuses when another supervisor holds the slot', async () => {
+    const a = new Supervisor({ lifecycle: { customPidPath: pidPath }, discovery: null });
+    expect(await a.start()).toBe(true);
+    const b = new Supervisor({ lifecycle: { customPidPath: pidPath }, discovery: null });
+    expect(await b.start()).toBe(false);
+    await a.stop();
+  });
+
+  test('applyHook upserts a known process and remembers it', () => {
+    const s = new Supervisor({ lifecycle: { customPidPath: pidPath }, discovery: null });
+    s.setOpenTerminals([{ pid: 7, cwd: '/p' }]);
+    const id = s.applyHook({
+      pidChain: [7],
+      cwd: '/p',
+      status: 'thinking',
+      agent: 'claude',
+    });
+    expect(id?.pid).toBe(7);
+    expect(s.snapshot()).toHaveLength(1);
+    expect(s.snapshot()[0]?.agent).toBe('claude');
+  });
+
+  test('applyHook returns null when identity is unresolvable', () => {
+    const s = new Supervisor({ lifecycle: { customPidPath: pidPath }, discovery: null });
+    expect(s.applyHook({ status: 'idle' })).toBeNull();
+  });
+
+  test('subagent lifecycle: start, exact end, fallback end', () => {
+    const s = new Supervisor({ lifecycle: { customPidPath: pidPath }, discovery: null });
+    s.setOpenTerminals([{ pid: 7, cwd: '/p' }]);
+    const id = s.applyHook({ pidChain: [7], cwd: '/p', status: 'thinking' })!;
+    const childKey = s.startSubagent(id, '2026-07-10T00:00:01.000Z', 'tool-1');
+    expect(s.snapshot()).toHaveLength(2);
+    const exact = s.endSubagent(id.key, '2026-07-10T00:00:02.000Z', 'tool-1');
+    expect(exact.closedByKey).toBe(true);
+    expect(s.snapshot()).toHaveLength(2);
+    const childAfter = s.snapshot().find((e: { key: string }) => e.key === childKey);
+    expect(childAfter?.status).toBe('done');
+  });
+
+  test('stop is idempotent', async () => {
+    const s = new Supervisor({ lifecycle: { customPidPath: pidPath }, discovery: null });
+    await s.start();
+    await s.stop();
+    await s.stop();
+    expect(s.isStopping()).toBe(true);
+  });
+});

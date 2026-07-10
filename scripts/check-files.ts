@@ -40,6 +40,15 @@ function listFiles(): string[] {
     .map((p) => p.replaceAll('\\', '/'));
 }
 
+// Paths that never need a sibling README. Files inside
+// `packages/<name>/src/` are documented by the package's
+// top-level README.md and (when relevant) by an src/README.md.
+// The check still flags every .ts outside src/ that is not in
+// the file-level allowlist.
+function isInSrcFolder(path: string): boolean {
+  return /\/src\//.test(path);
+}
+
 async function main(): Promise<number> {
   const paths = listFiles();
   const violations: string[] = [];
@@ -48,6 +57,7 @@ async function main(): Promise<number> {
     const base = path.split('/').pop()!;
     if (ALLOWLIST.has(base)) continue;
     if (base === 'index.ts' && path.endsWith('/src/index.ts')) continue;
+    if (isInSrcFolder(path)) continue;
     const readme = resolve(REPO_ROOT, dirname(path), 'README.md');
     if (!existsSync(readme)) {
       violations.push(`${path} (missing sibling README.md)`);
