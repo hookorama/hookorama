@@ -1,0 +1,34 @@
+---
+appliesTo: scripts/reindex-memory.ts
+purpose: Walks .agents/memory/**/*.md, parses frontmatter, writes .agents/memory/index.tsv.
+owner: memory
+created: 2026-07-10
+---
+
+# Rule: scripts/reindex-memory.ts
+
+The contract:
+
+- Walk `.agents/memory/{facts,retros,lessons}/*.md`, skip the per-subdir
+  `README.md` files.
+- Parse the YAML frontmatter. Required fields: `id`, `type`, `tags`,
+  `created`, `summary`. Missing field → exit `1` with the offending path.
+- Emit `.agents/memory/index.tsv` with header line:
+
+  ```
+  path\tid\ttype\ttags\tcreated\tsummary
+  ```
+
+  Tags are joined with `,` inside the `tags` column. Tabs and newlines
+  in `summary` are replaced with a space.
+- On success: print `Indexed <N> entries` and exit `0`.
+
+## Implementation notes
+
+- Bun runtime. Hand-rolled frontmatter parser (lines between the first
+  pair of `---` lines, naive — sufficient for the flat schema).
+- The script is invoked from `bun run memory:reindex` (manual trigger
+  after adding a memory entry) and from CI as part of `bun run ci`.
+- `index.tsv` is committed. Reviewers reject a PR that changes
+  `index.tsv` without also adding or removing the corresponding entry
+  file in the same PR.

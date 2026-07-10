@@ -1,0 +1,43 @@
+---
+appliesTo: .agents/README.md
+purpose: How `.agents/` is organised and what lives where.
+owner: governance
+created: 2026-07-10
+---
+
+# Rule: .agents/README.md
+
+This is the entry point to the agent self-describing layer. It must:
+
+- show the layout of `.agents/` (folders + files);
+- one-line each role (`RULES.md`, `rules/`, `skills/`, `memory/`);
+- point at the two skills that govern writes
+  (`.agents/skills/navigating-project-docs/SKILL.md` and
+  `.agents/skills/maintaining-agents-dir/SKILL.md`);
+- list what does **not** live here (product code, product docs,
+  build tooling, CI workflows).
+
+## Template
+
+```markdown
+# `.agents/` — <one-line role>
+
+> **What this folder is.** <one paragraph>
+
+## Layout
+
+<tree>
+
+## Roles (one line each)
+
+| File | Role | Read first? |
+|------|------|------------|
+| … | … | … |
+
+## How to add things
+
+- **…** → load `.agents/skills/.../SKILL.md`.
+- **…** → load `.agents/skills/.../SKILL.md`.
+
+## What does NOT live here
+```

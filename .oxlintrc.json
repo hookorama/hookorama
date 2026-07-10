@@ -1,0 +1,28 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "perf": "warn",
+    "style": "off",
+    "restriction": "error",
+    "nursery": "off"
+  },
+  "rules": {
+    "no-explicit-any": "error",
+    "no-console": ["error", { "allow": ["warn", "error"] }],
+    "no-unused-vars": "error",
+    "no-empty": "error",
+    "no-debugger": "error"
+  },
+  "ignorePatterns": [
+    "**/dist/**",
+    "**/node_modules/**",
+    "**/.nx/**",
+    "**/coverage/**",
+    "**/scripts/**",
+    "**/.agents/**",
+    "**/docs/**",
+    "**/.github/**"
+  ]
+}

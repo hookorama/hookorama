@@ -1,0 +1,28 @@
+---
+appliesTo: .github/pull_request_template.md
+purpose: Required PR fields that enforce the agent contract (ADR cite, FR/NFR, AC, memory update, rule addition).
+owner: governance
+created: 2026-07-10
+---
+
+# Rule: .github/pull_request_template.md
+
+GitHub auto-uses this file when a PR opens. It must have these sections,
+in this order, all required:
+
+1. **What & why** — short prose.
+2. **Cites ADR(s)** — `ADR NNNN` (one or more), or "none — tooling/refactor
+   only" (refactors and bug fixes do not require ADRs).
+3. **FR / NFR IDs** — until `SPEC.md` exists: "no SPEC yet — FR/NFR live
+   in the cited ADR(s)"; once `SPEC.md` exists: list the relevant rows.
+4. **Acceptance criteria** — checkboxes copied from the cited ADR's
+   "Acceptance criteria" section (and from `SPEC.md §13` once it exists).
+5. **Memory updated** — "yes (paths) / no / not needed".
+6. **New `.md` rules added** — "yes (paths) / no".
+7. **New skills added** — "yes (paths) / no".
+8. **Manual tests** — what the author ran locally to verify.
+9. **CI gates** — confirmation that `bun run ci` was green locally.
+
+Reviewers reject PRs with empty required fields. The check
+(`bun run check:md`) only verifies the file exists and is `.md`; the
+content fields are checked by reviewers.

@@ -1,0 +1,27 @@
+{
+  "name": "@hookorama/extension",
+  "displayName": "Hookorama",
+  "description": "Hookorama — local supervisor for LLM and CLI agents. Status bar, terminal treeview, web terminal.",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/extension.cjs",
+  "types": "./dist/extension.d.cts",
+  "exports": {
+    ".": "./dist/extension.cjs",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "vscode": "^1.94.0"
+  },
+  "activationEvents": [],
+  "contributes": {},
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  }
+}

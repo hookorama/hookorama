@@ -1,0 +1,16 @@
+name: release
+
+on:
+  workflow_dispatch:
+
+# Placeholder. The first release PR (Phase 6+) fills this in with:
+#   - npm publish via OIDC trusted publishing
+#   - GitHub release creation
+#   - CHANGELOG synchronisation
+# Until then, this workflow is intentionally a no-op so the file is
+# tracked by `bun run check:md` without doing anything.
+jobs:
+  placeholder:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "release workflow is a placeholder until the first release PR."

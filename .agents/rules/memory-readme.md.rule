@@ -1,0 +1,55 @@
+---
+appliesTo: .agents/memory/README.md
+purpose: How to add a memory entry (fact, retro, or lesson).
+owner: memory
+created: 2026-07-10
+---
+
+# Rule: .agents/memory/README.md
+
+Documents the procedure for adding memory entries. The actual procedure
+lives in `.agents/skills/maintaining-agents-dir/SKILL.md`; this README is
+the index of the three subdirectories and the frontmatter shape.
+
+## Template
+
+```markdown
+# `.agents/memory/` — the agent's shared knowledge
+
+> **What this is.** A flat store of facts, retros, and lessons…
+
+## Layout
+
+```
+.agents/memory/
+├── README.md (this file)
+├── facts/    — non-obvious facts we learned
+├── retros/   — retrospectives on mistakes
+├── lessons/  — behaviour-changing lessons
+└── index.tsv — generated; never edit by hand
+```
+
+## Frontmatter shape
+
+```yaml
+---
+id: <kebab-case>
+type: fact | retro | lesson
+tags: [kebab, kebab]
+created: YYYY-MM-DD
+summary: <one sentence>
+---
+```
+
+- `id` — kebab-case, unique within `type`. Example: `pidChain-beats-sessionId`.
+- `type` — `fact`, `retro`, or `lesson`. Each lives in its own subdir.
+- `tags` — array of kebab tokens. Reuse existing tags where possible; check
+  the index (`bun run memory:reindex`) first.
+- `summary` — single sentence; the agent should be able to make a decision
+  from this line alone.
+
+## Reindex
+
+`bun run memory:reindex` walks this folder, parses frontmatter, and
+writes `index.tsv`. Re-run after every add.
+```

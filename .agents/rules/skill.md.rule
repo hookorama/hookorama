@@ -1,0 +1,46 @@
+---
+appliesTo: .agents/skills/<name>/SKILL.md
+purpose: A procedure activated by name when its `when to use` matches the agent's current task.
+owner: skills
+created: 2026-07-10
+---
+
+# Rule: .agents/skills/<name>/SKILL.md
+
+A skill is a **procedure**, not a rule. It must:
+
+- have frontmatter with `name`, `when to use`, `procedure`, `outputs`;
+- show the procedure as numbered steps;
+- end with a "Done when" or "Outputs" section that lets a reviewer or the
+  agent itself verify completion;
+- be loaded **by name** when relevant, not on every task (per the
+  `when to use` field).
+
+## Template
+
+```markdown
+---
+name: <kebab-case>
+when to use: <one sentence — the trigger>
+procedure: <n steps>
+outputs: <what the procedure produces, in concrete file paths / artifacts>
+---
+
+# Skill: <name>
+
+> <one paragraph>
+
+## Inputs
+<what the agent must have read or know before starting>
+
+## Procedure
+1. …
+2. …
+
+## Outputs
+- <artefact 1>
+- <artefact 2>
+
+## Done when
+- [ ] …
+```

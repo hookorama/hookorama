@@ -1,0 +1,40 @@
+---
+appliesTo: .agents/RULES.md
+purpose: The index table that maps every tracked .md path glob to its rule file and one-line purpose.
+owner: governance
+created: 2026-07-10
+---
+
+# Rule: .agents/RULES.md
+
+This is the index. It must:
+
+- one-line its mission at the top;
+- have a markdown table with columns `Path glob` | `Rule file` | `Purpose`;
+- list the explicit allowlist (files that need no rule);
+- document the procedure for adding a new rule (4 steps);
+- be kept in sync with `.agents/rules/*.md.rule` — if the table and the
+  rules disagree, both fail CI (`bun run check:md` reads only the table).
+
+## Template
+
+```markdown
+# `.agents/RULES.md` — index of rules for tracked `.md` files
+
+> **Why this file exists.** <one paragraph>
+
+## Rules index
+
+| Path glob | Rule file | Purpose |
+|-----------|-----------|---------|
+| … | … | … |
+
+## Allowlist (no rule required)
+- …
+
+## Adding a new rule
+1. …
+2. …
+3. …
+4. …
+```

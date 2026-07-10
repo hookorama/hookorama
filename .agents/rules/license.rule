@@ -1,0 +1,17 @@
+---
+appliesTo: LICENSE
+purpose: The MIT license text — a single-page legal artifact, not documentation.
+owner: governance
+created: 2026-07-10
+---
+
+# Rule: LICENSE
+
+`LICENSE` carries the MIT license text verbatim. It is treated as a `.md`
+file by `bun run check:md` only because it shares the extension. There is
+no structural requirement beyond "the MIT text, end-to-end, with copyright
+year/holder that matches the repo owner".
+
+If the project relicenses, write a new `LICENSE`, add a memory retro for
+the relicensing event, and update this rule to point at the new path (the
+rule file stays; its purpose statement gets a `supersedes:` line).

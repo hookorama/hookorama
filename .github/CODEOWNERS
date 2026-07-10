@@ -1,0 +1,22 @@
+# CODEOWNERS — Hookorama
+#
+# GitHub CODEOWNERS syntax. Each line is `<path glob> <@owner>`.
+# Reviewers are auto-requested when a PR touches a matching path.
+# Until the team is larger, everything is owned by the bootstrap owner.
+
+/*                                  @hookorama/bootstrap-maintainer
+
+# Per-package ownership grows as the team grows.
+/packages/extension/                @hookorama/bootstrap-maintainer
+/packages/supervisor/               @hookorama/bootstrap-maintainer
+/packages/cli/                      @hookorama/bootstrap-maintainer
+/packages/client/                   @hookorama/bootstrap-maintainer
+/packages/web-app/                  @hookorama/bootstrap-maintainer
+
+# Governance and contract.
+/AGENTS.md                          @hookorama/bootstrap-maintainer
+/.agents/                           @hookorama/bootstrap-maintainer
+/docs/adr/                          @hookorama/bootstrap-maintainer
+
+# CI.
+/.github/                           @hookorama/bootstrap-maintainer

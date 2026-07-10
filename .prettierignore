@@ -1,0 +1,8 @@
+dist/
+node_modules/
+bun.lock
+bun.lockb
+.nx/
+coverage/
+scripts/_scratch/
+tmp/

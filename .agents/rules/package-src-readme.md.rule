@@ -1,0 +1,25 @@
+---
+appliesTo: packages/<name>/src/README.md
+purpose: Optional per-package src README for packages where the entry is not `src/index.ts` (e.g. the VS Code extension uses `extension.ts`).
+owner: governance
+created: 2026-07-10
+---
+
+# Rule: packages/<name>/src/README.md
+
+Some packages do not have a `src/index.ts` barrel — the VS Code
+extension's entry is `src/extension.ts`, for example. In those
+cases the package MAY add a `src/README.md` next to the entry to
+describe what the entry does.
+
+The file must:
+
+- one-line the purpose of the entry;
+- list the entry file and what it exports;
+- stay under 40 lines.
+
+If a package has both `src/index.ts` and `src/<other>.ts`, prefer
+the top-level `packages/<name>/README.md` (governed by
+`.agents/rules/package-readme.md.rule`); do not also write a
+`src/README.md` unless the entry's role is genuinely different
+from the barrel's role.

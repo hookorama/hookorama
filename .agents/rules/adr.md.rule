@@ -1,0 +1,52 @@
+---
+appliesTo: docs/adr/NNNN-*.md
+purpose: One product/architecture decision per file; numbered, frontmatter-led, lifecycle-tracked.
+owner: governance
+created: 2026-07-10
+---
+
+# Rule: docs/adr/NNNN-<slug>.md
+
+A numbered ADR is a **product or architecture decision about a component or
+a feature**. The full list of what counts as an ADR is in
+`docs/adr/README.md` (TL;DR: new package, new wire frame, new state
+machine, new persistence shape, new surface, new cost model, new
+adoption-score formula — **not** tooling choices).
+
+## Frontmatter (required)
+
+```yaml
+---
+id: NNNN
+title: <one line>
+type: <component | feature | runtime | contract | history | governance>
+status: proposed | accepted | superseded | deprecated
+created: YYYY-MM-DD
+supersedes: []
+principles: [P-1, …]
+jobs: [H-1, …]
+---
+```
+
+`principles` and `jobs` only need values once those exist (`SPEC.md`,
+`ROADMAP.md`); for PR 1 there is nothing to point at and both arrays are
+empty arrays `[]`.
+
+## Body sections (required, in this order)
+
+1. `# ADR NNNN — <Title>`
+2. `## Context`
+3. `## Decision`
+4. `## Consequences` (with `### Positive`, `### Negative`, `### Reversibility`)
+5. `## Alternatives considered`
+6. `## Open questions`
+7. `## Traceability`
+
+## Numbering
+
+- Four digits, zero-padded: `0001`, `0002`, … .
+- Slug is kebab-case, lowercase, ASCII, derived from the title.
+- Each new ADR gets the next available number; PR review may bump the
+  number if a lower number is reserved by a concurrent PR.
+- A superseded ADR is **not** renamed — its file stays; the `status:`
+  flips, and the `supersedes:` field of the new ADR points at it.

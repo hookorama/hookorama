@@ -1,0 +1,46 @@
+---
+appliesTo: README.md
+purpose: Top-level pointer to AGENTS.md and the project status table.
+owner: governance
+created: 2026-07-10
+---
+
+# Rule: README.md
+
+The repo-root `README.md` is **a pointer, not a document**. It must:
+
+- link to `AGENTS.md` as the first thing an agent reads;
+- list the current component / phase status (which packages exist, which
+  components are shipped — read from `SPEC.md` when it exists);
+- link to LICENSE.
+
+It must **not**:
+
+- duplicate content from `AGENTS.md`;
+- include design details, FR/NFR lists, or ADRs;
+- exceed 80 lines.
+
+## Template (frontmatter is none — root README has no frontmatter)
+
+```markdown
+# <Project name>
+
+<one paragraph: what it is, why it exists>
+
+## Start here
+
+- `<pointer 1>` — <why read it>
+- `<pointer 2>` — <why read it>
+- …
+
+## Status
+
+| Item | State |
+|------|-------|
+| <row> | <state> |
+| … |  |
+
+## License
+
+<one line, link to LICENSE>.
+```

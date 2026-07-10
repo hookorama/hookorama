@@ -1,0 +1,5 @@
+[install]
+exact = false
+
+[install.scopes]
+"@hookorama" = { url = "workspace:*" }

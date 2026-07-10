@@ -1,0 +1,26 @@
+---
+appliesTo: scripts/check-files.ts
+purpose: Walks packages/**/*; asserts sibling README.md or allowlist membership.
+owner: governance
+created: 2026-07-10
+---
+
+# Rule: scripts/check-files.ts
+
+The contract:
+
+- Input: `git ls-files 'packages/**/*.{ts,tsx,json}'` (POSIX paths).
+- For each file, one of must hold:
+  - a sibling `README.md` exists in the same directory, **or**
+  - the file is in the allowlist:
+    - `packages/*/src/index.ts` (barrel files),
+    - `packages/*/package.json`,
+    - `packages/*/tsconfig.json`,
+    - `packages/*/vitest.config.ts`.
+- On violation: print the offending path + the missing condition, exit `1`.
+- On success: print `OK: <N> files matched` and exit `0`.
+
+## Implementation notes
+
+- Same runtime/notes as `check-md.ts`.
+- The script is invoked from `bun run check:files` and from CI.

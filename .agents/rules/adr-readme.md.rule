@@ -1,0 +1,23 @@
+---
+appliesTo: docs/adr/README.md
+purpose: Explains what an ADR is, when to write one, the format, and the lifecycle.
+owner: governance
+created: 2026-07-10
+---
+
+# Rule: docs/adr/README.md
+
+This file is the **only** file that ships in `docs/adr/` on day one. Until
+the first numbered ADR lands, it carries the entire explanation of the
+folder.
+
+It must:
+
+- state what an ADR is and is not (ADRs cover product/architecture decisions
+  about a component or feature; they do not cover tooling, processes, or
+  invariants);
+- define the lifecycle (`proposed` / `accepted` / `superseded` / `deprecated`);
+- show the format (frontmatter fields + the section list);
+- cross-link `AGENTS.md §3` and `.agents/skills/navigating-project-docs/`.
+
+It must **not** exceed ~120 lines.

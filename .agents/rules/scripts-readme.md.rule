@@ -1,0 +1,40 @@
+---
+appliesTo: scripts/README.md
+purpose: Explains what is allowed in scripts/ (small, throwaway tooling only) and how it relates to packages/.
+owner: governance
+created: 2026-07-10
+---
+
+# Rule: scripts/README.md
+
+Documents the boundary between `scripts/` and `packages/`. The rule
+itself is short:
+
+- `scripts/` is **repo-root tooling** — `check-md`, `check-files`,
+  `reindex-memory`, and similar one-shot checks that operate on the
+  whole repo;
+- `scripts/_scratch/` (gitignored) is for throwaway helpers;
+- product logic does **not** live in `scripts/`; if a script grows
+  past ~100 lines of meaningful code, it deserves its own
+  `packages/<name>/` and a `package.json` of its own.
+
+## Template
+
+```markdown
+# `scripts/` — repo-root tooling
+
+> **What lives here.** Small one-shot helpers that operate on the
+> whole repo…
+
+## Layout
+
+- `check-md.ts` — enforces the `.md` rule.
+- `check-files.ts` — enforces sibling-README under `packages/`.
+- `reindex-memory.ts` — emits `.agents/memory/index.tsv`.
+- `_scratch/` (gitignored) — throwaway helpers.
+
+## What does NOT live here
+
+Product logic. If a script outgrows this folder, it becomes
+`packages/<name>/`.
+```

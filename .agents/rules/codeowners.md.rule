@@ -1,0 +1,25 @@
+---
+appliesTo: .github/CODEOWNERS
+purpose: List reviewers / owners per path so GitHub auto-requests reviews.
+owner: governance
+created: 2026-07-10
+---
+
+# Rule: .github/CODEOWNERS
+
+The file uses GitHub's `CODEOWNERS` syntax (one path glob per line, then
+`@org/team` or `@user`). The `check:md` script considers this a `.md`
+(tracked because of extension) but does **not** validate syntax — GitHub
+itself reports parse errors.
+
+For the bootstrap PR there is a single owner (the project lead). As the
+project grows, the file moves toward per-package ownership, e.g.:
+
+```
+/packages/supervisor/  @hookorama/supervisor-maintainers
+/packages/client/      @hookorama/client-maintainers
+/AGENTS.md             @hookorama/governance-maintainers
+```
+
+The default reviewer set must **never** be empty; if a path is not
+covered, code there merges without review.

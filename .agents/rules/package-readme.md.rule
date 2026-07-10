@@ -1,0 +1,42 @@
+---
+appliesTo: packages/*/README.md
+purpose: One short README per package; describes what it is for, not what it currently ships.
+owner: governance
+created: 2026-07-10
+---
+
+# Rule: packages/<name>/README.md
+
+Every package has exactly one `README.md`. It must:
+
+- state in one sentence what the package is **for** (not what it does
+  today; the surface changes, the purpose doesn't);
+- list the public API (`from '@hookorama/<name>' import { … } from …`);
+- point at the ADR(s) that govern its shape, once any ADR exists;
+- point at `.agents/skills/<name>/SKILL.md` if a skill touches it.
+
+It must **not**:
+
+- duplicate the package's `SPEC` content (which lives in the ADR that ships
+  the component — there is no per-package spec file by default);
+- exceed 60 lines.
+
+## Template
+
+```markdown
+# `@hookorama/<name>`
+
+<one sentence: what is this for>
+
+## Public API
+
+```ts
+import { … } from '@hookorama/<name>';
+```
+
+## Pinned by
+
+- ADR(s): <ids, or "not yet; this package is a placeholder">
+- Rules: `.agents/rules/package-readme.md.rule`
+- Skills: <paths, or "none">
+```

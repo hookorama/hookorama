@@ -1,0 +1,32 @@
+---
+appliesTo: scripts/check-md.ts
+purpose: Walks git-tracked .md files; fails on unmatched `appliesTo` in `.agents/RULES.md`.
+owner: governance
+created: 2026-07-10
+---
+
+# Rule: scripts/check-md.ts
+
+The contract:
+
+- Input: `git ls-files '*.md'` (POSIX paths even on Windows under git bash).
+- For each path, find a row in `.agents/RULES.md` whose `Path glob`
+  matches. Glob matching uses POSIX path semantics (`/` separator).
+- Explicit allowlist (no rule needed):
+  - `AGENTS.md`
+  - `.agents/RULES.md`
+  - `.agents/rules/*.md.rule`
+  - `.agents/skills/*/SKILL.md`
+  - `.vscode/settings.json`
+  - `.vscode/extensions.json`
+- On unmatched path: print the path + a one-line hint pointing at the
+  maintenance skill, then exit `1`.
+- On success: print `OK: <N> .md files matched` and exit `0`.
+
+## Implementation notes
+
+- Bun is the runtime; use `Bun.file().text()` to read files; do not pull
+  in a markdown parser library — parse with a hand-rolled line scanner.
+- Glob → RegExp translation: `*` → `[^/]*`, `**` → `.*`, `.` → `\.`,
+  everything else literal.
+- The script is invoked from `bun run check:md` and from CI.

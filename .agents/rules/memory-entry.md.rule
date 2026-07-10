@@ -1,0 +1,46 @@
+---
+appliesTo: .agents/memory/{facts,retros,lessons}/*.md
+purpose: Each entry has a stable frontmatter shape so the index and reindex scripts work.
+owner: memory
+created: 2026-07-10
+---
+
+# Rule: .agents/memory/<subdir>/*.md
+
+A memory entry is one `.md` file with required frontmatter. There is **no**
+template body; the prose is whatever fits the entry's type. Keep the body
+short enough that the entire file fits in a single `cat | head -40` in the
+agent's context window.
+
+## Required frontmatter
+
+```yaml
+---
+id: <kebab-case, unique within type>
+type: fact | retro | lesson
+tags: [kebab, kebab]
+created: YYYY-MM-DD
+summary: <one sentence — under 200 chars>
+---
+```
+
+`type` decides the subdirectory:
+
+- `.agents/memory/facts/<id>.md` — non-obvious facts (e.g. "the agent's
+  session_id changes across /clear; do not key identity on it").
+- `.agents/memory/retros/<id>.md` — retrospectives on mistakes, with
+  `trigger`, `what went wrong`, `what we change`.
+- `.agents/memory/lessons/<id>.md` — lessons with `rule`, `applies when`.
+
+## Procedure
+
+1. Choose the subdirectory (`facts/`, `retros/`, `lessons/`).
+2. Pick a kebab-case `id` (`.agents/skills/maintaining-agents-dir/SKILL.md`
+   has the naming advice).
+3. Write the file with required frontmatter.
+4. `bun run memory:reindex`.
+5. The CI runs the same reindex on every PR; a missing frontmatter field
+   fails CI.
+
+See `.agents/skills/maintaining-agents-dir/SKILL.md` for the full
+procedure, including "when to write a memory entry" and "when not to".

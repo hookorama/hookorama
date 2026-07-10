@@ -1,0 +1,15 @@
+---
+appliesTo: .github/workflows/release.yml
+purpose: Placeholder until the first release PR ships.
+owner: governance
+created: 2026-07-10
+---
+
+# Rule: .github/workflows/release.yml
+
+PR 1 ships an empty placeholder so the file exists and is `.md`-tracked.
+The first release PR (Phase 6+) fills it in with the release workflow:
+npm publish with OIDC, GitHub release creation, and changelog
+synchronisation.
+
+Until then the file body is a comment that says exactly that.
