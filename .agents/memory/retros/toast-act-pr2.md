@@ -1,38 +1,75 @@
 ---
 id: toast-act-pr2-2026-07-10
 type: retro
-tags: [gt:act, hookorama, pr-2, deepsource]
+tags: [gt:act, hookorama, pr-2, deepsource, codacy, retro]
 created: 2026-07-10
-summary: First /act pass on PR #2 — fixed 8 convergent bugs, resolved 100 review threads, DeepSource cleared on second commit. Codacy remains action_required (non-blocking). Key learning: DeepSource status context is invisible in PR check-runs API; verify by absence from `gh pr checks` rather than conclusion lookup.
+summary: /act on PR #2 caught 8 convergent bugs and ~100 review threads; DeepSource's "absent from gh pr checks" is not proof of pass — verify via statusCheckRollup conclusion.
 ---
 
-# /act pass on hookorama PR #2 — 2026-07-10
+# /act retro on hookorama PR #2 — 2026-07-10
 
-## What I did
+## Trigger
 
-- Fixed all 8 convergent review bugs (stale-PID reclaim, PID-slot leak on discovery failure, WMIC `Node` column parsing, empty-argv crash, Windows cwd canonicalisation, subagent key collision without `toolUseId`, empty doc-comment, `isProcessRunning` boolean simplification).
-- Extracted `parseWmicCsv` for unit testing, added `process-discovery/index.test.ts`.
-- Added `supervisor.bugs.test.ts` covering every behavioural fix.
-- Renamed single-letter variables (`r`/`s`/`e`/`id`/`a`/`b`/`k1`/`k2`) to remove DeepSource `JS-C1002` and `JS-0339` findings.
-- Replied to all 100 review threads with the commit SHA, then resolved them.
+Bead dispatched to address failing CI on `hookorama/hookorama` PR #2
+(`feat/supervisor-shape`). `gh pr checks` at the time showed
+Codacy as `fail` and DeepSource as `fail`; cubic, CodeRabbit, and
+CodeFactor had also posted dozens of inline review threads.
 
-## Commits on feat/supervisor-shape
+## What went wrong
+
+1. **DeepSource was reported as "effectively green" via absence from
+   `gh pr checks`.** DeepSource reports via a StatusContext (not a
+   CheckRun), so it does not appear in the commit `check-runs`
+   endpoint — but it **does** appear in the PR's `statusCheckRollup`.
+   Concluding success from absence in `gh pr checks` is incorrect;
+   future automation reading this retro should check
+   `statusCheckRollup` for a `SUCCESS` conclusion on the
+   `DeepSource: JavaScript` context before recording green.
+2. **First /act pass treated CodeRabbit "actionable comments posted: N"
+   as if N inline threads existed.** Some entries were auto-managed
+   pauses, not open threads; resolving required walking the actual
+   review thread id list, not the AI summary count.
+3. **The retro written at the end of the pass was an activity log,
+   not a retro.** It lacked the required `## Trigger`,
+   `## What went wrong`, `## What we change` headings and the
+   `summary` exceeded the 200-char limit set by
+   `.agents/memory/README.md`. cubic correctly flagged this on the
+   subsequent re-review.
+4. **One supervisor.test.ts path (`closeSubagentOf` fallback in
+   `endSubagent`) had no test.** A cubic review noted that
+   `supervisor.ts:137` calls into `closeSubagentOf` whenever
+   `closeSubagentByKey` returns false (e.g. wrong `toolUseId`), and
+   the test for that path had been dropped earlier.
+
+## What we change
+
+1. **Memory entries: future /act retros MUST be written to the
+   contract in `.agents/memory/README.md` from the first edit.**
+   Required body headings (`## Trigger`, `## What went wrong`,
+   `## What we change`) and a `summary` <= 200 chars. Run
+   `bun run memory:reindex` and verify the entry round-trips.
+2. **CI verification: read `statusCheckRollup` for StatusContext
+   providers (DeepSource, CodeFactor) — `gh pr checks` misses them.**
+   Always look up the `conclusion` field on each rollup item;
+   never treat absence as success.
+3. **PR-fixup workflow: when a reviewer (cubic, CodeRabbit) lists
+   actionable inline findings, address each one in the next commit
+   on the PR branch, then reply to the thread with the commit SHA
+   and resolve via the GraphQL `resolveReviewThread` mutation.**
+   Do not push a follow-up commit without first walking the full
+   review-thread list (the AI summary may omit threads or count
+   paused reviews).
+4. **Supervisor fallback coverage: keep `closeSubagentOf` exercised
+   by tests.** The cubic finding on PR #2 is now closed by the new
+   `closeSubagentOf closes the most-recent non-done child of a
+   parent` test in `packages/supervisor/src/state/store.test.ts`.
+
+## Commits cited
 
 - `b072d36` — fix(supervisor): resolve 8 convergent review bugs
-- `fc23ec3` — fix(supervisor): address DeepSource stylistic nits (long var names)
-
-## Final PR state
-
-- HEAD: `fc23ec31c16fe217f0ef055e08f9c458418c9296`
-- bun-ci: ✅ SUCCESS
-- CodeFactor: ✅ SUCCESS
-- DeepSource: dropped from `gh pr checks` (previously FAILURE → no longer reported → effectively green)
-- CodeRabbit / cubic: re-running (review pending)
-- Codacy: action_required (non-blocking per bead spec)
-- mergeStateStatus: UNSTABLE (will become CLEAN once CodeRabbit/cubic finish)
-
-## Tooling notes
-
-- `gh` JSON fields: `databaseId` is **not** on `PullRequestReviewThread` — use `id`.
-- DeepSource reports via a StatusContext, not a CheckRun. It does **not** appear in the commit `check-runs` endpoint, only in the PR statusCheckRollup. To detect "still failing", watch for the context name `DeepSource: JavaScript` in the rollup.
-- DeepSource public pages require login; can't be webfetched for triage.
+- `fc23ec3` — fix(supervisor): address DeepSource stylistic nits
+- `45676a0` — docs(memory): retro for /act pass on PR #2
+- `590ac24` — docs(check-files): fix stale extension comment
+- `a0f9566` — fix(supervisor): address Codacy findings
+- plus a follow-up commit covering the cubic findings on this retro
+  and the supervisor fallback coverage.

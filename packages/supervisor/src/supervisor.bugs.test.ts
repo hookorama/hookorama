@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { spawn } from 'node:child_process';
 import { Supervisor } from './supervisor.js';
 import type { ProcessDiscovery, ProcessRow } from './process-discovery/index.js';
 
@@ -19,7 +20,16 @@ describe('Supervisor bug fixes', () => {
   });
 
   test('start reclaims a stale PID file pointing at a dead process', async () => {
-    writeFileSync(pidPath, '999999\n', 'utf8');
+    const child = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 0)'], { stdio: 'ignore' });
+    const stalePid = child.pid;
+    if (stalePid === undefined) {
+      throw new Error('spawn returned no pid; cannot exercise stale-PID reclaim');
+    }
+    const exitCode = await new Promise<number | null>((resolve) => {
+      child.once('exit', (code) => resolve(code));
+    });
+    expect(exitCode).not.toBeNull();
+    writeFileSync(pidPath, `${stalePid}\n`, 'utf8');
     const sup = new Supervisor({ lifecycle: { customPidPath: pidPath }, discovery: null });
     expect(await sup.start()).toBe(true);
     await sup.stop();

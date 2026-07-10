@@ -31,4 +31,33 @@ describe('StateStore subagent', () => {
     expect(child?.parentKey).toBe(identity.key);
     expect(child?.status).toBe('running-tool');
   });
+
+  test('closeSubagentOf closes the most-recent non-done child of a parent', () => {
+    const store = new StateStore();
+    const identity = resolveIdentity([7], '/p', TERMINALS);
+    expect(identity).not.toBeNull();
+    if (identity === null) return;
+    store.applyEvent(identity, 'thinking', '2026-07-10T00:00:00.000Z', {});
+
+    const olderKey = `${identity.key}:subagent:older`;
+    const newerKey = `${identity.key}:subagent:newer`;
+    store.upsertSubagent(identity.key, olderKey, '2026-07-10T00:00:01.000Z');
+    store.upsertSubagent(identity.key, newerKey, '2026-07-10T00:00:02.000Z');
+
+    expect(store.closeSubagentOf(identity.key, '2026-07-10T00:00:03.000Z')).toBe(true);
+    expect(store.get(newerKey)?.status).toBe('done');
+    expect(store.get(olderKey)?.status).toBe('running-tool');
+  });
+
+  test('closeSubagentOf returns false when no non-done children exist', () => {
+    const store = new StateStore();
+    const identity = resolveIdentity([7], '/p', TERMINALS);
+    expect(identity).not.toBeNull();
+    if (identity === null) return;
+    store.applyEvent(identity, 'thinking', '2026-07-10T00:00:00.000Z', {});
+    store.upsertSubagent(identity.key, `${identity.key}:subagent:abc`, '2026-07-10T00:00:01.000Z');
+
+    expect(store.closeSubagentOf(identity.key, '2026-07-10T00:00:02.000Z')).toBe(true);
+    expect(store.closeSubagentOf(identity.key, '2026-07-10T00:00:03.000Z')).toBe(false);
+  });
 });
