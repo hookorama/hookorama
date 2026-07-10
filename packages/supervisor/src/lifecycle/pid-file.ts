@@ -10,7 +10,7 @@
 
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { homedir, platform, tmpdir } from 'node:os';
 import { isProcessRunning } from './pid.js';
 
@@ -71,16 +71,18 @@ export async function acquirePidSlot(
   target: PidPath,
   myPid: number,
 ): Promise<{ acquired: true } | { acquired: false; existingPid: number }> {
-  await mkdir(dirname(target.path), { recursive: true });
-  if (existsSync(target.path)) {
-    const raw = await readFile(target.path, 'utf8').catch(() => '');
+  const resolvedPath = resolve(target.path);
+  const parentDir = dirname(resolvedPath);
+  await mkdir(parentDir, { recursive: true });
+  if (existsSync(resolvedPath)) {
+    const raw = await readFile(resolvedPath, 'utf8').catch(() => '');
     const existing = Number(raw.trim());
     if (Number.isFinite(existing) && isProcessRunning(existing)) {
       return { acquired: false, existingPid: existing };
     }
-    await rm(target.path, { force: true });
+    await rm(resolvedPath, { force: true });
   }
-  await writeFile(target.path, `${myPid}\n`, { flag: 'wx' });
+  await writeFile(resolvedPath, `${myPid}\n`, { flag: 'wx' });
   return { acquired: true };
 }
 
@@ -89,10 +91,5 @@ export async function acquirePidSlot(
  * file is not an error.
  */
 export async function releasePidSlot(target: PidPath): Promise<void> {
-  await rm(target.path, { force: true });
-}
-
-function dirname(path: string): string {
-  const slashIdx = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
-  return slashIdx === -1 ? '.' : path.slice(0, slashIdx) || '.';
+  await rm(resolve(target.path), { force: true });
 }

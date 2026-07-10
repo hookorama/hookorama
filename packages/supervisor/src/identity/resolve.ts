@@ -92,7 +92,7 @@ export function normaliseCwd(cwd: string): string {
   // any string containing a backslash. On those paths, collapse all
   // separators to forward slash and lowercase the drive letter so
   // "C:\Users\Alice" and "C:/Users/Alice" produce the same key.
-  const isWindowsPath = input.length >= 2 && input[1] === ':';
+  const isWindowsPath = input.length >= 2 && input.charAt(1) === ':';
   if (isWindowsPath) {
     input = input.replace(/\\/g, '/');
   }
@@ -103,8 +103,8 @@ export function normaliseCwd(cwd: string): string {
   }
   // Lowercase Windows drive letter: "C:/foo" → "c:/foo".
   if (isWindowsPath) {
-    const firstChar = input[0];
-    if (firstChar !== undefined && /[A-Z]/.test(firstChar)) {
+    const firstChar = input.charAt(0);
+    if (/[A-Z]/.test(firstChar)) {
       input = firstChar.toLowerCase() + input.slice(1);
     }
   }

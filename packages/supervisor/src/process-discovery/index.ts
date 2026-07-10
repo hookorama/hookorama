@@ -115,13 +115,15 @@ export class MacPsDiscovery implements ProcessDiscovery {
     const lines = await spawnLines(['ps', '-axo', 'pid=,ppid=,comm=']);
     const rows: ProcessRow[] = [];
     for (const line of lines) {
-      const match = /^(\d+)\s+(\d+)\s+(.*)$/.exec(line);
+      const match = /^\s*(\d+)\s+(\d+)\s+(.*)$/.exec(line);
       if (match === null) continue;
-      const [, pidRaw, ppidRaw, command] = match;
+      const pidRaw = match[1] ?? '';
+      const ppidRaw = match[2] ?? '';
+      const command = match[3] ?? '';
       const pid = Number(pidRaw);
       const ppid = Number(ppidRaw);
       if (!Number.isFinite(pid) || !Number.isFinite(ppid)) continue;
-      rows.push({ pid, ppid, command: command ?? '' });
+      rows.push({ pid, ppid, command });
     }
     return rows;
   }
