@@ -16,7 +16,7 @@ layer ship in later PRs; they are pinned by ADRs 0003 and 0004
 ## Public API
 
 ```ts
-import { Supervisor, resolveIdentity, pickDiscovery } from '@hookorama/supervisor';
+import { Supervisor } from '@hookorama/supervisor';
 ```
 
 The full public surface is re-exported from
@@ -24,8 +24,8 @@ The full public surface is re-exported from
 
 ## Pinned by
 
-- ADR(s): [`docs/adr/0001-supervisor-shape.md`](../../../docs/adr/0001-supervisor-shape.md),
-  [`docs/adr/0002-v1-postmortem.md`](../../../docs/adr/0002-v1-postmortem.md)
+- ADR(s): [`docs/adr/0001-supervisor-shape.md`](../../docs/adr/0001-supervisor-shape.md),
+  [`docs/adr/0002-v1-postmortem.md`](../../docs/adr/0002-v1-postmortem.md)
 - Rules: `.agents/rules/package-readme.md.rule`
 - Skills: none
 - Memory: `.agents/memory/facts/pid-chain-beats-session-id.md`

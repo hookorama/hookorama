@@ -62,7 +62,7 @@ CodeFactor had also posted dozens of inline review threads.
 4. **Supervisor fallback coverage: keep `closeSubagentOf` exercised
    by tests.** The cubic finding on PR #2 is now closed by the new
    `closeSubagentOf closes the most-recent non-done child of a
-parent` test in `packages/supervisor/src/state/store.test.ts`.
+   parent` test in `packages/supervisor/src/state/store.test.ts`.
 
 ## Commits cited
 

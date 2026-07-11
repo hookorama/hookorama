@@ -129,7 +129,7 @@ None.
 
 ## Traceability
 
-- **Mission:** `docs/NORTH-STAR.md` §"What 'service' means here".
+- **Mission:** `docs/NORTH-STAR.md` (to be created) §"What 'service' means here".
 - **Principles:** `P-5`.
 - **Jobs:** `H-1`, `H-2`, `H-4`.
 - **SPEC.md row:** none (this ADR records a rejection, not a
