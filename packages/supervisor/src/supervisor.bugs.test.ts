@@ -63,6 +63,38 @@ describe('Supervisor bug fixes', () => {
     const second = sup.startSubagent(identity, ts);
     expect(first).not.toBe(second);
     expect(sup.snapshot()).toHaveLength(3);
+    // Exercise endSubagent for both colliding children so the remint
+    // path is verified end-to-end, not just uniqueness.
+    const closeFirst = sup.endSubagent(identity.key, '2026-07-10T00:00:02.000Z');
+    const closeSecond = sup.endSubagent(identity.key, '2026-07-10T00:00:02.500Z');
+    expect(closeFirst.closedByKey || closeFirst.closedByParent).toBe(true);
+    expect(closeSecond.closedByKey || closeSecond.closedByParent).toBe(true);
+    const remaining = sup
+      .snapshot()
+      .filter((e) => e.parentKey === identity.key)
+      .filter((e) => e.status !== 'done');
+    expect(remaining).toHaveLength(0);
+  });
+
+  test('two subagents with the same toolUseId remint and can each be closed', () => {
+    const sup = new Supervisor({ lifecycle: { customPidPath: pidPath }, discovery: null });
+    sup.setOpenTerminals([{ pid: 7, cwd: '/p' }]);
+    const identity = sup.applyHook({ pidChain: [7], cwd: '/p', status: 'thinking' });
+    expect(identity).not.toBeNull();
+    if (identity === null) return;
+    const first = sup.startSubagent(identity, '2026-07-10T00:00:01.000Z', 'tool-1');
+    const second = sup.startSubagent(identity, '2026-07-10T00:00:02.000Z', 'tool-1');
+    expect(first).not.toBe(second);
+    expect(sup.snapshot()).toHaveLength(3);
+    const closeSecond = sup.endSubagent(identity.key, '2026-07-10T00:00:03.000Z', 'tool-1');
+    expect(closeSecond.closedByKey).toBe(true);
+    const closeFirst = sup.endSubagent(identity.key, '2026-07-10T00:00:04.000Z', 'tool-1');
+    expect(closeFirst.closedByKey).toBe(true);
+    const remaining = sup
+      .snapshot()
+      .filter((e) => e.parentKey === identity.key)
+      .filter((e) => e.status !== 'done');
+    expect(remaining).toHaveLength(0);
   });
 
   test('a discovery that returns rows keeps the PID slot acquired', async () => {
@@ -70,6 +102,8 @@ describe('Supervisor bug fixes', () => {
     const discovery: ProcessDiscovery = { list: () => Promise.resolve(rows) };
     const sup = new Supervisor({ lifecycle: { customPidPath: pidPath }, discovery });
     expect(await sup.start()).toBe(true);
+    const second = new Supervisor({ lifecycle: { customPidPath: pidPath }, discovery: null });
+    expect(await second.start()).toBe(false);
     await sup.stop();
   });
 });

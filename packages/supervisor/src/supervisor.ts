@@ -116,12 +116,33 @@ export class Supervisor {
     return identity;
   }
 
+  /**
+   * `parentKey → toolUseId → actualKey` index. The state store
+   * remints colliding keys; this lets `endSubagent(toolUseId)`
+   * close the actual key written by `startSubagent(toolUseId)`
+   * even after a collision.
+   */
+  private readonly subagentKeysByToolUseId = new Map<string, Map<string, string>>();
+
+  private rememberSubagentKey(parentKey: string, toolUseId: string, actualKey: string): void {
+    let perParent = this.subagentKeysByToolUseId.get(parentKey);
+    if (perParent === undefined) {
+      perParent = new Map();
+      this.subagentKeysByToolUseId.set(parentKey, perParent);
+    }
+    perParent.set(toolUseId, actualKey);
+  }
+
   startSubagent(identity: ResolvedIdentity, at: string, toolUseId?: string): string {
     const desired =
       toolUseId !== undefined
         ? `${identity.key}:subagent:${toolUseId}`
         : `${identity.key}:subagent:${at}`;
-    return this.store.upsertSubagent(identity.key, desired, at);
+    const actualKey = this.store.upsertSubagent(identity.key, desired, at);
+    if (toolUseId !== undefined) {
+      this.rememberSubagentKey(identity.key, toolUseId, actualKey);
+    }
+    return actualKey;
   }
 
   endSubagent(
@@ -130,9 +151,18 @@ export class Supervisor {
     toolUseId?: string,
   ): { closedByKey: boolean; closedByParent: boolean } {
     if (toolUseId !== undefined) {
-      const childKey = `${parentKey}:subagent:${toolUseId}`;
-      const closed = this.store.closeSubagentByKey(childKey, at);
-      if (closed) return { closedByKey: true, closedByParent: false };
+      const perParent = this.subagentKeysByToolUseId.get(parentKey);
+      const rememberedKey = perParent?.get(toolUseId);
+      const candidateKeys =
+        rememberedKey !== undefined
+          ? [rememberedKey, `${parentKey}:subagent:${toolUseId}`]
+          : [`${parentKey}:subagent:${toolUseId}`];
+      for (const candidate of candidateKeys) {
+        if (this.store.closeSubagentByKey(candidate, at)) {
+          if (perParent !== undefined) perParent.delete(toolUseId);
+          return { closedByKey: true, closedByParent: false };
+        }
+      }
     }
     const closed = this.store.closeSubagentOf(parentKey, at);
     return { closedByKey: false, closedByParent: closed };

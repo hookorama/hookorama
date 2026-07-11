@@ -70,8 +70,10 @@ export class StateStore {
    * parent's identity but is nested under it in the tree.
    *
    * If the supplied `childKey` already exists we mint a unique
-   * suffix from a per‑parent counter so two subagents opened at
-   * the same timestamp (or without a `toolUseId`) cannot collide.
+   * suffix from a per‑parent counter and keep incrementing
+   * until an unused key is found. The returned key is the
+   * actual key written so callers (notably
+   * `Supervisor.endSubagent`) can close the reminted child.
    */
   upsertSubagent(parentKey: string, childKey: string, at: string): string {
     const parent = this.entries.get(parentKey);
@@ -79,10 +81,13 @@ export class StateStore {
       throw new Error(`upsertSubagent: unknown parent ${parentKey}`);
     }
     let finalKey = childKey;
-    if (this.entries.has(finalKey)) {
-      const counter = (this.subagentCounters.get(parentKey) ?? 0) + 1;
-      this.subagentCounters.set(parentKey, counter);
+    let counter = this.subagentCounters.get(parentKey) ?? 0;
+    while (this.entries.has(finalKey)) {
+      counter += 1;
       finalKey = `${childKey}#${counter}`;
+    }
+    if (counter > (this.subagentCounters.get(parentKey) ?? 0)) {
+      this.subagentCounters.set(parentKey, counter);
     }
     const child: ProcessEntry = {
       key: finalKey,
