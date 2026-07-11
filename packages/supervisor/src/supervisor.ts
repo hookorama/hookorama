@@ -70,11 +70,6 @@ export class Supervisor {
       try {
         this.pidSlot = await acquirePidSlot(this.pidFile, process.pid);
         if (!this.pidSlot.acquired) return false;
-        if (this.stopping) {
-          await releasePidSlot(this.pidFile);
-          this.pidSlot = null;
-          return false;
-        }
         try {
           await this.seedFromProcessDiscovery();
         } catch (err) {
