@@ -44,7 +44,7 @@ function spawnLines(cmd: readonly string[]): Promise<readonly string[]> {
         reject(new Error(`spawn ${cmd.join(' ')} failed: ${Buffer.concat(err).toString()}`));
         return;
       }
-      const text = Buffer.concat(out).toString('utf8');
+      const text = decodeStdout(Buffer.concat(out));
       resolve(
         text
           .split('\n')
@@ -53,6 +53,23 @@ function spawnLines(cmd: readonly string[]): Promise<readonly string[]> {
       );
     });
   });
+}
+
+/**
+ * Decode a child-process stdout buffer to text. Windows `wmic`
+ * emits UTF-16LE (with a leading BOM) by default; treating that
+ * as UTF-8 corrupts the first row's header so `parseWmicCsv`
+ * returns an empty list. Sniff the BOM and fall back to
+ * `utf16le` when present; default to UTF-8 otherwise.
+ */
+function decodeStdout(buf: Buffer): string {
+  if (buf.length >= 2 && buf[0] === 0xff && buf[1] === 0xfe) {
+    return buf.toString('utf16le');
+  }
+  if (buf.length >= 3 && buf[0] === 0xef && buf[1] === 0xbb && buf[2] === 0xbf) {
+    return buf.toString('utf8');
+  }
+  return buf.toString('utf8');
 }
 
 /**

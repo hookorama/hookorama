@@ -22,7 +22,7 @@ function listFiles(): string[] {
   const r = spawnSync(
     'git',
     ['ls-files', '--', 'packages/**/*.ts', 'packages/**/*.tsx', 'packages/**/*.json'],
-    { cwd: REPO_ROOT, encoding: 'utf8', shell: true },
+    { cwd: REPO_ROOT, encoding: 'utf8' },
   );
   if (r.status !== 0) {
     console.error('git ls-files failed:', r.stderr);

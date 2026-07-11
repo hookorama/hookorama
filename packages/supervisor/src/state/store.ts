@@ -139,7 +139,11 @@ export class StateStore {
   closeSubagentOf(parentKey: string, at: string): boolean {
     const sortedChildren = Array.from(this.entries.values())
       .filter((e) => e.parentKey === parentKey && e.status !== 'done' && e.status !== 'error')
-      .sort((a, b) => (a.at < b.at ? 1 : -1));
+      .sort((a, b) => {
+        if (a.at < b.at) return 1;
+        if (a.at > b.at) return -1;
+        return 0;
+      });
     const first = sortedChildren.at(0);
     if (first === undefined) {
       return false;

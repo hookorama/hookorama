@@ -58,6 +58,12 @@ describe('normaliseCwd', () => {
     expect(normaliseCwd('c:\\Users\\Alice')).toBe('c:/Users/Alice');
   });
 
+  test('preserves Windows drive roots so they do not collapse with drive-relative paths', () => {
+    expect(normaliseCwd('C:/')).toBe('c:/');
+    expect(normaliseCwd('C:\\')).toBe('c:/');
+    expect(normaliseCwd('c:/')).toBe('c:/');
+  });
+
   test('leaves POSIX paths untouched', () => {
     expect(normaliseCwd('/Users/alice/Projects/Hookorama')).toBe('/Users/alice/Projects/Hookorama');
   });

@@ -51,4 +51,15 @@ describe('parseWmicCsv', () => {
     expect(parseWmicCsv(['Node,Name,ParentProcessId,ProcessId'])).toEqual([]);
     expect(parseWmicCsv([])).toEqual([]);
   });
+
+  test('decodes a UTF-16LE wmic payload (Windows default)', () => {
+    const text = '\uFEFFNode,Name,ParentProcessId,ProcessId\nHOST1,powershell.exe,1,42\n';
+    const buf = Buffer.from(text, 'utf16le');
+    const lines = buf
+      .toString('utf16le')
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean);
+    expect(parseWmicCsv(lines)).toEqual([{ pid: 42, ppid: 1, command: 'powershell.exe' }]);
+  });
 });

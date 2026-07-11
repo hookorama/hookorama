@@ -99,8 +99,14 @@ export function normaliseCwd(cwd: string): string {
   }
   // Strip trailing separators (POSIX "/" or, after the replace above,
   // the Windows "/" form). Keep a leading "/" on POSIX roots intact.
-  while (input.length > 1 && (input.endsWith('/') || input.endsWith('\\'))) {
-    input = input.slice(0, -1);
+  // Preserve the trailing slash on Windows drive roots ("C:/" or "c:/")
+  // so the drive root and a drive-relative path do not collapse to
+  // the same key.
+  const isDriveRoot = isWindowsPath && /^[A-Za-z]:\/?$/.test(input);
+  if (!isDriveRoot) {
+    while (input.length > 1 && (input.endsWith('/') || input.endsWith('\\'))) {
+      input = input.slice(0, -1);
+    }
   }
   // Lowercase Windows drive letter: "C:/foo" → "c:/foo".
   if (isWindowsPath) {

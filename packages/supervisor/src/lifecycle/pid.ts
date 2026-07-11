@@ -13,6 +13,7 @@ export function isProcessRunning(pid: number): boolean {
     process.kill(pid, 0);
     return true;
   } catch (err: unknown) {
+    if (err === null || typeof err !== 'object') return false;
     return (err as { code?: string }).code === 'EPERM';
   }
 }
