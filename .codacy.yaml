@@ -10,9 +10,8 @@
 # * The fs calls in packages/supervisor/src/lifecycle/pid-file.ts and
 #   packages/supervisor/src/process-discovery/index.ts only accept
 #   paths derived from process.env, os.homedir(), or a numeric PID
-#   validated by /^\d+$/ (see readDirNames). None accept arbitrary
-#   user input; the rule's threat model (user-controlled paths) does
-#   not apply.
+#   validated by /^\d+$/. None accept arbitrary user input; the
+#   rule's threat model (user-controlled paths) does not apply.
 #
 # * The object accesses in
 #   packages/supervisor/src/process-discovery/index.ts are
@@ -20,16 +19,16 @@
 #   integers from header.indexOf(...) on the wmic CSV header — not
 #   attacker-controlled keys.
 #
-# Codacy's `.codacy.yaml` only reliably silences noise via
-# per-engine `exclude_paths` (not `disable_rules`, which the engine
-# ignores for these patterns). We exclude the four offending files
-# from the eslint engine only; SonarCloud, CodeFactor, CodeRabbit,
-# and Cubic still scan them, and `bun run lint` (oxlint) enforces
-# the project's actual rules. No production source file is hidden
-# from every engine.
+# Codacy's `.codacy.yaml` does not reliably honour `disable_rules`
+# for these ESLint8 patterns; the only working suppression is
+# per-engine `exclude_paths`. We exclude the three offending files
+# from the eslint-8 engine only. SonarCloud, CodeFactor, CodeRabbit,
+# and the project's own `bun run lint` (oxlint) continue to scan
+# every line; no production source file is hidden from every
+# engine.
 
 engines:
-  eslint:
+  eslint-8:
     exclude_paths:
       - 'packages/supervisor/src/lifecycle/pid-file.ts'
       - 'packages/supervisor/src/process-discovery/index.ts'
