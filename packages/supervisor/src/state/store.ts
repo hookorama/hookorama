@@ -35,6 +35,7 @@ export interface ProcessEntry {
 export class StateStore {
   private readonly entries = new Map<string, ProcessEntry>();
   private readonly subagentCounters = new Map<string, number>();
+  private readonly discovered = new Map<number, { pid: number; ppid: number; command: string }>();
 
   /** Total entry count, including virtual subagent nodes. */
   size(): number {
@@ -53,6 +54,26 @@ export class StateStore {
 
   get(key: string): ProcessEntry | undefined {
     return this.entries.get(key);
+  }
+
+  /**
+   * Record a snapshot of platform-discovered processes. The data
+   * lives outside the live `ProcessEntry` map (process discovery
+   * has no cwd and the supervisor relies on the extension for
+   * authoritative pid→terminal mapping) but is queryable so a
+   * future fallback (cwd-only when the extension is unavailable)
+   * has the rows on hand. Replaces any previous snapshot.
+   */
+  seedFromDiscovery(rows: readonly { pid: number; ppid: number; command: string }[]): void {
+    this.discovered.clear();
+    for (const row of rows) {
+      this.discovered.set(row.pid, row);
+    }
+  }
+
+  /** Read-only view of the discovered-process snapshot. */
+  discoveredSnapshot(): readonly { pid: number; ppid: number; command: string }[] {
+    return Array.from(this.discovered.values());
   }
 
   /**

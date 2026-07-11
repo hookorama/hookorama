@@ -2,7 +2,7 @@
 id: 0002
 title: Post-mortem of v1's two-tier supervisor design and why we rejected it
 type: history
-status: accepted
+status: proposed
 created: 2026-07-10
 supersedes: []
 principles: [P-5]
@@ -74,7 +74,7 @@ it.
 ### F5. The per‑window supervisor had no persistent history
 
 Per‑window supervisors were short‑lived. The global supervisor
-held some history, but it was a *second writer* and a *coarse*
+held some history, but it was a _second writer_ and a _coarse_
 store (keyed on `cwd`). "What did Claude do yesterday at 3pm"
 was literally unanswerable.
 
@@ -87,6 +87,8 @@ in PR 3). This ADR supersedes the v1 design.
 
 ## Consequences
 
+### Positive
+
 - The architecture must commit to "one writer, one DB" in every
   later ADR that touches state. Any ADR that proposes a second
   writer must rebut this one.
@@ -94,6 +96,26 @@ in PR 3). This ADR supersedes the v1 design.
   belongs to which VS Code window". This is a feature, not a
   leak: it lets us add per‑window UX without bloating the
   supervisor with IDE concepts.
+- F1 through F5 are each rejected by construction in
+  `0001-supervisor-shape`: one supervisor means one picture;
+  PID-first identity means two windows on the same folder
+  no longer collide; the supervisor is the single writer of
+  history; the dashboard navigates back via the extension;
+  and append-only SQLite answers "yesterday at 3pm".
+
+### Negative
+
+- Coupling the extension to the supervisor adds a wire
+  contract that did not exist in v1 (see ADR 0004 for the
+  pinning). Failure modes (extension off, supervisor
+  unreachable) must be designed around in every surface,
+  not absorbed by a per-window tier as v1 did.
+- A single supervisor is a single process to keep alive,
+  install, upgrade, and monitor. v1 could hide a crashed
+  per-window supervisor behind a fresh one; v2 cannot.
+- Migration from v1 must either re-state the user (lossy) or
+  replay prior history (lossless but build-once). Out of
+  scope for this ADR.
 
 ### Reversibility
 
@@ -107,8 +129,13 @@ None.
 
 ## Traceability
 
+- **Mission:** `docs/NORTH-STAR.md` §"What 'service' means here".
 - **Principles:** `P-5`.
 - **Jobs:** `H-1`, `H-2`, `H-4`.
+- **SPEC.md row:** none (this ADR records a rejection, not a
+  shipped component).
+- **ROADMAP.md phase:** n/a (pre-Phase-1 history; cited from
+  every supervisor-shape ADR thereafter).
 - **Superseded design:** v1's per‑window + global supervisors.
 - **Files this decision creates / owns:**
   `docs/adr/0002-v1-postmortem.md` (this file).

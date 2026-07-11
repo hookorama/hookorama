@@ -58,14 +58,17 @@ export function pidFilePath(opts: LifecycleOptions): PidPath {
 }
 
 /**
- * Acquire the PID file. Returns the existing PID (a number) if
- * another supervisor is alive; returns `null` if the slot is
- * free and the caller should write its own PID.
+ * Acquire the PID file slot.
  *
- * Atomic on POSIX because `writeFile` does an O_CREAT|O_EXCL
- * dance when the parent directory exists. If a stale PID file
- * (owner dead) is present, it is removed before the new write
- * so a daemon can restart after a crash.
+ * Returns `{ acquired: false, existingPid }` when another live
+ * supervisor already owns the slot; returns `{ acquired: true }`
+ * when the caller has written its PID (including after replacing
+ * a stale PID file whose owner was dead).
+ *
+ * Atomic on POSIX because `writeFile` with `flag: 'wx'` does an
+ * O_CREAT|O_EXCL dance when the parent directory exists. If a
+ * stale PID file (owner dead) is present, it is removed before
+ * the new write so a daemon can restart after a crash.
  */
 export async function acquirePidSlot(
   target: PidPath,

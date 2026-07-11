@@ -2,7 +2,7 @@
 id: 0001
 title: Supervisor shape — identity, lifecycle, single writer
 type: component
-status: accepted
+status: proposed
 created: 2026-07-10
 supersedes: []
 principles: [P-2, P-5]
@@ -27,9 +27,19 @@ contract that the rest of the system depends on. v1's predecessor
 shipped a two‑tier design (per‑window + global supervisors) that
 failed in five concrete ways (documented in `docs/adr/0002-v1-postmortem.md`).
 
+> **Scope of this PR.** PR 2 ships the supervisor _skeleton_:
+> identity resolution, in-memory state, the PID-file slot, the
+> process-discovery walkers, the public `Supervisor` class, and
+> the test surface that exercises them. The NDJSON/HTTP wire
+> servers, signal handling, idempotent auto-start, platform
+> service-install, and the Drizzle history layer ship in later
+> PRs (ADRs 0003, 0004). Where this document describes behaviour
+> that has not shipped yet, the Lifecycle and Single‑writer
+> sections call out the gap explicitly.
+
 ## Decision
 
-### Identity model (P‑2: process > session > cwd)
+### Identity model (P‑2: pid > cwd > session_id)
 
 A process is identified, in order of preference:
 
@@ -54,49 +64,69 @@ Rationale: see `.agents/memory/facts/pid-chain-beats-session-id.md`.
 The supervisor holds two kinds of state:
 
 - **Live state** (in memory) — a `Map<ProcessKey, ProcessEntry>`
-  where `ProcessKey` is `pid:<number>` when resolved, else
-  `cwd:<normalized-path>`. `ProcessEntry` carries
-  `{ status, at, cwd, sessionId?, agent?, pid?, pidChain?, parentKey? }`.
-  `parentKey` is set only for virtual subagent nodes (see below).
-  The map is rebuilt from `/proc` (Linux), `ps` (macOS), or
-  `wmic`/`tasklist` (Windows) on every supervisor startup, then
-  mutated by incoming hook events.
+  where `ProcessKey` is one of:
+  - `pid:<n>` — a terminal matched by PID in the open-terminal
+    table;
+  - `cwd:<normalized-path>` — a process resolved by cwd
+    fallback (canonicalised so `C:\foo` and `C:/foo` collide);
+  - `<parentKey>:subagent:<toolUseId>` (or `<parentKey>:subagent:<iso-ts>`
+    when no `toolUseId` is available) — a virtual subagent
+    child. When two such keys collide on the same parent, the
+    store remints the second with a `#<counter>` suffix so every
+    reminted child remains independently closeable.
+
+  `ProcessEntry` carries `{ status, at, cwd, sessionId?, agent?,
+pid?, pidChain?, parentKey?, terminalName? }`. `parentKey` is
+  set only for virtual subagent nodes (see below). The map is
+  rebuilt from `/proc` (Linux), `ps` (macOS), or `wmic` (Windows)
+  on every supervisor startup, then mutated by incoming hook
+  events. Discovered rows are also retained in a side
+  `Map<pid, ProcessRow>` so a future cwd-only fallback (when
+  the extension is unavailable) can resolve a pid chain.
+
 - **History** (SQLite, append‑only) — opened in‑process by the
   supervisor. Schema, retention policy, and migrations land in
-  ADR `0003-history-schema` (Phase 2). PR 2 ships the supervisor
-  shape; PR 3 ships the history layer.
+  ADR 0003 (Phase 2). PR 2 ships the supervisor shape; PR 3
+  ships the history layer.
 
 ### Lifecycle (P‑5: long‑running local service)
 
-- **One supervisor per machine.** Installed as a user‑mode local
-  service via `hookorama install-service`:
+PR 2 ships the lifecycle _skeleton_: the `Supervisor` class,
+the PID-file slot acquisition/release with stale-PID reclaim,
+and the public `start()` / `stop()` methods. Behaviour listed
+below that is not yet exercised by CI is **deferred to a later
+PR** (the specific PR is recorded in `ROADMAP.md`):
+
+- **One supervisor per machine** — installed as a user‑mode
+  local service via `hookorama install-service` (PR 3 or later):
   - macOS: `~/Library/LaunchAgents/dev.hookorama.supervisor.plist`
     via `launchctl bootstrap gui/$UID`.
   - Linux: `~/.config/systemd/user/hookorama-supervisor.service`
     via `systemctl --user enable --now hookorama-supervisor`.
   - Windows: per‑user scheduled task via `schtasks /create` with
     trigger "at logon".
-- **Idempotent auto‑start.** On every client connection attempt,
-  the surface checks `$XDG_RUNTIME_DIR/hookorama/supervisor.pid`.
-  If the pid file exists, it dials the socket. If not, it
-  spawns the supervisor and waits up to 5 seconds for the socket
-  to appear.
-- **Signals.** `SIGTERM` → graceful shutdown (close socket,
-  flush history, write pid file removal) → `SIGKILL` after 10
-  seconds. `SIGHUP` reloads the config without a restart.
-- **PID file.** `$XDG_RUNTIME_DIR/hookorama/supervisor.pid`
-  (Linux/macOS); `%LOCALAPPDATA%\hookorama\supervisor.pid`
-  (Windows). A second supervisor noticing this file at startup
-  exits cleanly and lets the first one keep serving.
+- **Idempotent auto‑start** (PR 3) — on every client
+  connection attempt, the surface checks the PID file. If it
+  exists, it dials the socket. If not, it spawns the supervisor
+  and waits up to 5 seconds for the socket to appear.
+- **Signals** (PR 3) — `SIGTERM` → graceful shutdown → `SIGKILL`
+  after 10 seconds. `SIGHUP` reloads config.
+- **PID file** (PR 2) — `pidFilePath()` selects the
+  platform-appropriate path: `os.tmpdir()/hookorama-supervisor.pid`
+  on Linux, `~/Library/Application Support/dev.hookorama/supervisor.pid`
+  on macOS, and `%LOCALAPPDATA%\hookorama\supervisor.pid` on
+  Windows. A second supervisor noticing this file at startup
+  exits cleanly and lets the first one keep serving. Stale PID
+  files (dead owner) are reclaimed on next start.
 
 ### Single‑writer contract
 
 - The supervisor is the **only writer of both live state and
-  history**. Surfaces read by querying (live state via
-  NDJSON socket; history via the supervisor's read‑only HTTP
-  endpoint that fronts SQLite).
+  history**. Surfaces read by querying (live state via the
+  NDJSON socket in PR 3; history via the supervisor's read‑only
+  HTTP endpoint that fronts SQLite in PR 3).
 - Every hook event is **written to history before it is
-  acknowledged** to the client. The wire frame is
+  acknowledged** to the client (PR 3). The wire frame is
   `{ kind: 'ack', id: <client-request-id> }` and is only sent
   after the SQLite write commits.
 - Surfaces never write to live state directly. A surface that
@@ -109,9 +139,13 @@ When a `start_subagent` hook arrives, the supervisor creates a
 virtual child entry on top of the parent's `Map<ProcessKey,
 ProcessEntry>` with `parentKey = <parent-key>`. The child shares
 the parent's pid (subagents run in the parent's own process);
-`parentKey` is the only thing that distinguishes them in the
-tree. `end_subagent` closes the child without touching the
-parent's own status.
+`parentKey` plus the per-parent remint suffix (see _State
+schema_ above) is what keeps them distinguishable in the tree
+and closeable individually. `end_subagent` closes the matching
+child by `toolUseId` (if supplied) without touching the parent's
+own status; the supervisor keeps a `parentKey × toolUseId →
+actualKey[]` index so three or more subagents sharing the same
+`toolUseId` are each independently closeable.
 
 ## Consequences
 
@@ -125,19 +159,20 @@ parent's own status.
 - Append‑only history is durable across supervisor restarts.
   "Yesterday at 3pm" is answerable the moment the history layer
   ships in PR 3.
-- Service install gives the supervisor a stable lifecycle that
-  does not depend on any IDE window being open.
+- Service install (deferred) gives the supervisor a stable
+  lifecycle that does not depend on any IDE window being open.
 
 ### Negative
 
 - Service installation is a real maintenance burden across three
   platforms; CI must lint the install artifacts in addition to
-  building them. Mitigated by `packages/supervisor/src/service-install/`
-  being a single directory with three platform‑specific files
-  (`darwin.ts`, `linux.ts`, `windows.ts`) and one shared schema.
-- The 5‑second auto‑start budget means the first hook of a fresh
-  login takes ~5s longer than v1. Acceptable: this happens once
-  per login.
+  building them. Deferred until a follow-up PR; until then the
+  PID-file slot is the only enforcement of "one supervisor per
+  machine", which is sufficient for CI and the developer
+  workflow but not for unattended installs.
+- The 5‑second auto‑start budget (deferred) means the first
+  hook of a fresh login takes ~5s longer than v1. Acceptable:
+  this happens once per login.
 - We commit to a pid‑first model that is harder to debug than
   cwd‑only. The "ambiguous" badge in the UI is the only user
   visible mitigation.
@@ -185,8 +220,10 @@ change.
 - **SPEC.md row:** `Supervisor`.
 - **ROADMAP.md phase:** Phase 1 — Supervisor.
 - **Files this decision creates / owns:**
-  `packages/supervisor/src/main.ts` (the daemon entry),
-  `packages/supervisor/src/process-discovery/` (per‑platform
-  process walkers), `packages/supervisor/src/state/` (the live
-  state map and subagent handling), `packages/supervisor/src/lifecycle/`
-  (PID file, signal handling, idempotent auto‑start).
+  `packages/supervisor/src/supervisor.ts` (the public Supervisor
+  class), `packages/supervisor/src/index.ts` (the package
+  barrel), `packages/supervisor/src/process-discovery/`
+  (per-platform process walkers),
+  `packages/supervisor/src/state/` (the live state map and
+  subagent handling), `packages/supervisor/src/lifecycle/`
+  (PID file + cross-platform `isProcessRunning`).

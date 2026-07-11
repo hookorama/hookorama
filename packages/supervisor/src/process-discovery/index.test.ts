@@ -1,5 +1,22 @@
 import { describe, expect, test } from 'vitest';
-import { parseWmicCsv } from './index.js';
+import { parseStat, parseWmicCsv } from './index.js';
+
+describe('parseStat', () => {
+  test('accepts PPID 0 (kernel threads / swapper)', () => {
+    // /proc/<pid>/stat layout: pid (comm) state ppid ...
+    // Comm can contain spaces and parens — split from the right.
+    const stat = '1 (systemd) S 0 1 1 0 -1 4194560';
+    expect(parseStat(stat)).toEqual({ ppid: 0 });
+  });
+
+  test('returns null when the comm parens are missing', () => {
+    expect(parseStat('1 systemd S 0 1 1 0 -1 4194560')).toBeNull();
+  });
+
+  test('returns null when PPID is not a number', () => {
+    expect(parseStat('1 (init) S ? 1 1 0 -1 4194560')).toBeNull();
+  });
+});
 
 describe('parseWmicCsv', () => {
   test('parses rows with the leading Node column', () => {

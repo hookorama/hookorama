@@ -93,7 +93,7 @@ async function readDirNames(dir: string): Promise<readonly string[]> {
   return readdir(dir);
 }
 
-function parseStat(stat: string): { ppid: number } | null {
+export function parseStat(stat: string): { ppid: number } | null {
   // `/proc/<pid>/stat` layout: pid (comm) state ppid ...
   // The comm field is wrapped in parens and may contain spaces
   // and parens, so we split from the right.
@@ -101,8 +101,10 @@ function parseStat(stat: string): { ppid: number } | null {
   if (lastParen === -1) return null;
   const after = stat.slice(lastParen + 1).trim();
   const fields = after.split(/\s+/);
+  // PPID 0 is legal on Linux — kernel threads and init/swapper
+  // (PID 1 on some distros) report it. Only reject NaN.
   const ppid = Number(fields[1]);
-  if (!Number.isFinite(ppid) || ppid <= 0) return null;
+  if (!Number.isFinite(ppid)) return null;
   return { ppid };
 }
 

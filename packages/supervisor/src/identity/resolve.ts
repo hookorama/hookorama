@@ -88,10 +88,11 @@ export function resolveIdentity(
 export function normaliseCwd(cwd: string): string {
   let input = cwd.trim();
   if (input.length === 0) return input;
-  // Detect Windows‑style paths: a drive letter prefix like "C:" or
-  // any string containing a backslash. On those paths, collapse all
-  // separators to forward slash and lowercase the drive letter so
-  // "C:\Users\Alice" and "C:/Users/Alice" produce the same key.
+  // Detect Windows-style paths by a drive-letter prefix (e.g. "C:").
+  // On those paths, collapse all separators to forward slash and
+  // lowercase the drive letter so "C:\Users\Alice" and "C:/Users/Alice"
+  // produce the same key. (A bare backslash path is not treated as
+  // Windows here; that keeps the contract obvious.)
   const isWindowsPath = input.length >= 2 && input.charAt(1) === ':';
   if (isWindowsPath) {
     input = input.replace(/\\/g, '/');

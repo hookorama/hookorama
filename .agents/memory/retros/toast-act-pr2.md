@@ -3,7 +3,7 @@ id: toast-act-pr2-2026-07-10
 type: retro
 tags: [gt:act, hookorama, pr-2, deepsource, codacy, retro]
 created: 2026-07-10
-summary: /act on PR #2 caught 8 convergent bugs and ~100 review threads; DeepSource's "absent from gh pr checks" is not proof of pass — verify via statusCheckRollup conclusion.
+summary: /act on PR #2 caught 8 convergent bugs and ~100 review threads; DeepSource absence from `gh pr checks` ≠ pass — read `statusCheckRollup` for the conclusion.
 ---
 
 # /act retro on hookorama PR #2 — 2026-07-10
@@ -62,7 +62,7 @@ CodeFactor had also posted dozens of inline review threads.
 4. **Supervisor fallback coverage: keep `closeSubagentOf` exercised
    by tests.** The cubic finding on PR #2 is now closed by the new
    `closeSubagentOf closes the most-recent non-done child of a
-   parent` test in `packages/supervisor/src/state/store.test.ts`.
+parent` test in `packages/supervisor/src/state/store.test.ts`.
 
 ## Commits cited
 

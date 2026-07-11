@@ -117,12 +117,13 @@ export class Supervisor {
   }
 
   /**
-   * `parentKey → toolUseId → actualKey` index. The state store
-   * remints colliding keys; this lets `endSubagent(toolUseId)`
-   * close the actual key written by `startSubagent(toolUseId)`
-   * even after a collision.
+   * `parentKey → toolUseId → actualKey[]` index. The state store
+   * remints colliding keys when two subagents share a toolUseId
+   * in the same millisecond; this lets `endSubagent(toolUseId)`
+   * close every actual key written by `startSubagent(toolUseId)`
+   * even after one or more collisions.
    */
-  private readonly subagentKeysByToolUseId = new Map<string, Map<string, string>>();
+  private readonly subagentKeysByToolUseId = new Map<string, Map<string, string[]>>();
 
   private rememberSubagentKey(parentKey: string, toolUseId: string, actualKey: string): void {
     let perParent = this.subagentKeysByToolUseId.get(parentKey);
@@ -130,7 +131,9 @@ export class Supervisor {
       perParent = new Map();
       this.subagentKeysByToolUseId.set(parentKey, perParent);
     }
-    perParent.set(toolUseId, actualKey);
+    const existing = perParent.get(toolUseId) ?? [];
+    if (!existing.includes(actualKey)) existing.push(actualKey);
+    perParent.set(toolUseId, existing);
   }
 
   startSubagent(identity: ResolvedIdentity, at: string, toolUseId?: string): string {
@@ -152,14 +155,18 @@ export class Supervisor {
   ): { closedByKey: boolean; closedByParent: boolean } {
     if (toolUseId !== undefined) {
       const perParent = this.subagentKeysByToolUseId.get(parentKey);
-      const rememberedKey = perParent?.get(toolUseId);
-      const candidateKeys =
-        rememberedKey !== undefined
-          ? [rememberedKey, `${parentKey}:subagent:${toolUseId}`]
-          : [`${parentKey}:subagent:${toolUseId}`];
+      const rememberedKeys = perParent?.get(toolUseId) ?? [];
+      const fallback = `${parentKey}:subagent:${toolUseId}`;
+      const candidateKeys: string[] = [...rememberedKeys];
+      if (!candidateKeys.includes(fallback)) candidateKeys.push(fallback);
       for (const candidate of candidateKeys) {
         if (this.store.closeSubagentByKey(candidate, at)) {
-          if (perParent !== undefined) perParent.delete(toolUseId);
+          const remaining = rememberedKeys.filter((k) => k !== candidate);
+          if (remaining.length === 0) {
+            perParent?.delete(toolUseId);
+          } else {
+            perParent?.set(toolUseId, remaining);
+          }
           return { closedByKey: true, closedByParent: false };
         }
       }
@@ -174,15 +181,14 @@ export class Supervisor {
   }
 
   private ingestProcessTable(rows: readonly ProcessRow[]): void {
-    // Process discovery does not contribute to live status;
-    // it only feeds the open‑terminal table when the extension
+    // Process discovery does not contribute to live status; it
+    // only feeds a future cwd-only fallback when the extension
     // is unavailable. The supervisor relies on the extension for
-    // authoritative pid→terminal mapping. We keep the rows around
-    // only so a future fallback (cwd‑only when extension is
-    // absent) can resolve a pid chain to a name. For PR 2 we
-    // simply retain the data without surfacing it; PR 3 wires it
-    // into the wire protocol.
-    void rows;
+    // authoritative pid→terminal mapping. We retain the rows in
+    // a side table so a future fallback (cwd-only when extension
+    // is absent) can resolve a pid chain to a name. PR 3 wires
+    // it into the wire protocol.
+    this.store.seedFromDiscovery(rows);
   }
 
   /** Normalise cwd — re‑exported so callers don't import identity directly. */

@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { spawn } from 'node:child_process';
 import { Supervisor } from './supervisor.js';
 import type { ProcessDiscovery, ProcessRow } from './process-discovery/index.js';
+import { StateStore } from './state/store.js';
 
 describe('Supervisor bug fixes', () => {
   let workDir: string;
@@ -105,5 +106,58 @@ describe('Supervisor bug fixes', () => {
     const second = new Supervisor({ lifecycle: { customPidPath: pidPath }, discovery: null });
     expect(await second.start()).toBe(false);
     await sup.stop();
+  });
+});
+
+describe('discovery is observable in the supervisor', () => {
+  test('rows from a ProcessDiscovery land in discoveredSnapshot', async () => {
+    const workDir = mkdtempSync(join(tmpdir(), 'hookorama-discovery-'));
+    const pidPath = join(workDir, 'supervisor.pid');
+    try {
+      const rows: readonly ProcessRow[] = [
+        { pid: 42, ppid: 1, command: 'sh' },
+        { pid: 99, ppid: 0, command: 'kernel-worker' },
+      ];
+      const discovery: ProcessDiscovery = { list: () => Promise.resolve(rows) };
+      const sup = new Supervisor({ lifecycle: { customPidPath: pidPath }, discovery });
+      expect(await sup.start()).toBe(true);
+      const seen = (sup as unknown as { store: StateStore }).store.discoveredSnapshot();
+      expect(seen).toHaveLength(2);
+      expect(seen.find((r) => r.pid === 42)?.command).toBe('sh');
+      expect(seen.find((r) => r.pid === 99)?.ppid).toBe(0);
+      await sup.stop();
+    } finally {
+      rmSync(workDir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('three or more concurrent subagents sharing a toolUseId', () => {
+  test('each can be closed independently', () => {
+    const workDir = mkdtempSync(join(tmpdir(), 'hookorama-subagents-multi-'));
+    const pidPath = join(workDir, 'supervisor.pid');
+    try {
+      const sup = new Supervisor({ lifecycle: { customPidPath: pidPath }, discovery: null });
+      sup.setOpenTerminals([{ pid: 7, cwd: '/p' }]);
+      const identity = sup.applyHook({ pidChain: [7], cwd: '/p', status: 'thinking' });
+      expect(identity).not.toBeNull();
+      if (identity === null) return;
+      const k1 = sup.startSubagent(identity, '2026-07-10T00:00:01.000Z', 'tool-shared');
+      const k2 = sup.startSubagent(identity, '2026-07-10T00:00:01.500Z', 'tool-shared');
+      const k3 = sup.startSubagent(identity, '2026-07-10T00:00:02.000Z', 'tool-shared');
+      expect(new Set([k1, k2, k3]).size).toBe(3);
+      expect(sup.snapshot()).toHaveLength(4);
+      for (const _ of [k1, k2, k3]) {
+        const result = sup.endSubagent(identity.key, '2026-07-10T00:00:03.000Z', 'tool-shared');
+        expect(result.closedByKey).toBe(true);
+      }
+      const remaining = sup
+        .snapshot()
+        .filter((e) => e.parentKey === identity.key)
+        .filter((e) => e.status !== 'done');
+      expect(remaining).toHaveLength(0);
+    } finally {
+      rmSync(workDir, { recursive: true, force: true });
+    }
   });
 });
