@@ -110,11 +110,14 @@ export class StateStore {
   }
 
   closeSubagentOf(parentKey: string, at: string): boolean {
-    const candidates = Array.from(this.entries.values())
+    const sortedChildren = Array.from(this.entries.values())
       .filter((e) => e.parentKey === parentKey && e.status !== 'done' && e.status !== 'error')
       .sort((a, b) => (a.at < b.at ? 1 : -1));
-    const target = candidates[0];
-    if (target === undefined) return false;
+    const first = sortedChildren.at(0);
+    if (first === undefined) {
+      return false;
+    }
+    const target: ProcessEntry = first;
     this.entries.set(target.key, { ...target, status: 'done', at });
     return true;
   }

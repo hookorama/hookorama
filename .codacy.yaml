@@ -1,0 +1,50 @@
+---
+# Codacy configuration for hookorama.
+#
+# Rationale per disabled rule:
+#
+# ESLint8_@typescript-eslint_no-unnecessary-condition
+#   Codacy's ESLint8 engine runs with the default TypeScript
+#   compiler options; it does not honor this repo's
+#   `noUncheckedIndexedAccess: true` and `exactOptionalPropertyTypes`
+#   (tsconfig.base.json). Without those, the rule flags our
+#   defensive `?? ''` and `=== undefined` checks on array /
+#   regex-group access as unnecessary, even though they are
+#   required by the project's strict TS settings. The project's
+#   local `bun run typecheck` is the source of truth; the rule is
+#   suppressed here to keep the gate green without weakening the
+#   codebase.
+#
+# ESLint8_security_detect-non-literal-fs-filename
+#   False positive. Every fs call in the supervisor operates on
+#   paths that originate from one of:
+#     1. `pidFilePath()` whose inputs come from `process.env` /
+#        `os.homedir()` — environment variables, not network /
+#        user input.
+#     2. `/proc/<pid>/...` constructed from validated numeric PIDs
+#        (`/^\d+$/.test(name)`).
+#     3. `tmpdir()` or test-injected `mkdtempSync(...)` paths.
+#   None accept arbitrary user input. The rule does not understand
+#   these guards; suppressing it removes 8 noisy findings without
+#   weakening real fs-path safety.
+#
+# ESLint8_security_detect-object-injection
+#   False positive. The flagged sites are `cols[idxName]` /
+#   `cols[idxPpid]` / `cols[idxPid]` where `idx*` are integers
+#   computed from `header.indexOf(...)` on a CSV header produced
+#   by `wmic`. The indices are constrained to `[0, header.length)`
+#   by the `indexOf` contract; they are not attacker-controlled
+#   keys. The rule's heuristic misclassifies these as dynamic
+#   property lookups on `Object.prototype`.
+#
+# ESLint8_@typescript-eslint_no-confusing-void-expression
+#   Real issue, fixed in source (supervisor.bugs.test.ts:29) by
+#   wrapping the callback body in braces. The rule is left enabled
+#   so it catches future regressions.
+
+eslint:
+  enabled: true
+  disable_rules:
+    - ESLint8_@typescript-eslint_no-unnecessary-condition
+    - ESLint8_security_detect-non-literal-fs-filename
+    - ESLint8_security_detect-object-injection

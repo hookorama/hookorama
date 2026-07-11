@@ -25,7 +25,7 @@ export interface ProcessDiscovery {
 
 function spawnLines(cmd: readonly string[]): Promise<readonly string[]> {
   const head = cmd[0];
-  if (head === undefined || head.length === 0) {
+  if (head === undefined) {
     return Promise.reject(new Error('spawnLines: empty command'));
   }
   return new Promise<readonly string[]>((resolve, reject) => {
@@ -117,13 +117,10 @@ export class MacPsDiscovery implements ProcessDiscovery {
     for (const line of lines) {
       const match = /^\s*(\d+)\s+(\d+)\s+(.*)$/.exec(line);
       if (match === null) continue;
-      const pidRaw = match[1] ?? '';
-      const ppidRaw = match[2] ?? '';
-      const command = match[3] ?? '';
-      const pid = Number(pidRaw);
-      const ppid = Number(ppidRaw);
+      const pid = Number(match[1] ?? '');
+      const ppid = Number(match[2] ?? '');
       if (!Number.isFinite(pid) || !Number.isFinite(ppid)) continue;
-      rows.push({ pid, ppid, command });
+      rows.push({ pid, ppid, command: match[3] ?? '' });
     }
     return rows;
   }

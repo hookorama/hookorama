@@ -26,7 +26,9 @@ describe('Supervisor bug fixes', () => {
       throw new Error('spawn returned no pid; cannot exercise stale-PID reclaim');
     }
     const exitCode = await new Promise<number | null>((resolve) => {
-      child.once('exit', (code) => resolve(code));
+      child.once('exit', (code) => {
+        resolve(code);
+      });
     });
     expect(exitCode).not.toBeNull();
     writeFileSync(pidPath, `${stalePid}\n`, 'utf8');
