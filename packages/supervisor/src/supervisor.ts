@@ -59,6 +59,10 @@ export class Supervisor {
 
   /** Acquire the PID slot. Returns false if another supervisor is alive. */
   async start(): Promise<boolean> {
+    if (this.stopping) {
+      this.stopping = false;
+    }
+    if (this.pidSlot?.acquired) return true;
     this.pidSlot = await acquirePidSlot(this.pidFile, process.pid);
     if (!this.pidSlot.acquired) return false;
     try {
@@ -75,7 +79,10 @@ export class Supervisor {
   async stop(): Promise<void> {
     if (this.stopping) return;
     this.stopping = true;
-    if (this.pidSlot?.acquired) await releasePidSlot(this.pidFile);
+    if (this.pidSlot?.acquired) {
+      await releasePidSlot(this.pidFile);
+      this.pidSlot = null;
+    }
   }
 
   /** True after `stop()` has been called. */

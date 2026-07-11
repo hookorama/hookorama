@@ -2,7 +2,7 @@
 
 > Read `AGENTS.md` §3 before extending this document. Each phase
 > row is justified by at least one ADR in `docs/adr/`. Phase
-> status is one of `shipped` | `in-review` | `planned`
+> status is one of `shipped` | `in progress` | `planned`
 > (the controlled vocabulary defined in
 > `.agents/rules/roadmap.md.rule`).
 

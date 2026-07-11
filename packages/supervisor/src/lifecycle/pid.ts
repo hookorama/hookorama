@@ -2,9 +2,10 @@
  * `process.kill(pid, 0)` cross‑platform "is this PID alive?"
  * probe. On POSIX it returns `true` for any process the caller
  * could signal (including zombies). On Windows, `process.kill`
- * throws ESRCH for dead PIDs and EPERM for inaccessible live
- * ones; both count as "running" for our purposes (we only want
- * to skip our own start when another supervisor is alive).
+ * throws `EPERM` for live but inaccessible PIDs (which we
+ * treat as alive so a supervisor we cannot signal still
+ * blocks a second instance) and `ESRCH` for dead PIDs
+ * (which we treat as dead so the stale PID file is reclaimable).
  */
 
 export function isProcessRunning(pid: number): boolean {

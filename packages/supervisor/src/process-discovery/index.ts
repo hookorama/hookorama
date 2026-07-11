@@ -62,14 +62,11 @@ function spawnLines(cmd: readonly string[]): Promise<readonly string[]> {
  * returns an empty list. Sniff the BOM and fall back to
  * `utf16le` when present; default to UTF-8 otherwise.
  */
-function decodeStdout(buf: Buffer): string {
+export function decodeStdout(buf: Buffer): string {
   if (buf.length >= 2 && buf[0] === 0xff && buf[1] === 0xfe) {
-    return buf.toString('utf16le');
+    return buf.toString('utf16le').replace(/^\uFEFF/, '');
   }
-  if (buf.length >= 3 && buf[0] === 0xef && buf[1] === 0xbb && buf[2] === 0xbf) {
-    return buf.toString('utf8');
-  }
-  return buf.toString('utf8');
+  return buf.toString('utf8').replace(/^\uFEFF/, '');
 }
 
 /**

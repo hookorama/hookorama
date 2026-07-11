@@ -123,6 +123,17 @@ in PR 3). This ADR supersedes the v1 design.
 This ADR is the cite‑target for any future "but what if we…"
 proposal.
 
+## Alternatives considered
+
+The two‑tier design (per‑window supervisor + global supervisor)
+described in **Context** above and rejected in **Decision** above
+was considered and rejected — see `## The five failure modes` for
+the F1–F5 evidence. The "per‑window only" and "global only"
+variants of the two‑tier design were likewise rejected because
+they each inherit one of F1, F2, F4 from the tier they kept.
+Keeping a global single‑writer supervisor is the only
+configuration that avoids all five.
+
 ## Open questions
 
 None.

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { parseStat, parseWmicCsv } from './index.js';
+import { decodeStdout, parseStat, parseWmicCsv } from './index.js';
 
 describe('parseStat', () => {
   test('accepts PPID 0 (kernel threads / swapper)', () => {
@@ -52,14 +52,19 @@ describe('parseWmicCsv', () => {
     expect(parseWmicCsv([])).toEqual([]);
   });
 
-  test('decodes a UTF-16LE wmic payload (Windows default)', () => {
+  test('decodeStdout sniffs UTF-16LE and yields parseable wmic lines', () => {
     const text = '\uFEFFNode,Name,ParentProcessId,ProcessId\nHOST1,powershell.exe,1,42\n';
     const buf = Buffer.from(text, 'utf16le');
-    const lines = buf
-      .toString('utf16le')
+    const lines = decodeStdout(buf)
       .split('\n')
       .map((l) => l.trim())
       .filter(Boolean);
     expect(parseWmicCsv(lines)).toEqual([{ pid: 42, ppid: 1, command: 'powershell.exe' }]);
+  });
+
+  test('decodeStdout strips a UTF-8 BOM', () => {
+    const text = '\uFEFFplain ascii line';
+    const buf = Buffer.from(text, 'utf8');
+    expect(decodeStdout(buf)).toBe('plain ascii line');
   });
 });

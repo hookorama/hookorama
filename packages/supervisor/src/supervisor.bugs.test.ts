@@ -26,7 +26,8 @@ describe('Supervisor bug fixes', () => {
     if (stalePid === undefined) {
       throw new Error('spawn returned no pid; cannot exercise stale-PID reclaim');
     }
-    const exitCode = await new Promise<number | null>((resolve) => {
+    const exitCode = await new Promise<number | null>((resolve, reject) => {
+      child.once('error', reject);
       child.once('exit', (code) => {
         resolve(code);
       });
@@ -58,7 +59,7 @@ describe('Supervisor bug fixes', () => {
     sup.setOpenTerminals([{ pid: 7, cwd: '/p' }]);
     const identity = sup.applyHook({ pidChain: [7], cwd: '/p', status: 'thinking' });
     expect(identity).not.toBeNull();
-    if (identity === null) return;
+    if (identity === null) throw new Error('identity should resolve');
     const ts = '2026-07-10T00:00:01.000Z';
     const first = sup.startSubagent(identity, ts);
     const second = sup.startSubagent(identity, ts);
@@ -82,7 +83,7 @@ describe('Supervisor bug fixes', () => {
     sup.setOpenTerminals([{ pid: 7, cwd: '/p' }]);
     const identity = sup.applyHook({ pidChain: [7], cwd: '/p', status: 'thinking' });
     expect(identity).not.toBeNull();
-    if (identity === null) return;
+    if (identity === null) throw new Error('identity should resolve');
     const first = sup.startSubagent(identity, '2026-07-10T00:00:01.000Z', 'tool-1');
     const second = sup.startSubagent(identity, '2026-07-10T00:00:02.000Z', 'tool-1');
     expect(first).not.toBe(second);
@@ -141,7 +142,7 @@ describe('three or more concurrent subagents sharing a toolUseId', () => {
       sup.setOpenTerminals([{ pid: 7, cwd: '/p' }]);
       const identity = sup.applyHook({ pidChain: [7], cwd: '/p', status: 'thinking' });
       expect(identity).not.toBeNull();
-      if (identity === null) return;
+      if (identity === null) throw new Error('identity should resolve');
       const k1 = sup.startSubagent(identity, '2026-07-10T00:00:01.000Z', 'tool-shared');
       const k2 = sup.startSubagent(identity, '2026-07-10T00:00:01.500Z', 'tool-shared');
       const k3 = sup.startSubagent(identity, '2026-07-10T00:00:02.000Z', 'tool-shared');
@@ -191,7 +192,7 @@ describe('closeSubagentByKey idempotency', () => {
       sup.setOpenTerminals([{ pid: 7, cwd: '/p' }]);
       const identity = sup.applyHook({ pidChain: [7], cwd: '/p', status: 'thinking' });
       expect(identity).not.toBeNull();
-      if (identity === null) return;
+      if (identity === null) throw new Error('identity should resolve');
       const childKey = sup.startSubagent(identity, '2026-07-10T00:00:01.000Z', 'tool-1');
       const first = sup.endSubagent(identity.key, '2026-07-10T00:00:02.000Z', 'tool-1');
       expect(first.closedByKey).toBe(true);

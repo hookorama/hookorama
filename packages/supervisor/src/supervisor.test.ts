@@ -54,8 +54,7 @@ describe('Supervisor', () => {
     const sup = new Supervisor({ lifecycle: { customPidPath: pidPath }, discovery: null });
     sup.setOpenTerminals([{ pid: 7, cwd: '/p' }]);
     const identity = sup.applyHook({ pidChain: [7], cwd: '/p', status: 'thinking' });
-    expect(identity).not.toBeNull();
-    if (identity === null) return;
+    if (identity === null) throw new Error('identity should resolve');
     const childKey = sup.startSubagent(identity, '2026-07-10T00:00:01.000Z', 'tool-1');
     expect(sup.snapshot()).toHaveLength(2);
     const exact = sup.endSubagent(identity.key, '2026-07-10T00:00:02.000Z', 'tool-1');
@@ -71,5 +70,18 @@ describe('Supervisor', () => {
     await sup.stop();
     await sup.stop();
     expect(sup.isStopping()).toBe(true);
+  });
+
+  test('start after stop clears the stopping flag and re-acquires the slot', async () => {
+    const sup = new Supervisor({ lifecycle: { customPidPath: pidPath }, discovery: null });
+    expect(await sup.start()).toBe(true);
+    await sup.stop();
+    expect(sup.isStopping()).toBe(true);
+    expect(await sup.start()).toBe(true);
+    expect(sup.isStopping()).toBe(false);
+    await sup.stop();
+    const fresh = new Supervisor({ lifecycle: { customPidPath: pidPath }, discovery: null });
+    expect(await fresh.start()).toBe(true);
+    await fresh.stop();
   });
 });

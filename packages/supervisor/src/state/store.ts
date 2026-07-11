@@ -185,10 +185,26 @@ export class StateStore {
       at,
       cwd: identity.cwd,
       ...(identity.pid !== undefined ? { pid: identity.pid } : {}),
-      ...(enrich.sessionId !== undefined ? { sessionId: enrich.sessionId } : {}),
-      ...(enrich.agent !== undefined ? { agent: enrich.agent } : {}),
-      ...(enrich.pidChain !== undefined ? { pidChain: enrich.pidChain } : {}),
-      ...(enrich.terminalName !== undefined ? { terminalName: enrich.terminalName } : {}),
+      ...(enrich.sessionId !== undefined
+        ? { sessionId: enrich.sessionId }
+        : prev?.sessionId !== undefined
+          ? { sessionId: prev.sessionId }
+          : {}),
+      ...(enrich.agent !== undefined
+        ? { agent: enrich.agent }
+        : prev?.agent !== undefined
+          ? { agent: prev.agent }
+          : {}),
+      ...(enrich.pidChain !== undefined
+        ? { pidChain: [...enrich.pidChain] }
+        : prev?.pidChain !== undefined
+          ? { pidChain: [...prev.pidChain] }
+          : {}),
+      ...(enrich.terminalName !== undefined
+        ? { terminalName: enrich.terminalName }
+        : prev?.terminalName !== undefined
+          ? { terminalName: prev.terminalName }
+          : {}),
     };
     this.entries.set(identity.key, next);
     return prev;
