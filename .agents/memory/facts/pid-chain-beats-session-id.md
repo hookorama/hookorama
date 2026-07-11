@@ -21,7 +21,8 @@ Each had a concrete failure:
 - **PID** — stable for the lifetime of a terminal. The agent's
   own PID is reported in the hook payload as `pidChain[0]`;
   `vscode.Terminal.processId` is the matching extension‑side
-  number. PID → cwd → session_id is the right order.
+  number. PID → cwd is the right order; `session_id` is never a
+  key, only an enrichment field.
 
 Use `pidChain` to match hook events to open terminals; fall back
 to `cwd` only when no PID in the chain resolves. Never use

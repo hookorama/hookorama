@@ -39,7 +39,7 @@ failed in five concrete ways (documented in `docs/adr/0002-v1-postmortem.md`).
 
 ## Decision
 
-### Identity model (P‑2: pid > cwd > session_id)
+### Identity model (P‑2: pid > cwd; session_id is never a key)
 
 A process is identified, in order of preference:
 
@@ -51,11 +51,12 @@ A process is identified, in order of preference:
    known open terminal. Multiple terminals sharing a `cwd` are
    collapsed into one row, marked with a visible "ambiguous" badge
    in the UI.
-3. **`session_id`** — never used as a key. Always carried as
-   enrichment only. A session id changes across `/clear` and
-   `/new` even within the same terminal (v1 FR‑D.6 documented
-   this as a learned lesson), and two agents sharing a session id
-   is rare but possible.
+
+`session_id` is never used as a key. It is always carried as
+enrichment only. A session id changes across `/clear` and
+`/new` even within the same terminal (v1 FR‑D.6 documented
+this as a learned lesson), and two agents sharing a session id
+is rare but possible.
 
 Rationale: see `.agents/memory/facts/pid-chain-beats-session-id.md`.
 
@@ -77,12 +78,14 @@ The supervisor holds two kinds of state:
 
   `ProcessEntry` carries `{ status, at, cwd, sessionId?, agent?,
 pid?, pidChain?, parentKey?, terminalName? }`. `parentKey` is
-  set only for virtual subagent nodes (see below). The map is
-  rebuilt from `/proc` (Linux), `ps` (macOS), or `wmic` (Windows)
-  on every supervisor startup, then mutated by incoming hook
-  events. Discovered rows are also retained in a side
-  `Map<pid, ProcessRow>` so a future cwd-only fallback (when
-  the extension is unavailable) can resolve a pid chain.
+  set only for virtual subagent nodes (see below). Status rows
+  are populated exclusively by incoming hook events — process
+  discovery does not contribute live status. On every
+  supervisor startup a fresh discovery snapshot from `/proc`
+  (Linux), `ps` (macOS), or `wmic` (Windows) is retained in a
+  side `Map<pid, ProcessRow>` so a future cwd-only fallback
+  (when the extension is unavailable) can resolve a pid chain
+  to a command name.
 
 - **History** (SQLite, append‑only) — opened in‑process by the
   supervisor. Schema, retention policy, and migrations land in

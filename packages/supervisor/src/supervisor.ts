@@ -57,31 +57,48 @@ export class Supervisor {
     for (const t of terminals) this.openTerminalsByPid.set(t.pid, t);
   }
 
+  private inflightStart: Promise<boolean> | null = null;
+
   /** Acquire the PID slot. Returns false if another supervisor is alive. */
   async start(): Promise<boolean> {
     if (this.stopping) {
       this.stopping = false;
     }
     if (this.pidSlot?.acquired) return true;
-    this.pidSlot = await acquirePidSlot(this.pidFile, process.pid);
-    if (!this.pidSlot.acquired) return false;
-    try {
-      await this.seedFromProcessDiscovery();
-    } catch (err) {
-      this.pidSlot = null;
-      await releasePidSlot(this.pidFile);
-      throw err;
-    }
-    return true;
+    if (this.inflightStart !== null) return this.inflightStart;
+    this.inflightStart = (async () => {
+      try {
+        this.pidSlot = await acquirePidSlot(this.pidFile, process.pid);
+        if (!this.pidSlot.acquired) return false;
+        try {
+          await this.seedFromProcessDiscovery();
+        } catch (err) {
+          this.pidSlot = null;
+          await releasePidSlot(this.pidFile);
+          throw err;
+        }
+        return true;
+      } finally {
+        this.inflightStart = null;
+      }
+    })();
+    return this.inflightStart;
   }
 
   /** Release the PID slot and mark the supervisor as stopping. */
   async stop(): Promise<void> {
     if (this.stopping) return;
     this.stopping = true;
-    if (this.pidSlot?.acquired) {
+    if (!this.pidSlot?.acquired) {
+      this.pidSlot = null;
+      return;
+    }
+    try {
       await releasePidSlot(this.pidFile);
       this.pidSlot = null;
+    } catch (err) {
+      this.stopping = false;
+      throw err;
     }
   }
 

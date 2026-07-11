@@ -10,8 +10,8 @@ class, identity resolution, the live state store with virtual
 subagent nesting, cross-platform process discovery, and the
 PID-file slot lifecycle with stale-PID reclaim. The wire
 protocol (NDJSON socket + HTTP) and the Drizzle persistence
-layer ship in later PRs; they are pinned by ADRs 0003 and 0004
-(see `ROADMAP.md` Phase 2).
+layer ship in later PRs; both will be pinned by future ADRs in
+Phase 2 (see `ROADMAP.md`).
 
 ## Public API
 

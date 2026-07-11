@@ -84,4 +84,11 @@ describe('Supervisor', () => {
     expect(await fresh.start()).toBe(true);
     await fresh.stop();
   });
+
+  test('two concurrent start() calls yield a single acquired slot', async () => {
+    const sup = new Supervisor({ lifecycle: { customPidPath: pidPath }, discovery: null });
+    const results = await Promise.all([sup.start(), sup.start()]);
+    expect(results).toEqual([true, true]);
+    await sup.stop();
+  });
 });
