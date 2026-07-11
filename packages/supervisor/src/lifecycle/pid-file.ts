@@ -85,7 +85,16 @@ export async function acquirePidSlot(
     }
     await rm(resolvedPath, { force: true });
   }
-  await writeFile(resolvedPath, `${myPid}\n`, { flag: 'wx' });
+  try {
+    await writeFile(resolvedPath, `${myPid}\n`, { flag: 'wx' });
+  } catch (err: unknown) {
+    if ((err as { code?: string }).code === 'EEXIST') {
+      const raw = await readFile(resolvedPath, 'utf8').catch(() => '');
+      const existing = Number(raw.trim());
+      return { acquired: false, existingPid: Number.isFinite(existing) ? existing : 0 };
+    }
+    throw err;
+  }
   return { acquired: true };
 }
 

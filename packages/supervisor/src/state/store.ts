@@ -131,6 +131,7 @@ export class StateStore {
   closeSubagentByKey(childKey: string, at: string): boolean {
     const entry = this.entries.get(childKey);
     if (entry === undefined || entry.parentKey === undefined) return false;
+    if (entry.status === 'done' || entry.status === 'error') return false;
     this.entries.set(childKey, { ...entry, status: 'done', at });
     return true;
   }

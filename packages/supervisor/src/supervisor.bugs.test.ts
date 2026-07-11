@@ -161,3 +161,45 @@ describe('three or more concurrent subagents sharing a toolUseId', () => {
     }
   });
 });
+
+describe('acquirePidSlot EEXIST race', () => {
+  test('returns acquired:false (not throw) when writeFile races a competing winner', async () => {
+    const workDir = mkdtempSync(join(tmpdir(), 'hookorama-pid-race-'));
+    const pidPath = join(workDir, 'supervisor.pid');
+    try {
+      const { acquirePidSlot } = await import('./lifecycle/pid-file.js');
+      const myPid = process.pid;
+      const winner = await acquirePidSlot({ path: pidPath }, myPid);
+      expect(winner).toEqual({ acquired: true });
+      const loser = await acquirePidSlot({ path: pidPath }, myPid + 1);
+      expect(loser.acquired).toBe(false);
+      if (!loser.acquired) {
+        expect(loser.existingPid).toBe(myPid);
+      }
+    } finally {
+      rmSync(workDir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('closeSubagentByKey idempotency', () => {
+  test('returns false when called on an already-terminal subagent', () => {
+    const workDir = mkdtempSync(join(tmpdir(), 'hookorama-subagent-idemp-'));
+    const pidPath = join(workDir, 'supervisor.pid');
+    try {
+      const sup = new Supervisor({ lifecycle: { customPidPath: pidPath }, discovery: null });
+      sup.setOpenTerminals([{ pid: 7, cwd: '/p' }]);
+      const identity = sup.applyHook({ pidChain: [7], cwd: '/p', status: 'thinking' });
+      expect(identity).not.toBeNull();
+      if (identity === null) return;
+      const childKey = sup.startSubagent(identity, '2026-07-10T00:00:01.000Z', 'tool-1');
+      const first = sup.endSubagent(identity.key, '2026-07-10T00:00:02.000Z', 'tool-1');
+      expect(first.closedByKey).toBe(true);
+      const second = sup.endSubagent(identity.key, '2026-07-10T00:00:03.000Z', 'tool-1');
+      expect(second.closedByKey).toBe(false);
+      expect(childKey).toBeTruthy();
+    } finally {
+      rmSync(workDir, { recursive: true, force: true });
+    }
+  });
+});
