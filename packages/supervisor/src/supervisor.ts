@@ -70,12 +70,22 @@ export class Supervisor {
       try {
         this.pidSlot = await acquirePidSlot(this.pidFile, process.pid);
         if (!this.pidSlot.acquired) return false;
+        if (this.stopping) {
+          await releasePidSlot(this.pidFile);
+          this.pidSlot = null;
+          return false;
+        }
         try {
           await this.seedFromProcessDiscovery();
         } catch (err) {
           this.pidSlot = null;
           await releasePidSlot(this.pidFile);
           throw err;
+        }
+        if (this.stopping) {
+          await releasePidSlot(this.pidFile);
+          this.pidSlot = null;
+          return false;
         }
         return true;
       } finally {
@@ -89,6 +99,13 @@ export class Supervisor {
   async stop(): Promise<void> {
     if (this.stopping) return;
     this.stopping = true;
+    if (this.inflightStart !== null) {
+      try {
+        await this.inflightStart;
+      } catch {
+        // start() will have cleaned up; continue to release if needed
+      }
+    }
     if (!this.pidSlot?.acquired) {
       this.pidSlot = null;
       return;
