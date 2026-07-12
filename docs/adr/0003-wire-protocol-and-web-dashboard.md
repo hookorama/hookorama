@@ -45,6 +45,15 @@ Key contracts:
   build pipeline will run `tsdown` for the library packages and then build
   the web app.
 
+## Acceptance criteria
+
+- [ ] `GET /api/state` returns the current `WireSnapshot` (`entries: ProcessEntry[]`).
+- [ ] `POST /api/hook` accepts `HookRequest` and updates live state.
+- [ ] `WebSocket /ws` pushes `snapshot` and `event` messages to all clients.
+- [ ] `packages/client` exports the wire types and `SupervisorClient`.
+- [ ] `packages/web-app` is a Vite + React + TanStack Router SPA that reads the live state.
+- [ ] `bun run ci` passes before the PR is merged.
+
 ## Consequences
 
 ### Positive
