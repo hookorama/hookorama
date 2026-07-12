@@ -108,6 +108,9 @@ export class WireServer {
   ): Response | Promise<Response> | undefined {
     const url = new URL(request.url);
 
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { status: 204, headers: CORS_HEADERS });
+    }
 
     if (url.pathname === '/api/state' && request.method === 'GET') {
       return this.handleState();
