@@ -8,35 +8,10 @@
  * the wire protocol.
  */
 
+import type { AgentMetadata, ProcessEntry, Status } from '@hookorama/client';
 import type { ResolvedIdentity } from '../identity/resolve.js';
 
-/** Six discrete states, lifted from the v1 predecessor. */
-export type Status =
-  | 'idle'
-  | 'thinking'
-  | 'running-tool'
-  | 'waiting-input'
-  | 'done'
-  | 'error';
-
-/**
- * A row in the live state map. `parentKey` is set only for
- * virtual subagent nodes (ADR 0001 §"Subagent handling"); a
- * subagent shares its parent's `pid`, so pid‑chain nesting
- * cannot distinguish them.
- */
-export interface ProcessEntry {
-  readonly key: string;
-  readonly status: Status;
-  readonly at: string;
-  readonly cwd: string;
-  readonly sessionId?: string;
-  readonly agent?: string;
-  readonly pid?: number;
-  readonly pidChain?: readonly number[];
-  readonly parentKey?: string;
-  readonly terminalName?: string;
-}
+export type { ProcessEntry, Status };
 
 export class StateStore {
   private readonly entries = new Map<string, ProcessEntry>();
@@ -140,6 +115,7 @@ export class StateStore {
       readonly agent?: string;
       readonly pidChain?: readonly number[];
       readonly terminalName?: string;
+      readonly metadata?: AgentMetadata;
     },
   ): ProcessEntry | undefined {
     if (identity === null) return undefined;
@@ -156,6 +132,7 @@ export class StateStore {
       ...(enrich.terminalName !== undefined
         ? { terminalName: enrich.terminalName }
         : {}),
+      ...(enrich.metadata !== undefined ? { metadata: enrich.metadata } : {}),
     };
     this.entries.set(identity.key, next);
     return prev;

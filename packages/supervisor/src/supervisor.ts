@@ -7,6 +7,7 @@
  */
 
 import { acquirePidSlot, pidFilePath, releasePidSlot } from './lifecycle/pid-file.js';
+import type { AgentMetadata } from '@hookorama/client';
 import { StateStore, type ProcessEntry, type Status } from './state/store.js';
 import {
   pickDiscovery,
@@ -101,6 +102,8 @@ export class Supervisor {
     readonly sessionId?: string;
     readonly agent?: string;
     readonly status: Status;
+    readonly at?: string;
+    readonly metadata?: AgentMetadata;
   }): ResolvedIdentity | null {
     const identity = resolveIdentity(
       input.pidChain,
@@ -108,10 +111,11 @@ export class Supervisor {
       this.openTerminals(),
     );
     if (identity === null) return null;
-    this.store.applyEvent(identity, input.status, this.now().toISOString(), {
+    this.store.applyEvent(identity, input.status, input.at ?? this.now().toISOString(), {
       ...(input.sessionId !== undefined ? { sessionId: input.sessionId } : {}),
       ...(input.agent !== undefined ? { agent: input.agent } : {}),
       ...(input.pidChain !== undefined ? { pidChain: input.pidChain } : {}),
+      ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
     });
     return identity;
   }
