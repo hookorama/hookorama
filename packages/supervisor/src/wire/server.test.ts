@@ -121,4 +121,12 @@ describe('WireServer', () => {
 
     expect(eventType).toBe('thinking');
   });
+
+  it('serves GET /api/processes', async () => {
+    harness = await setup();
+    const { client } = harness;
+
+    const processes = await client.fetchProcesses();
+    expect(processes).toEqual([]);
+  });
 });

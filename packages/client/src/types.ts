@@ -70,6 +70,22 @@ export interface WireSnapshot {
   readonly at: string;
 }
 
+/** OS process classification used by GET /api/processes. */
+export type ProcessType = 'agent' | 'tool' | 'ide' | 'system';
+
+/** One row in the OS process table returned by GET /api/processes. */
+export interface ProcessRow {
+  readonly pid: number;
+  readonly ppid: number;
+  readonly cmd: string;
+  readonly user: string;
+  readonly tty?: string;
+  readonly startedAt: number;
+  readonly type: ProcessType;
+  readonly agentId?: string;
+  readonly projectId?: string;
+}
+
 /** Messages pushed over the WebSocket / from the supervisor to clients. */
 export type WireMessage =
   | { readonly type: 'snapshot'; readonly data: WireSnapshot }

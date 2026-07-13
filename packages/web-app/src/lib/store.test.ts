@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { HookEvent as WireHookEvent, ProcessEntry, WireSnapshot } from '@hookorama/client';
-import { useHookoramaStore } from './store.js';
+import { selectAgentTree, selectProcessTree, useHookoramaStore } from './store.js';
+import type { Agent, Process } from './types.js';
 
 function makeEntry(partial: Partial<ProcessEntry> & Pick<ProcessEntry, 'key' | 'status' | 'cwd'>): ProcessEntry {
   return {
@@ -116,5 +117,76 @@ describe('useHookoramaStore', () => {
     expect(events[0]?.projectId).toBe('proj_hookorama');
     expect(events[0]?.type).toBe('status.update');
     expect(events[0]?.summary).toBe('test-agent is thinking');
+  });
+
+  it('selectAgentTree groups by parent id', () => {
+    const parent: Agent = {
+      id: 'a1',
+      name: 'parent',
+      type: 'agent',
+      status: 'thinking',
+      origin: 'terminal',
+      sessionId: 's1',
+      projectId: 'p1',
+      createdAt: 0,
+      updatedAt: 0,
+      metrics: { tasks: 1, toolCalls: 0, cost: 0, errors: 0 },
+    };
+    const child: Agent = {
+      id: 'a2',
+      name: 'child',
+      type: 'subagent',
+      status: 'running-tool',
+      parentId: 'a1',
+      origin: 'terminal',
+      sessionId: 's1',
+      projectId: 'p1',
+      createdAt: 0,
+      updatedAt: 0,
+      metrics: { tasks: 0, toolCalls: 0, cost: 0, errors: 0 },
+    };
+    const tree = selectAgentTree({ agents: [parent, child] });
+    expect(tree.get(undefined)).toEqual([parent]);
+    expect(tree.get('a1')).toEqual([child]);
+  });
+
+  it('selectProcessTree groups by parent pid', () => {
+    const init: Process = { pid: 1, ppid: 0, cmd: 'init', user: 'root', startedAt: 0, type: 'system' };
+    const bash: Process = { pid: 42, ppid: 1, cmd: 'bash', user: 'root', startedAt: 0, type: 'agent' };
+    const tree = selectProcessTree({ processes: [init, bash] });
+    expect(tree.get(0)).toEqual([init]);
+    expect(tree.get(1)).toEqual([bash]);
+  });
+
+  it('tick updates buckets, skill history and model history', () => {
+    const snapshot: WireSnapshot = {
+      at: new Date().toISOString(),
+      entries: [
+        makeEntry({
+          key: 'pid:1234',
+          status: 'thinking',
+          cwd: '/home/user/hookorama',
+          metadata: {
+            projectId: 'proj_hookorama',
+            skill: 'refactor',
+            model: 'claude-sonnet-4.5',
+            metrics: { tasks: 3, toolCalls: 5, cost: 0.2, errors: 0 },
+          },
+        }),
+      ],
+    };
+
+    useHookoramaStore.getState().syncSnapshot(snapshot);
+    const before = useHookoramaStore.getState().tickCount;
+    useHookoramaStore.getState().tick();
+
+    const { tickCount, buckets, skillHistory, modelHistory } = useHookoramaStore.getState();
+    expect(tickCount).toBe(before + 1);
+    expect(buckets.length).toBe(1);
+    expect(buckets[0]?.tasks).toBe(3);
+    expect(buckets[0]?.toolCalls).toBe(5);
+    expect(skillHistory['refactor']).toBe(3);
+    expect(modelHistory['claude-sonnet-4.5']?.calls).toBe(5);
+    expect(modelHistory['claude-sonnet-4.5']?.cost).toBe(0.2);
   });
 });

@@ -1,4 +1,4 @@
-import type { Status } from '@hookorama/client';
+import type { ProcessRow, ProcessType, Status } from '@hookorama/client';
 
 export type { Status };
 
@@ -6,7 +6,9 @@ export type NodeType = 'agent' | 'subagent' | 'tool';
 
 export type Origin = 'terminal' | 'vscode' | 'jetbrains' | 'ci';
 
-export type ProcType = 'agent' | 'tool' | 'ide' | 'system';
+export type ProcType = ProcessType;
+
+export type Process = ProcessRow;
 
 export interface Project {
   id: string;
@@ -44,17 +46,6 @@ export interface Agent {
   metrics: Metrics;
 }
 
-export interface Process {
-  pid: number;
-  ppid: number;
-  cmd: string;
-  user: string;
-  tty?: string;
-  startedAt: number;
-  type: ProcType;
-  agentId?: string;
-  projectId?: string;
-}
 
 export type EventType =
   | 'lifecycle.start'

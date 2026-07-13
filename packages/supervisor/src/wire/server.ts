@@ -116,6 +116,10 @@ export class WireServer {
       return this.handleState();
     }
 
+    if (url.pathname === '/api/processes' && request.method === 'GET') {
+      return this.handleProcesses();
+    }
+
     if (url.pathname === '/api/hook' && request.method === 'POST') {
       return this.handleHook(request);
     }
@@ -139,6 +143,11 @@ export class WireServer {
 
   private handleState(): Response {
     return Response.json(this.buildSnapshot(), { headers: CORS_HEADERS });
+  }
+
+  private async handleProcesses(): Promise<Response> {
+    const processes = await this.supervisor.processes();
+    return Response.json(processes, { headers: CORS_HEADERS });
   }
 
   private async handleHook(request: Request): Promise<Response> {

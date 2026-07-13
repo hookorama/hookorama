@@ -194,6 +194,41 @@ interface Bucket {
   errors: number;
 }
 
+const MAX_BUCKETS = 2000;
+
+function updateBuckets(buckets: Bucket[], agents: Agent[]): Bucket[] {
+  const bucket: Bucket = {
+    ts: Date.now(),
+    tasks: agents.reduce((s, a) => s + a.metrics.tasks, 0),
+    toolCalls: agents.reduce((s, a) => s + a.metrics.toolCalls, 0),
+    cost: agents.reduce((s, a) => s + a.metrics.cost, 0),
+    active: agents.filter((a) => a.status === 'running-tool' || a.status === 'thinking').length,
+    errors: agents.filter((a) => a.status === 'error').length,
+  };
+  return [...buckets, bucket].slice(-MAX_BUCKETS);
+}
+
+function updateSkillHistory(agents: Agent[]): Record<string, number> {
+  const history: Record<string, number> = {};
+  for (const a of agents) {
+    if (a.skill) {
+      history[a.skill] = (history[a.skill] ?? 0) + a.metrics.tasks;
+    }
+  }
+  return history;
+}
+
+function updateModelHistory(agents: Agent[]): Record<string, { calls: number; cost: number }> {
+  const history: Record<string, { calls: number; cost: number }> = {};
+  for (const a of agents) {
+    if (a.model) {
+      const prev = history[a.model] ?? { calls: 0, cost: 0 };
+      history[a.model] = { calls: prev.calls + a.metrics.toolCalls, cost: prev.cost + a.metrics.cost };
+    }
+  }
+  return history;
+}
+
 type Connection = 'connected' | 'disconnected' | 'error' | 'mock';
 
 interface Store {
@@ -232,6 +267,7 @@ interface Store {
   ackNotification: (id: string) => void;
   clearAcked: () => void;
   tick: () => void;
+  setProcesses: (processes: Process[]) => void;
 }
 
 function basename(path: string): string {
@@ -453,7 +489,35 @@ export const useHookoramaStore = create<Store>((set, get) => ({
     })),
 
   tick: () => {
-    if (get().paused) return;
-    set((state) => ({ tickCount: state.tickCount + 1 }));
+    set((state) => {
+      if (state.paused) return state;
+      return {
+        tickCount: state.tickCount + 1,
+        buckets: updateBuckets(state.buckets, state.agents),
+        skillHistory: updateSkillHistory(state.agents),
+        modelHistory: updateModelHistory(state.agents),
+      };
+    });
   },
+
+  setProcesses: (processes: Process[]) => set({ processes }),
 }));
+
+export function selectAgentTree(state: { agents: Agent[] }): Map<string | undefined, Agent[]> {
+  const byParent = new Map<string | undefined, Agent[]>();
+  for (const a of state.agents) {
+    const key = a.parentId;
+    if (!byParent.has(key)) byParent.set(key, []);
+    byParent.get(key)!.push(a);
+  }
+  return byParent;
+}
+
+export function selectProcessTree(state: { processes: Process[] }): Map<number, Process[]> {
+  const byPpid = new Map<number, Process[]>();
+  for (const p of state.processes) {
+    if (!byPpid.has(p.ppid)) byPpid.set(p.ppid, []);
+    byPpid.get(p.ppid)!.push(p);
+  }
+  return byPpid;
+}

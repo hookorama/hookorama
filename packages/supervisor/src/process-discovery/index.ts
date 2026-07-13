@@ -17,6 +17,9 @@ export interface ProcessRow {
   readonly pid: number;
   readonly ppid: number;
   readonly command: string;
+  readonly user: string;
+  readonly tty?: string;
+  readonly startedAt: number;
 }
 
 export interface ProcessDiscovery {
@@ -75,7 +78,7 @@ export class LinuxProcDiscovery implements ProcessDiscovery {
       } catch {
         // ignore — comm is optional
       }
-      entries.push({ pid, ppid: row.ppid, command });
+      entries.push({ pid, ppid: row.ppid, command, user: '?', startedAt: Date.now() });
     }
     return entries;
   }
@@ -114,7 +117,7 @@ export class MacPsDiscovery implements ProcessDiscovery {
       const pid = Number(pidRaw);
       const ppid = Number(ppidRaw);
       if (!Number.isFinite(pid) || !Number.isFinite(ppid)) continue;
-      rows.push({ pid, ppid, command: command ?? '' });
+      rows.push({ pid, ppid, command: command ?? '', user: '?', startedAt: Date.now() });
     }
     return rows;
   }
@@ -151,7 +154,7 @@ export class WindowsWmicDiscovery implements ProcessDiscovery {
       const ppid = Number(cols[1]);
       const pid = Number(cols[2]);
       if (!Number.isFinite(pid) || !Number.isFinite(ppid)) continue;
-      rows.push({ pid, ppid, command: name });
+      rows.push({ pid, ppid, command: name, user: '?', startedAt: Date.now() });
     }
     return rows;
   }

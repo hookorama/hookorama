@@ -6,7 +6,7 @@
  * package; in the browser it defaults to `globalThis.WebSocket`.
  */
 
-import type { HookEvent, HookRequest, WireMessage, WireSnapshot } from './types.js';
+import type { HookEvent, HookRequest, ProcessRow, WireMessage, WireSnapshot } from './types.js';
 
 interface WebSocketLike {
   addEventListener(type: string, listener: (event: Event) => void): void;
@@ -76,6 +76,15 @@ export class SupervisorClient {
   stop(): void {
     this.ws?.close();
     this.ws = null;
+  }
+
+  /** Fetch the OS process table from GET /api/processes. */
+  async fetchProcesses(): Promise<ProcessRow[]> {
+    const response = await fetch(`${this.httpUrl}/api/processes`);
+    if (!response.ok) {
+      throw new Error(`processes failed: ${response.status}`);
+    }
+    return (await response.json()) as ProcessRow[];
   }
 
   /** Send a hook event via POST /api/hook. */

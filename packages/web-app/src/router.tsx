@@ -1,16 +1,11 @@
 import { createRootRoute, createRoute, createRouter, Outlet } from '@tanstack/react-router';
 import { Shell } from './routes/shell.js';
 import { Overview } from './routes/overview.js';
-
-function Placeholder({ title }: { title: string }) {
-  return (
-    <div className="flex min-h-full flex-col items-center justify-center p-4 text-center font-mono">
-      <div className="text-xs uppercase tracking-widest text-primary">{title}</div>
-      <h1 className="mt-2 text-2xl">ROUTE_PLACEHOLDER</h1>
-      <p className="mt-2 text-sm text-muted-foreground">&gt; this view is not wired yet.</p>
-    </div>
-  );
-}
+import { Agents } from './routes/agents.js';
+import { Processes } from './routes/processes.js';
+import { Projects } from './routes/projects.js';
+import { Events } from './routes/events.js';
+import { Analytics } from './routes/analytics.js';
 
 const rootRoute = createRootRoute({
   component: () => <Outlet />,
@@ -40,31 +35,31 @@ const indexRoute = createRoute({
 const projectsRoute = createRoute({
   getParentRoute: () => shellRoute,
   path: '/projects',
-  component: () => <Placeholder title="projects" />,
+  component: Projects,
 });
 
 const agentsRoute = createRoute({
   getParentRoute: () => shellRoute,
   path: '/agents',
-  component: () => <Placeholder title="agents" />,
+  component: Agents,
 });
 
 const processesRoute = createRoute({
   getParentRoute: () => shellRoute,
   path: '/processes',
-  component: () => <Placeholder title="processes" />,
+  component: Processes,
 });
 
 const eventsRoute = createRoute({
   getParentRoute: () => shellRoute,
   path: '/events',
-  component: () => <Placeholder title="events" />,
+  component: Events,
 });
 
 const analyticsRoute = createRoute({
   getParentRoute: () => shellRoute,
   path: '/analytics',
-  component: () => <Placeholder title="analytics" />,
+  component: Analytics,
 });
 
 const routeTree = rootRoute.addChildren([

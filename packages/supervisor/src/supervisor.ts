@@ -7,12 +7,12 @@
  */
 
 import { acquirePidSlot, pidFilePath, releasePidSlot } from './lifecycle/pid-file.js';
-import type { AgentMetadata } from '@hookorama/client';
+import type { AgentMetadata, ProcessRow, ProcessType } from '@hookorama/client';
 import { StateStore, type ProcessEntry, type Status } from './state/store.js';
 import {
   pickDiscovery,
   type ProcessDiscovery,
-  type ProcessRow,
+  type ProcessRow as RawProcessRow,
 } from './process-discovery/index.js';
 import {
   normaliseCwd,
@@ -147,7 +147,57 @@ export class Supervisor {
     return this.store.snapshot();
   }
 
-  private ingestProcessTable(rows: readonly ProcessRow[]): void {
+  /** OS process tree annotated with the agents that own each process. */
+  async processes(): Promise<ProcessRow[]> {
+    if (this.discovery === null) return [];
+    const rows: readonly RawProcessRow[] = await this.discovery.list();
+    const entries = this.store.snapshot();
+
+    const pidToAgent = new Map<number, { agentId: string; projectId?: string | undefined }>();
+    for (const entry of entries) {
+      if (entry.pid !== undefined) {
+        const projectId = entry.metadata?.projectId;
+        pidToAgent.set(entry.pid, projectId === undefined ? { agentId: entry.key } : { agentId: entry.key, projectId });
+      }
+    }
+
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const row of rows) {
+        if (pidToAgent.has(row.pid)) continue;
+        const parent = pidToAgent.get(row.ppid);
+        if (parent !== undefined) {
+          pidToAgent.set(row.pid, parent);
+          changed = true;
+        }
+      }
+    }
+
+    return rows.map((row) => {
+      const mapped = pidToAgent.get(row.pid);
+      const cmdLower = row.command.toLowerCase();
+      const type: ProcessType = mapped
+        ? 'agent'
+        : cmdLower.includes('code') || cmdLower.includes('cursor')
+          ? 'ide'
+          : 'system';
+      const result: ProcessRow = {
+        pid: row.pid,
+        ppid: row.ppid,
+        cmd: row.command,
+        user: row.user ?? '?',
+        startedAt: row.startedAt,
+        type,
+        ...(row.tty !== undefined ? { tty: row.tty } : {}),
+        ...(mapped?.agentId !== undefined ? { agentId: mapped.agentId } : {}),
+        ...(mapped?.projectId !== undefined ? { projectId: mapped.projectId } : {}),
+      };
+      return result;
+    });
+  }
+
+  private ingestProcessTable(rows: readonly RawProcessRow[]): void {
     // Process discovery does not contribute to live status;
     // it only feeds the open‑terminal table when the extension
     // is unavailable. The supervisor relies on the extension for

@@ -37,6 +37,9 @@ Key contracts:
 
 - `GET /api/state` returns the current `WireSnapshot` (`entries: ProcessEntry[]`).
 - `POST /api/hook` accepts `HookRequest` and updates live state.
+- `GET /api/processes` returns the current OS process tree (`ProcessRow[]`),
+  annotated with `agentId` and `projectId` where the process PID matches a
+  known agent.
 - `WebSocket /ws` pushes `snapshot` and `event` messages to all clients.
 - `ProcessEntry` carries an optional `metadata` block (metrics, model, skill,
   current task, waiting reason) so agents can publish dashboard numbers.
@@ -49,6 +52,7 @@ Key contracts:
 
 - [ ] `GET /api/state` returns the current `WireSnapshot` (`entries: ProcessEntry[]`).
 - [ ] `POST /api/hook` accepts `HookRequest` and updates live state.
+- [ ] `GET /api/processes` returns the current OS process tree with agent/project annotations.
 - [ ] `WebSocket /ws` pushes `snapshot` and `event` messages to all clients.
 - [ ] `packages/client` exports the wire types and `SupervisorClient`.
 - [ ] `packages/web-app` is a Vite + React + TanStack Router SPA that reads the live state.
@@ -104,3 +108,4 @@ forces updates to `packages/client`, `packages/supervisor`, and `packages/web-ap
   - `packages/client/src/types.ts`, `packages/client/src/client.ts`, `packages/client/src/index.ts`
   - `packages/supervisor/src/wire/server.ts`, `packages/supervisor/src/main.ts`
   - `packages/web-app/src/*` (SPA entry, routes, design system, store, source)
+  - `packages/web-app/src/routes/agents.tsx`, `packages/web-app/src/routes/processes.tsx`

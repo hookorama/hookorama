@@ -23,6 +23,7 @@ import { useHookoramaStore } from '@/lib/store.js';
 import { useTicker } from '@/lib/ticker.js';
 import { ProjectTag, Volatile } from '@/components/hk/primitives.js';
 import { TerminalDock } from '@/components/hk/terminal-dock.js';
+import { Toaster } from 'sonner';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover.js';
 import type { NotificationKind } from '@/lib/types.js';
 
@@ -271,6 +272,7 @@ export function Shell(): ReactElement {
   const setConnection = useHookoramaStore((state) => state.setConnection);
   const syncSnapshot = useHookoramaStore((state) => state.syncSnapshot);
   const applyEvent = useHookoramaStore((state) => state.applyEvent);
+  const setProcesses = useHookoramaStore((state) => state.setProcesses);
 
   useEffect(() => {
     const client = new SupervisorClient({
@@ -287,6 +289,8 @@ export function Shell(): ReactElement {
     void (async () => {
       try {
         await client.start();
+        const processes = await client.fetchProcesses();
+        setProcesses(processes);
       } catch {
         setConnection('error');
       }
@@ -295,7 +299,7 @@ export function Shell(): ReactElement {
     return () => {
       client.stop();
     };
-  }, [setConnection, syncSnapshot, applyEvent]);
+  }, [setConnection, syncSnapshot, applyEvent, setProcesses]);
 
   return (
     <div className={`flex h-screen min-h-screen flex-col ${scanlines ? 'scanlines' : ''}`}>
@@ -307,6 +311,7 @@ export function Shell(): ReactElement {
             <Outlet />
           </main>
           <TerminalDock />
+          <Toaster position="bottom-right" richColors />
         </div>
       </div>
     </div>
