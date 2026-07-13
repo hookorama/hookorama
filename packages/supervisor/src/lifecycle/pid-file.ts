@@ -85,6 +85,7 @@ export async function acquirePidSlot(
     if (Number.isFinite(existing) && isProcessRunning(existing)) {
       return { acquired: false, existingPid: existing };
     }
+    await rm(target.path, { force: true });
   }
   await writeFile(target.path, `${myPid}\n`, { flag: 'wx' });
   return { acquired: true };

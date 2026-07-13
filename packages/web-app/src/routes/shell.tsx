@@ -275,10 +275,10 @@ export function Shell(): ReactElement {
   const setProcesses = useHookoramaStore((state) => state.setProcesses);
 
   useEffect(() => {
-    const client = new SupervisorClient({
-      httpUrl: 'http://127.0.0.1:7354',
-      wsUrl: 'ws://127.0.0.1:7354/ws',
-    });
+    const dev = String(import.meta.env['DEV']) === 'true';
+    const httpUrl = dev ? window.location.origin : 'http://127.0.0.1:7354';
+    const wsUrl = dev ? `ws://${window.location.host}/ws` : 'ws://127.0.0.1:7354/ws';
+    const client = new SupervisorClient({ httpUrl, wsUrl });
 
     client.setOnOpen(() => setConnection('connected'));
     client.setOnClose(() => setConnection('disconnected'));
