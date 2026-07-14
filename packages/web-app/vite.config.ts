@@ -15,7 +15,25 @@ function supervisorPlugin(): Plugin {
     name: 'hookorama:supervisor',
     apply: 'serve',
     async configureServer(server) {
+      try {
+        const response = await fetch('http://127.0.0.1:7354/api/state');
+        if (response.ok) {
+          console.warn('supervisor already running on http://127.0.0.1:7354/');
+          return;
+        }
+      } catch {
+        // not running yet, start it
+      }
+
       child = spawn('bun', ['src/main.ts'], { cwd: supervisorDir });
+
+      let childExited = false;
+      let childExitCode: number | null = null;
+      child.on('exit', (code) => {
+        childExited = true;
+        childExitCode = code;
+      });
+
       child.stderr?.on('data', (data: Buffer) => {
         console.warn(data.toString().trim());
       });
@@ -24,6 +42,9 @@ function supervisorPlugin(): Plugin {
       });
 
       for (let i = 0; i < 50; i++) {
+        if (childExited) {
+          throw new Error(`supervisor exited with code ${childExitCode ?? 'unknown'}`);
+        }
         try {
           const response = await fetch('http://127.0.0.1:7354/api/state');
           if (response.ok) break;
@@ -31,6 +52,10 @@ function supervisorPlugin(): Plugin {
           // not ready yet
         }
         await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+
+      if (childExited) {
+        throw new Error(`supervisor exited with code ${childExitCode ?? 'unknown'}`);
       }
 
       const originalClose = server.close.bind(server);
