@@ -21,7 +21,8 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "demo": "bun run ./demo/run.mjs"
+    "demo": "bun run ./demo/run.mjs",
+    "demo:setup": "bun run ./demo/run.mjs --setup"
   },
   "dependencies": {
     "@hookorama/client": "workspace:*",

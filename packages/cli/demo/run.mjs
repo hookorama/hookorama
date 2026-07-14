@@ -31,6 +31,7 @@ const agentsDir = join(demoHome, 'agents');
 const httpUrl = 'http://127.0.0.1:7354';
 const supervisorUrl = `${httpUrl}/api/state`;
 
+const setupOnly = process.argv.slice(2).includes('--setup');
 const env = buildDemoEnv();
 
 function buildDemoEnv() {
@@ -151,6 +152,25 @@ async function main() {
   console.warn('==> installing local agent configs');
   await runCli(['setup', 'claude']);
   await runCli(['setup', 'devin']);
+
+  if (setupOnly) {
+    console.warn('\n==> configs ready in', demoHome);
+    console.warn('    claude:', resolvePath(demoHome, '.claude', 'settings.json'));
+    console.warn('    devin: ', resolvePath(demoHome, '.config', 'devin', 'config.json'));
+    console.warn('\nRun a real agent from this home, e.g.:');
+    console.warn('  Windows:');
+    console.warn(`    set USERPROFILE=${demoHome}`);
+    console.warn(`    set LOCALAPPDATA=${resolvePath(demoHome, 'AppData', 'Local')}`);
+    console.warn(`    cd "${resolvePath(demoHome, 'agents', 'claude')}"`);
+    console.warn('    claude');
+    console.warn('  POSIX:');
+    const homePosix = demoHome.replace(/\\/g, '/');
+    const agentsPosix = resolvePath(demoHome, 'agents', 'claude').replace(/\\/g, '/');
+    console.warn(`    HOME=${homePosix} cd "${agentsPosix}" && claude`);
+    console.warn('\nThen in another terminal:');
+    console.warn('    bun packages/cli/src/main.ts status');
+    return;
+  }
 
   console.warn('==> spawning fake agents (supervisor will auto-start on first hook)');
   const claude = startFakeAgent('claude');

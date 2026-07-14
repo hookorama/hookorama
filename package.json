@@ -23,6 +23,7 @@
     "check": "bun run check:md && bun run check:files",
     "ci": "bun run typecheck && bun run lint && bun run check && bun run test && bun run build",
     "demo": "bun packages/cli/demo/run.mjs",
+    "demo:setup": "bun packages/cli/demo/run.mjs --setup",
     "memory:reindex": "bun run scripts/reindex-memory.ts"
   },
   "devDependencies": {
