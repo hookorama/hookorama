@@ -14,7 +14,7 @@ function supervisorPlugin(): Plugin {
   return {
     name: 'hookorama:supervisor',
     apply: 'serve',
-    async configureServer() {
+    async configureServer(server) {
       child = spawn('bun', ['src/main.ts'], { cwd: supervisorDir });
       child.stderr?.on('data', (data: Buffer) => {
         console.warn(data.toString().trim());
@@ -26,18 +26,21 @@ function supervisorPlugin(): Plugin {
       for (let i = 0; i < 50; i++) {
         try {
           const response = await fetch('http://127.0.0.1:7354/api/state');
-          if (response.ok) return () => {
-            if (child !== null) {
-              child.kill();
-              child = null;
-            }
-          };
+          if (response.ok) break;
         } catch {
           // not ready yet
         }
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
-      console.error('supervisor did not start in time');
+
+      const originalClose = server.close.bind(server);
+      server.close = async () => {
+        if (child !== null) {
+          child.kill();
+          child = null;
+        }
+        await originalClose();
+      };
     },
   };
 }

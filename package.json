@@ -13,7 +13,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "tsdown --watch",
+    "dev": "bun run --cwd packages/web-app dev",
     "build": "tsdown && bun run --cwd packages/web-app build",
     "typecheck": "tsdown && tsc -b --noEmit packages/client packages/supervisor packages/cli packages/extension packages/web-app",
     "lint": "oxlint . --ignore-pattern .worktrees",
