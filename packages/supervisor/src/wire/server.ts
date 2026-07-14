@@ -174,7 +174,7 @@ export class WireServer {
       });
     }
 
-    const identity = this.supervisor.applyHook(hook);
+    const identity = await this.supervisor.applyHook(hook);
     if (identity === null) {
       return new Response('unresolvable identity', {
         status: 400,

@@ -5,11 +5,11 @@
  * 1. Creates an isolated demo home directory so agent configs and the
  *    supervisor PID file do not touch the real `~/.claude` or `~/.config/devin`.
  * 2. Runs `hookorama setup claude` and `hookorama setup devin` against that home.
- * 3. Starts the supervisor.
- * 4. Spawns two fake agents (claude and devin) that register their own
- *    terminal entries and dispatch hook events.
- * 5. Prints `hookorama status` while the agents are "working".
- * 6. Stops the supervisor and cleans up.
+ * 3. Spawns two fake agents. Their first `hookorama hook` call auto-starts
+ *    the supervisor, and the supervisor resolves their pids via the OS
+ *    process table when the extension is not running.
+ * 4. Prints `hookorama status` while the agents are "working".
+ * 5. Stops the supervisor.
  *
  * Run from the repo root:
  *   bun run demo
@@ -18,7 +18,7 @@
  */
 
 import { spawn } from 'node:child_process';
-import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, rm } from 'node:fs/promises';
 import { dirname, join, resolve as resolvePath } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { setTimeout } from 'node:timers/promises';
@@ -28,7 +28,6 @@ const repoRoot = resolvePath(demoDir, '..', '..', '..');
 const cliMain = resolvePath(demoDir, '..', 'src', 'main.ts');
 const demoHome = resolvePath(demoDir, 'home');
 const agentsDir = join(demoHome, 'agents');
-const readyFile = join(demoHome, '.agents-ready');
 const httpUrl = 'http://127.0.0.1:7354';
 const supervisorUrl = `${httpUrl}/api/state`;
 
@@ -72,26 +71,9 @@ function runCli(args, options = {}) {
   });
 }
 
-function startSupervisor() {
-  return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [cliMain, 'supervisor', 'start'], {
-      cwd: repoRoot,
-      env,
-      detached: true,
-      stdio: 'ignore',
-    });
-
-    child.on('error', reject);
-    child.on('spawn', () => {
-      child.unref();
-      resolve(child);
-    });
-  });
-}
-
 function startFakeAgent(agent) {
   const agentDir = join(agentsDir, agent);
-  const child = spawn(process.execPath, [resolvePath(demoDir, 'fake-agent.mjs'), agent, readyFile], {
+  const child = spawn(process.execPath, [resolvePath(demoDir, 'fake-agent.mjs'), agent], {
     cwd: agentDir,
     env,
     stdio: 'inherit',
@@ -104,41 +86,20 @@ function startFakeAgent(agent) {
   return { child, exited };
 }
 
-async function registerAgentPids(pids) {
-  const terminals = pids.map(([agent, pid]) => ({
-    pid,
-    cwd: join(agentsDir, agent),
-    name: `demo-${agent}`,
-  }));
-
-  const response = await fetch(`${httpUrl}/api/terminals`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ terminals }),
-  });
-
-  if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    throw new Error(`register terminals failed: ${response.status} ${text}`);
-  }
-}
-
-async function signalReady() {
-  await writeFile(readyFile, '', 'utf8');
-}
-
-async function printAgentProcesses() {
-  try {
-    const response = await fetch(`${httpUrl}/api/processes`);
-    if (!response.ok) return;
-    const rows = await response.json();
-    const agentRows = rows.filter((row) => row.agentId !== undefined);
-    console.warn('==> processes owned by demo agents: %d', agentRows.length);
-    for (const row of agentRows.slice(0, 6)) {
-      console.warn(`    pid=${row.pid} type=${row.type} cmd=${row.cmd}`);
+async function waitForAgents(count) {
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    try {
+      const response = await fetch(supervisorUrl, { signal: AbortSignal.timeout(500) });
+      if (response.ok) {
+        const { entries } = await response.json();
+        if (Array.isArray(entries) && entries.filter((e) => e.status !== 'done').length >= count) {
+          return;
+        }
+      }
+    } catch {
+      // not ready yet
     }
-  } catch {
-    // ignore
+    await setTimeout(200);
   }
 }
 
@@ -153,6 +114,18 @@ async function waitForSupervisor() {
     await setTimeout(200);
   }
   throw new Error('supervisor did not start in time');
+}
+
+async function waitForSupervisorStopped() {
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    try {
+      const response = await fetch(supervisorUrl, { signal: AbortSignal.timeout(500) });
+      if (!response.ok) return;
+    } catch {
+      return;
+    }
+    await setTimeout(200);
+  }
 }
 
 async function prepareDemoHome() {
@@ -179,43 +152,15 @@ async function main() {
   await runCli(['setup', 'claude']);
   await runCli(['setup', 'devin']);
 
-  console.warn('==> starting supervisor');
-  const supervisor = await startSupervisor();
-  await waitForSupervisor();
-
-  const cleanup = async () => {
-    try {
-      await runCli(['supervisor', 'stop']);
-    } catch {
-      // best effort
-    }
-    try {
-      supervisor.kill?.();
-    } catch {
-      // already gone
-    }
-  };
-
-  process.on('SIGINT', cleanup);
-  process.on('SIGTERM', cleanup);
-
-  console.warn('==> spawning fake agents');
+  console.warn('==> spawning fake agents (supervisor will auto-start on first hook)');
   const claude = startFakeAgent('claude');
   const devin = startFakeAgent('devin');
 
-  // The supervisor needs to know these PIDs as open terminals so that hook
-  // events with --pid resolve to a real process in the OS tree.
-  await registerAgentPids([
-    ['claude', claude.child.pid],
-    ['devin', devin.child.pid],
-  ]);
-  await signalReady();
-
-  await setTimeout(1500);
+  await waitForSupervisor();
+  await waitForAgents(2);
 
   console.warn('\n==> status (agents should be active)');
   await runCli(['status']);
-  await printAgentProcesses();
 
   await setTimeout(2500);
 
@@ -226,7 +171,8 @@ async function main() {
   await Promise.all([claude.exited, devin.exited]);
 
   console.warn('\n==> stopping supervisor');
-  await cleanup();
+  await runCli(['supervisor', 'stop']);
+  await waitForSupervisorStopped();
 
   console.warn('\n==> demo complete — inspect configs in packages/cli/demo/home/');
 }

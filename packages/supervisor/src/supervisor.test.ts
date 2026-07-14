@@ -32,10 +32,10 @@ describe('Supervisor', () => {
     await a.stop();
   });
 
-  test('applyHook upserts a known process and remembers it', () => {
+  test('applyHook upserts a known process and remembers it', async () => {
     const s = new Supervisor({ lifecycle: { customPidPath: pidPath }, discovery: null });
     s.setOpenTerminals([{ pid: 7, cwd: '/p' }]);
-    const id = s.applyHook({
+    const id = await s.applyHook({
       pidChain: [7],
       cwd: '/p',
       status: 'thinking',
@@ -46,15 +46,26 @@ describe('Supervisor', () => {
     expect(s.snapshot()[0]?.agent).toBe('claude');
   });
 
-  test('applyHook returns null when identity is unresolvable', () => {
+  test('applyHook returns null when identity is unresolvable', async () => {
     const s = new Supervisor({ lifecycle: { customPidPath: pidPath }, discovery: null });
-    expect(s.applyHook({ status: 'idle' })).toBeNull();
+    expect(await s.applyHook({ status: 'idle' })).toBeNull();
   });
 
-  test('subagent lifecycle: start, exact end, fallback end', () => {
+  test('applyHook falls back to the OS process table when open terminals are empty', async () => {
+    const mockDiscovery: ProcessDiscovery = {
+      list: async () => [{ pid: 42, ppid: 1, command: 'bash', user: 'u', startedAt: Date.now() }],
+    };
+    const s = new Supervisor({ lifecycle: { customPidPath: pidPath }, discovery: mockDiscovery });
+    const id = await s.applyHook({ pidChain: [42], cwd: '/p', status: 'thinking', agent: 'claude' });
+    expect(id?.pid).toBe(42);
+    expect(s.snapshot()).toHaveLength(1);
+    expect(s.snapshot()[0]?.agent).toBe('claude');
+  });
+
+  test('subagent lifecycle: start, exact end, fallback end', async () => {
     const s = new Supervisor({ lifecycle: { customPidPath: pidPath }, discovery: null });
     s.setOpenTerminals([{ pid: 7, cwd: '/p' }]);
-    const id = s.applyHook({ pidChain: [7], cwd: '/p', status: 'thinking' })!;
+    const id = (await s.applyHook({ pidChain: [7], cwd: '/p', status: 'thinking' }))!;
     const childKey = s.startSubagent(id, '2026-07-10T00:00:01.000Z', 'tool-1');
     expect(s.snapshot()).toHaveLength(2);
     const exact = s.endSubagent(id.key, '2026-07-10T00:00:02.000Z', 'tool-1');
@@ -83,7 +94,7 @@ describe('Supervisor', () => {
     const s = new Supervisor({ lifecycle: { customPidPath: pidPath }, discovery: mockDiscovery });
     await s.start();
     s.setOpenTerminals([{ pid: 7, cwd: '/p' }]);
-    s.applyHook({ pidChain: [7], cwd: '/p', status: 'thinking', agent: 'claude' });
+    await s.applyHook({ pidChain: [7], cwd: '/p', status: 'thinking', agent: 'claude' });
 
     const rows = await s.processes();
     expect(rows).toHaveLength(3);
