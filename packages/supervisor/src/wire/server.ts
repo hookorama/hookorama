@@ -1,9 +1,9 @@
 /**
  * Wire server for the supervisor.
  *
- * Serves `GET /api/state`, `POST /api/hook`, and `WebSocket /ws` on
- * a loopback address. All state changes are broadcast to every
- * connected WebSocket client.
+ * Serves `GET /api/state`, `POST /api/hook`, `POST /api/terminals`,
+ * and `WebSocket /ws` on a loopback address. All state changes are
+ * broadcast to every connected WebSocket client.
  */
 
 import { randomUUID } from 'node:crypto';
@@ -16,6 +16,7 @@ import type {
   WireMessage,
 } from '@hookorama/client';
 import { Supervisor } from '../supervisor.js';
+import type { OpenTerminal } from '../identity/resolve.js';
 
 const CORS_HEADERS: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
@@ -124,6 +125,10 @@ export class WireServer {
       return this.handleHook(request);
     }
 
+    if (url.pathname === '/api/terminals' && request.method === 'POST') {
+      return this.handleTerminals(request);
+    }
+
     if (url.pathname === '/ws' && request.method === 'GET') {
       if (server.upgrade(request)) {
         return undefined;
@@ -180,6 +185,65 @@ export class WireServer {
     this.broadcastEvent(this.buildEvent(identity, hook));
     this.broadcastSnapshot();
 
+    return new Response(null, { status: 204, headers: CORS_HEADERS });
+  }
+
+  private async handleTerminals(request: Request): Promise<Response> {
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return new Response('invalid JSON', {
+        status: 400,
+        headers: CORS_HEADERS,
+      });
+    }
+
+    if (body === null || typeof body !== 'object') {
+      return new Response('invalid terminals payload', {
+        status: 400,
+        headers: CORS_HEADERS,
+      });
+    }
+
+    const payload = body as Record<string, unknown>;
+    const terminals = payload['terminals'];
+    if (!Array.isArray(terminals)) {
+      return new Response('terminals must be an array', {
+        status: 400,
+        headers: CORS_HEADERS,
+      });
+    }
+
+    const parsed: OpenTerminal[] = [];
+    for (const entry of terminals) {
+      if (entry === null || typeof entry !== 'object') {
+        return new Response('terminal entry must be an object', {
+          status: 400,
+          headers: CORS_HEADERS,
+        });
+      }
+
+      const terminal = entry as Record<string, unknown>;
+      const pid = terminal['pid'];
+      const cwd = terminal['cwd'];
+      const name = terminal['name'];
+
+      if (typeof pid !== 'number' || typeof cwd !== 'string') {
+        return new Response('terminal entry must have numeric pid and string cwd', {
+          status: 400,
+          headers: CORS_HEADERS,
+        });
+      }
+
+      parsed.push({
+        pid,
+        cwd,
+        ...(typeof name === 'string' ? { name } : {}),
+      });
+    }
+
+    this.supervisor.setOpenTerminals(parsed);
     return new Response(null, { status: 204, headers: CORS_HEADERS });
   }
 

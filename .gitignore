@@ -25,3 +25,6 @@ Thumbs.db
 
 # logs
 *.log
+
+# demo runtime home (configs and supervisor state are created on the fly)
+packages/cli/demo/home/

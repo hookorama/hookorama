@@ -37,6 +37,8 @@ Key contracts:
 
 - `GET /api/state` returns the current `WireSnapshot` (`entries: ProcessEntry[]`).
 - `POST /api/hook` accepts `HookRequest` and updates live state.
+- `POST /api/terminals` replaces the open-terminal table used for pid→terminal
+  mapping. Surfaces such as the VS Code extension push this list over the wire.
 - `GET /api/processes` returns the current OS process tree (`ProcessRow[]`),
   annotated with `agentId` and `projectId` where the process PID matches a
   known agent.
@@ -52,6 +54,7 @@ Key contracts:
 
 - [ ] `GET /api/state` returns the current `WireSnapshot` (`entries: ProcessEntry[]`).
 - [ ] `POST /api/hook` accepts `HookRequest` and updates live state.
+- [ ] `POST /api/terminals` replaces the open-terminal table used for pid→terminal mapping.
 - [ ] `GET /api/processes` returns the current OS process tree with agent/project annotations.
 - [ ] `WebSocket /ws` pushes `snapshot` and `event` messages to all clients.
 - [ ] `packages/client` exports the wire types and `SupervisorClient`.

@@ -124,15 +124,18 @@ export class MacPsDiscovery implements ProcessDiscovery {
 }
 
 /**
- * Windows walker: shells out to `wmic process get
- * ProcessId,ParentProcessId,Name /FORMAT:CSV`. CSV header order:
- * `Node,ParentProcessId,ProcessId`. We parse defensively because
- * `wmic` is deprecated on recent Windows; if it fails the
- * caller sees an empty list and the supervisor falls back to
- * extension‑reported terminal identity.
+ * Windows walker: tries `wmic` first, then falls back to
+ * PowerShell `Get-CimInstance Win32_Process` because `wmic` is
+ * removed on recent Windows. CSV output is parsed defensively.
  */
 export class WindowsWmicDiscovery implements ProcessDiscovery {
   async list(): Promise<readonly ProcessRow[]> {
+    const wmicRows = await this.tryWmic();
+    if (wmicRows !== null && wmicRows.length > 0) return wmicRows;
+    return this.tryPowerShell();
+  }
+
+  private async tryWmic(): Promise<readonly ProcessRow[] | null> {
     let lines: readonly string[];
     try {
       lines = await spawnLines([
@@ -143,18 +146,52 @@ export class WindowsWmicDiscovery implements ProcessDiscovery {
         '/FORMAT:CSV',
       ]);
     } catch {
+      return null;
+    }
+    if (lines.length < 2) return null;
+    return this.parseCsvRows(lines.slice(1), ['name', 'ppid', 'pid']);
+  }
+
+  private async tryPowerShell(): Promise<readonly ProcessRow[]> {
+    let lines: readonly string[];
+    try {
+      lines = await spawnLines([
+        'powershell',
+        '-Command',
+        'Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,Name | ConvertTo-Csv -NoTypeInformation',
+      ]);
+    } catch {
       return [];
     }
     if (lines.length < 2) return [];
+    return this.parseCsvRows(lines.slice(1), ['pid', 'ppid', 'name']);
+  }
+
+  private parseCsvRows(
+    lines: readonly string[],
+    columns: readonly ['name', 'ppid', 'pid'] | readonly ['pid', 'ppid', 'name'],
+  ): ProcessRow[] {
     const rows: ProcessRow[] = [];
-    for (const line of lines.slice(1)) {
-      const cols = line.split(',');
+    for (const line of lines) {
+      const cols = line.split(',').map((c) => c.trim().replace(/^"|"$/g, ''));
       if (cols.length < 3) continue;
-      const name = cols[0] ?? '';
-      const ppid = Number(cols[1]);
-      const pid = Number(cols[2]);
+
+      let pid: number;
+      let ppid: number;
+      let command: string;
+
+      if (columns[0] === 'name') {
+        command = cols[0] ?? '';
+        ppid = Number(cols[1]);
+        pid = Number(cols[2]);
+      } else {
+        pid = Number(cols[0]);
+        ppid = Number(cols[1]);
+        command = cols[2] ?? '';
+      }
+
       if (!Number.isFinite(pid) || !Number.isFinite(ppid)) continue;
-      rows.push({ pid, ppid, command: name, user: '?', startedAt: Date.now() });
+      rows.push({ pid, ppid, command, user: '?', startedAt: Date.now() });
     }
     return rows;
   }
