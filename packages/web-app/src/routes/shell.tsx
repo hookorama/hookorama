@@ -9,17 +9,13 @@ import {
   CircleDollarSign,
   Cpu,
   Folder,
-  Gauge,
   GitBranch,
   List,
   MessageSquareWarning,
-  Pause,
-  Play,
   X,
   Zap,
 } from 'lucide-react';
 import { useHookoramaStore } from '@/lib/store.js';
-import { useTicker } from '@/lib/ticker.js';
 import { ProjectTag, Volatile } from '@/components/hk/primitives.js';
 import { Toaster } from 'sonner';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover.js';
@@ -124,11 +120,6 @@ function NotificationPopover() {
 
 function StatusControls() {
   const agents = useHookoramaStore((state) => state.agents);
-  const tickCount = useHookoramaStore((state) => state.tickCount);
-  const paused = useHookoramaStore((state) => state.paused);
-  const tickSpeed = useHookoramaStore((state) => state.tickSpeed);
-  const togglePause = useHookoramaStore((state) => state.togglePause);
-  const setSpeed = useHookoramaStore((state) => state.setSpeed);
   const toggleScanlines = useHookoramaStore((state) => state.toggleScanlines);
 
   const activeAgents = agents.filter((a) => a.status === 'running-tool' || a.status === 'thinking').length;
@@ -137,31 +128,11 @@ function StatusControls() {
   return (
     <>
       <span className="text-muted-foreground">
-        tick <span className="text-foreground"><Volatile fallback="0">{tickCount}</Volatile></span>
-      </span>
-      <span className="text-muted-foreground">
         agents <span className="text-primary">{activeAgents}</span>/{agents.length}
       </span>
       <span className="text-muted-foreground">
         cost <span className="text-accent"><Volatile fallback="$0.0000">{`$${totalCost.toFixed(4)}`}</Volatile></span>
       </span>
-      <button onClick={togglePause} className="flex items-center gap-1 hover:text-primary">
-        {paused ? <Play className="h-3 w-3" /> : <Pause className="h-3 w-3" />}
-        {paused ? 'resume' : 'pause'}
-      </button>
-      <div className="flex items-center gap-1">
-        <Gauge className="h-3 w-3" />
-        <select
-          value={tickSpeed}
-          onChange={(e) => setSpeed(Number(e.target.value))}
-          className="border border-border bg-panel px-1 py-0.5 text-xs"
-        >
-          <option value={2500}>0.4x</option>
-          <option value={1200}>1x</option>
-          <option value={600}>2x</option>
-          <option value={300}>4x</option>
-        </select>
-      </div>
       <button onClick={toggleScanlines} className="hover:text-primary">
         crt
       </button>
@@ -234,7 +205,6 @@ function Sidebar() {
 }
 
 export function Shell(): ReactElement {
-  useTicker();
   const scanlines = useHookoramaStore((state) => state.scanlines);
   const setConnection = useHookoramaStore((state) => state.setConnection);
   const syncSnapshot = useHookoramaStore((state) => state.syncSnapshot);

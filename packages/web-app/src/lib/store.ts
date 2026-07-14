@@ -58,25 +58,18 @@ interface Store {
   processes: Process[];
   events: HookEvent[];
   notifications: Notification[];
-  paused: boolean;
-  tickSpeed: number;
-  tickCount: number;
   scanlines: boolean;
   buckets: Bucket[];
   skillHistory: Record<string, number>;
-  toolHistory: Record<string, { calls: number; errors: number }>;
   modelHistory: Record<string, { calls: number; cost: number }>;
   connection: Connection;
 
   setConnection: (connection: Connection) => void;
   syncSnapshot: (snapshot: WireSnapshot) => void;
   applyEvent: (event: WireHookEvent) => void;
-  togglePause: () => void;
-  setSpeed: (ms: number) => void;
   toggleScanlines: () => void;
   ackNotification: (id: string) => void;
   clearAcked: () => void;
-  tick: () => void;
   setProcesses: (processes: Process[]) => void;
 }
 
@@ -214,13 +207,9 @@ export const useHookoramaStore = create<Store>((set) => ({
   processes: [],
   events: [],
   notifications: [],
-  paused: false,
-  tickSpeed: 1200,
-  tickCount: 0,
   scanlines: false,
   buckets: [],
   skillHistory: {},
-  toolHistory: {},
   modelHistory: {},
   connection: 'disconnected',
 
@@ -231,7 +220,15 @@ export const useHookoramaStore = create<Store>((set) => ({
       const agents = snapshot.entries.map(toAgent);
       const projects = buildProjects(snapshot.entries);
       const notifications = deriveNotifications(agents, state.notifications);
-      return { connection: 'connected', agents, projects, notifications };
+      return {
+        connection: 'connected',
+        agents,
+        projects,
+        notifications,
+        buckets: updateBuckets(state.buckets, agents),
+        skillHistory: updateSkillHistory(agents),
+        modelHistory: updateModelHistory(agents),
+      };
     }),
 
   applyEvent: (event) =>
@@ -239,8 +236,6 @@ export const useHookoramaStore = create<Store>((set) => ({
       events: [...state.events, mapEvent(event)].slice(-100),
     })),
 
-  togglePause: () => set((state) => ({ paused: !state.paused })),
-  setSpeed: (ms: number) => set({ tickSpeed: ms }),
   toggleScanlines: () => set((state) => ({ scanlines: !state.scanlines })),
 
   ackNotification: (id) =>
@@ -252,18 +247,6 @@ export const useHookoramaStore = create<Store>((set) => ({
     set((state) => ({
       notifications: state.notifications.filter((n) => !n.ack),
     })),
-
-  tick: () => {
-    set((state) => {
-      if (state.paused) return state;
-      return {
-        tickCount: state.tickCount + 1,
-        buckets: updateBuckets(state.buckets, state.agents),
-        skillHistory: updateSkillHistory(state.agents),
-        modelHistory: updateModelHistory(state.agents),
-      };
-    });
-  },
 
   setProcesses: (processes: Process[]) => set({ processes }),
 }));

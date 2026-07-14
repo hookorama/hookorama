@@ -158,7 +158,7 @@ describe('useHookoramaStore', () => {
     expect(tree.get(1)).toEqual([bash]);
   });
 
-  it('tick updates buckets, skill history and model history', () => {
+  it('syncSnapshot updates buckets, skill history and model history', () => {
     const snapshot: WireSnapshot = {
       at: new Date().toISOString(),
       entries: [
@@ -176,15 +176,13 @@ describe('useHookoramaStore', () => {
       ],
     };
 
+    const before = useHookoramaStore.getState().buckets.length;
     useHookoramaStore.getState().syncSnapshot(snapshot);
-    const before = useHookoramaStore.getState().tickCount;
-    useHookoramaStore.getState().tick();
 
-    const { tickCount, buckets, skillHistory, modelHistory } = useHookoramaStore.getState();
-    expect(tickCount).toBe(before + 1);
-    expect(buckets.length).toBe(1);
-    expect(buckets[0]?.tasks).toBe(3);
-    expect(buckets[0]?.toolCalls).toBe(5);
+    const { buckets, skillHistory, modelHistory } = useHookoramaStore.getState();
+    expect(buckets.length).toBe(before + 1);
+    expect(buckets.at(-1)?.tasks).toBe(3);
+    expect(buckets.at(-1)?.toolCalls).toBe(5);
     expect(skillHistory['refactor']).toBe(3);
     expect(modelHistory['claude-sonnet-4.5']?.calls).toBe(5);
     expect(modelHistory['claude-sonnet-4.5']?.cost).toBe(0.2);
