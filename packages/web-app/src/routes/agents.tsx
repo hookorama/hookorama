@@ -106,7 +106,6 @@ function AgentsPage() {
   const agents = useHookoramaStore((state) => state.agents);
   const projects = useHookoramaStore((state) => state.projects);
   const events = useHookoramaStore((state) => state.events);
-  const focusAgent = useHookoramaStore((state) => state.focusAgent);
   const tree = useMemo(() => selectAgentTree({ agents }), [agents]);
   const projMap = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects]);
 
@@ -306,7 +305,7 @@ function AgentsPage() {
         </div>
       </Panel>
 
-      <AgentInspector selected={selected} events={events} projMap={projMap} focusAgent={focusAgent} />
+      <AgentInspector selected={selected} events={events} projMap={projMap} />
     </div>
   );
 }
@@ -315,12 +314,10 @@ function AgentInspector({
   selected,
   events,
   projMap,
-  focusAgent,
 }: {
   selected: Agent | undefined;
   events: import('@/lib/types.js').HookEvent[];
   projMap: Map<string, Project>;
-  focusAgent: (agentId: string) => void;
 }) {
   const selectedProject = selected ? projMap.get(selected.projectId) : undefined;
   const selectedEvents = useMemo(
@@ -372,15 +369,6 @@ function AgentInspector({
             <M l="err" v={<Volatile fallback="—">{selected.metrics.errors}</Volatile>} />
           </div>
           <div className="flex flex-wrap gap-2 pt-1">
-            <button
-              onClick={() => {
-                focusAgent(selected.id);
-                toast('terminal opened', { description: selected.name });
-              }}
-              className="border border-primary px-2 py-1 text-primary hover:bg-primary hover:text-primary-foreground"
-            >
-              &gt; open terminal
-            </button>
             {selected.status === 'waiting-input' && (
               <button
                 onClick={() => toast.success(`approved · ${selected.name}`)}

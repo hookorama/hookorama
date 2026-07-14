@@ -1,5 +1,5 @@
 import { useMemo, type ReactElement } from 'react';
-import { AlertTriangle, Cpu, Folder, GitBranch, MessageSquareWarning, TerminalSquare } from 'lucide-react';
+import { AlertTriangle, Cpu, Folder, GitBranch, MessageSquareWarning } from 'lucide-react';
 import { useHookoramaStore } from '@/lib/store.js';
 import { Panel, KpiTile, ShortcutTile, StatusDot, ProjectTag, Volatile } from '@/components/hk/primitives.js';
 
@@ -7,7 +7,6 @@ export function Overview(): ReactElement {
   const agents = useHookoramaStore((state) => state.agents);
   const projects = useHookoramaStore((state) => state.projects);
   const notifications = useHookoramaStore((state) => state.notifications);
-  const focusAgent = useHookoramaStore((state) => state.focusAgent);
 
   const waitingAgents = agents.filter((a) => a.status === 'waiting-input');
   const errorAgents = agents.filter((a) => a.status === 'error');
@@ -66,7 +65,7 @@ export function Overview(): ReactElement {
 
       <Panel
         title={`attention required · ${waitingAgents.length + errorAgents.length}`}
-        right={<span className="text-[10px] text-muted-foreground">click a row → open agent terminal</span>}
+        right={<span className="text-[10px] text-muted-foreground">attention queue</span>}
       >
         <div className="max-h-[520px] divide-y divide-border overflow-auto">
           {waitingAgents.length === 0 && errorAgents.length === 0 && (
@@ -76,10 +75,9 @@ export function Overview(): ReactElement {
             const project = projByAgent.get(a.id);
             const isErr = a.status === 'error';
             return (
-              <button
+              <div
                 key={a.id}
-                onClick={() => focusAgent(a.id)}
-                className="group flex w-full items-start gap-3 p-3 text-left hover:bg-muted/30"
+                className="group flex w-full items-start gap-3 p-3 hover:bg-muted/30"
               >
                 <StatusDot status={a.status} />
                 <div className="min-w-0 flex-1">
@@ -110,10 +108,7 @@ export function Overview(): ReactElement {
                     pid {a.pid} · session {a.sessionId} · {a.model ?? '-'} · ${a.metrics.cost.toFixed(3)} · {a.metrics.tasks} tasks
                   </div>
                 </div>
-                <div className="flex items-center gap-1 text-[10px] text-muted-foreground group-hover:text-primary">
-                  <TerminalSquare className="h-3.5 w-3.5" /> open
-                </div>
-              </button>
+              </div>
             );
           })}
         </div>

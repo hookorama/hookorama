@@ -72,13 +72,6 @@ export interface HookEvent {
   payload: Record<string, unknown>;
 }
 
-export interface TerminalTab {
-  id: string;
-  title: string;
-  bound?: { kind: 'agent' | 'process' | 'shell'; ref?: string } | undefined;
-  buffer: string[];
-}
-
 export type NotificationKind = 'waiting-input' | 'error' | 'cost-spike' | 'stalled' | 'approval';
 
 export interface Notification {

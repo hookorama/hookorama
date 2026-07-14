@@ -1,185 +1,6 @@
 import { create } from 'zustand';
 import type { WireSnapshot, HookEvent as WireHookEvent, ProcessEntry } from '@hookorama/client';
-import type { Agent, EventType, HookEvent, Notification, NotificationKind, Origin, Process, Project, TerminalTab } from './types.js';
-
-let idCounter = 0;
-const uid = (prefix: string): string => {
-  idCounter += 1;
-  return `${prefix}_${idCounter}`;
-};
-
-const SEED_PROJECTS: Project[] = [
-  {
-    id: 'proj_hookorama',
-    name: 'hookorama',
-    path: '~/code/hookorama',
-    repo: 'github.com/acme/hookorama',
-    branch: 'main',
-    color: '#39ff14',
-  },
-  {
-    id: 'proj_paygrid',
-    name: 'paygrid-api',
-    path: '~/code/paygrid-api',
-    repo: 'github.com/acme/paygrid-api',
-    branch: 'feat/webhooks',
-    color: '#ffb000',
-  },
-  {
-    id: 'proj_atlas',
-    name: 'atlas-ui',
-    path: '~/work/atlas-ui',
-    repo: 'gitlab.com/acme/atlas-ui',
-    branch: 'release/2.4',
-    color: '#22d3ee',
-  },
-  {
-    id: 'proj_infra',
-    name: 'infra-terraform',
-    path: '~/ops/infra',
-    repo: 'github.com/acme/infra',
-    branch: 'main',
-    color: '#ff5c8a',
-  },
-  {
-    id: 'proj_scratch',
-    name: 'scratch',
-    path: '~/tmp/scratch',
-    branch: '-',
-    color: '#a78bfa',
-  },
-];
-
-const SEED_AGENTS: Agent[] = [
-  {
-    id: 'agent_1',
-    name: 'claude',
-    type: 'agent',
-    status: 'waiting-input',
-    pid: 3001,
-    origin: 'terminal',
-    sessionId: 'sess_1',
-    projectId: 'proj_hookorama',
-    model: 'claude-sonnet-4.5',
-    skill: 'refactor',
-    currentTask: 'refactor mock store',
-    waitingReason: 'approve destructive `rm -rf dist/`?',
-    createdAt: Date.now() - 1_000_000,
-    updatedAt: Date.now() - 60_000,
-    metrics: { tasks: 12, toolCalls: 47, cost: 1.234, errors: 0 },
-  },
-  {
-    id: 'agent_2',
-    name: 'codex',
-    type: 'agent',
-    status: 'running-tool',
-    pid: 3002,
-    origin: 'vscode',
-    sessionId: 'sess_2',
-    projectId: 'proj_paygrid',
-    model: 'gpt-5',
-    skill: 'debug',
-    currentTask: 'implement webhook signer',
-    createdAt: Date.now() - 900_000,
-    updatedAt: Date.now() - 30_000,
-    metrics: { tasks: 8, toolCalls: 32, cost: 0.987, errors: 0 },
-  },
-  {
-    id: 'agent_3',
-    name: 'devin',
-    type: 'agent',
-    status: 'error',
-    pid: 3003,
-    origin: 'ci',
-    sessionId: 'sess_3',
-    projectId: 'proj_infra',
-    model: 'claude-sonnet-4.5',
-    skill: 'planning',
-    currentTask: 'terraform plan drift',
-    createdAt: Date.now() - 800_000,
-    updatedAt: Date.now() - 20_000,
-    metrics: { tasks: 5, toolCalls: 19, cost: 0.456, errors: 1 },
-  },
-  {
-    id: 'agent_4',
-    name: 'claude',
-    type: 'agent',
-    status: 'running-tool',
-    pid: 3004,
-    origin: 'vscode',
-    sessionId: 'sess_4',
-    projectId: 'proj_atlas',
-    model: 'claude-sonnet-4.5',
-    skill: 'research',
-    currentTask: 'design tokens migration',
-    createdAt: Date.now() - 700_000,
-    updatedAt: Date.now() - 10_000,
-    metrics: { tasks: 15, toolCalls: 62, cost: 1.876, errors: 0 },
-  },
-  {
-    id: 'agent_5',
-    name: 'aider',
-    type: 'agent',
-    status: 'idle',
-    pid: 3005,
-    origin: 'terminal',
-    sessionId: 'sess_5',
-    projectId: 'proj_scratch',
-    model: 'gpt-5',
-    skill: 'test-gen',
-    currentTask: 'prototype parser',
-    createdAt: Date.now() - 600_000,
-    updatedAt: Date.now() - 5_000,
-    metrics: { tasks: 3, toolCalls: 8, cost: 0.123, errors: 0 },
-  },
-  {
-    id: 'agent_6',
-    name: 'claude-worker-1',
-    type: 'subagent',
-    status: 'thinking',
-    parentId: 'agent_1',
-    pid: 3006,
-    origin: 'terminal',
-    sessionId: 'sess_1',
-    projectId: 'proj_hookorama',
-    model: 'claude-sonnet-4.5',
-    skill: 'scan repo',
-    currentTask: 'scan repo',
-    createdAt: Date.now() - 500_000,
-    updatedAt: Date.now() - 2_000,
-    metrics: { tasks: 2, toolCalls: 14, cost: 0.234, errors: 0 },
-  },
-];
-
-const SEED_NOTIFICATIONS: Notification[] = [
-  {
-    id: 'ntf_1',
-    ts: Date.now() - 120_000,
-    kind: 'waiting-input',
-    agentId: 'agent_1',
-    projectId: 'proj_hookorama',
-    severity: 'warn',
-    message: 'approve destructive `rm -rf dist/`?',
-  },
-  {
-    id: 'ntf_2',
-    ts: Date.now() - 90_000,
-    kind: 'error',
-    agentId: 'agent_3',
-    projectId: 'proj_infra',
-    severity: 'critical',
-    message: 'error in terraform plan drift',
-  },
-  {
-    id: 'ntf_3',
-    ts: Date.now() - 60_000,
-    kind: 'approval',
-    agentId: 'agent_2',
-    projectId: 'proj_paygrid',
-    severity: 'info',
-    message: 'waiting for webhook approval',
-  },
-];
+import type { Agent, EventType, HookEvent, Notification, NotificationKind, Origin, Process, Project } from './types.js';
 
 const PROJECT_COLORS = ['#39ff14', '#ffb000', '#22d3ee', '#ff5c8a', '#a78bfa'];
 
@@ -229,7 +50,7 @@ function updateModelHistory(agents: Agent[]): Record<string, { calls: number; co
   return history;
 }
 
-type Connection = 'connected' | 'disconnected' | 'error' | 'mock';
+type Connection = 'connected' | 'disconnected' | 'error';
 
 interface Store {
   projects: Project[];
@@ -237,10 +58,6 @@ interface Store {
   processes: Process[];
   events: HookEvent[];
   notifications: Notification[];
-  terminals: TerminalTab[];
-  activeTerminal: string | null;
-  dockOpen: boolean;
-  dockHeight: number;
   paused: boolean;
   tickSpeed: number;
   tickCount: number;
@@ -257,13 +74,6 @@ interface Store {
   togglePause: () => void;
   setSpeed: (ms: number) => void;
   toggleScanlines: () => void;
-  addTerminal: (tab: Partial<TerminalTab>) => string;
-  closeTerminal: (id: string) => void;
-  setActiveTerminal: (id: string) => void;
-  appendTerminal: (id: string, line: string) => void;
-  toggleDock: () => void;
-  setDockHeight: (height: number) => void;
-  focusAgent: (agentId: string) => void;
   ackNotification: (id: string) => void;
   clearAcked: () => void;
   tick: () => void;
@@ -398,16 +208,12 @@ function mapEvent(event: WireHookEvent): HookEvent {
   };
 }
 
-export const useHookoramaStore = create<Store>((set, get) => ({
-  projects: SEED_PROJECTS,
-  agents: SEED_AGENTS,
+export const useHookoramaStore = create<Store>((set) => ({
+  projects: [],
+  agents: [],
   processes: [],
   events: [],
-  notifications: SEED_NOTIFICATIONS,
-  terminals: [],
-  activeTerminal: null,
-  dockOpen: false,
-  dockHeight: 200,
+  notifications: [],
   paused: false,
   tickSpeed: 1200,
   tickCount: 0,
@@ -416,7 +222,7 @@ export const useHookoramaStore = create<Store>((set, get) => ({
   skillHistory: {},
   toolHistory: {},
   modelHistory: {},
-  connection: 'mock',
+  connection: 'disconnected',
 
   setConnection: (connection) => set({ connection }),
 
@@ -436,47 +242,6 @@ export const useHookoramaStore = create<Store>((set, get) => ({
   togglePause: () => set((state) => ({ paused: !state.paused })),
   setSpeed: (ms: number) => set({ tickSpeed: ms }),
   toggleScanlines: () => set((state) => ({ scanlines: !state.scanlines })),
-
-  addTerminal: (tab) => {
-    const id = uid('term');
-    const bound = tab.bound
-      ? { kind: tab.bound.kind, ...(tab.bound.ref !== undefined ? { ref: tab.bound.ref } : {}) }
-      : undefined;
-    const terminal: TerminalTab = {
-      id,
-      title: tab.title ?? `shell #${get().terminals.length + 1}`,
-      bound,
-      buffer: tab.buffer ?? [],
-    };
-    set((state) => ({ terminals: [...state.terminals, terminal], activeTerminal: id }));
-    return id;
-  },
-
-  closeTerminal: (id) =>
-    set((state) => {
-      const terminals = state.terminals.filter((t) => t.id !== id);
-      return {
-        terminals,
-        activeTerminal: state.activeTerminal === id ? (terminals[0]?.id ?? null) : state.activeTerminal,
-      };
-    }),
-
-  setActiveTerminal: (id) => set({ activeTerminal: id }),
-
-  appendTerminal: (id, line) =>
-    set((state) => ({
-      terminals: state.terminals.map((t) => (t.id === id ? { ...t, buffer: [...t.buffer, line] } : t)),
-    })),
-
-  toggleDock: () => set((state) => ({ dockOpen: !state.dockOpen })),
-  setDockHeight: (height) => set({ dockHeight: height }),
-
-  focusAgent: (agentId) => {
-    const agent = get().agents.find((a) => a.id === agentId);
-    const title = agent ? `${agent.name} (${agent.id})` : `agent ${agentId}`;
-    get().addTerminal({ title, bound: { kind: 'agent', ref: agentId } });
-    set({ dockOpen: true });
-  },
 
   ackNotification: (id) =>
     set((state) => ({

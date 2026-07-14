@@ -80,7 +80,6 @@ export function Processes(): ReactElement {
 function ProcessesPage() {
   const processes = useHookoramaStore((state) => state.processes);
   const agents = useHookoramaStore((state) => state.agents);
-  const addTerminal = useHookoramaStore((state) => state.addTerminal);
   const tree = useMemo(() => selectProcessTree({ processes }), [processes]);
   const [selPid, setSelPid] = useState<number | null>(processes[0]?.pid ?? null);
   const [q, setQ] = useState('');
@@ -166,18 +165,6 @@ function ProcessesPage() {
               )}
             </div>
             <div className="flex gap-2 pt-1">
-              <button
-                onClick={() => {
-                  addTerminal({
-                    title: `pid:${selected.pid}`,
-                    bound: { kind: 'process', ref: String(selected.pid) },
-                  });
-                  toast('terminal opened');
-                }}
-                className="border border-primary px-2 py-1 text-primary hover:bg-primary hover:text-primary-foreground"
-              >
-                &gt; open terminal
-              </button>
               {selected.type === 'ide' && (
                 <button
                   onClick={() => toast('→ focus VS Code')}

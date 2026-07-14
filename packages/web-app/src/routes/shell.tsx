@@ -15,14 +15,12 @@ import {
   MessageSquareWarning,
   Pause,
   Play,
-  TerminalSquare,
   X,
   Zap,
 } from 'lucide-react';
 import { useHookoramaStore } from '@/lib/store.js';
 import { useTicker } from '@/lib/ticker.js';
 import { ProjectTag, Volatile } from '@/components/hk/primitives.js';
-import { TerminalDock } from '@/components/hk/terminal-dock.js';
 import { Toaster } from 'sonner';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover.js';
 import type { NotificationKind } from '@/lib/types.js';
@@ -50,7 +48,6 @@ function NotificationPopover() {
   const projects = useHookoramaStore((state) => state.projects);
   const ackNotification = useHookoramaStore((state) => state.ackNotification);
   const clearAcked = useHookoramaStore((state) => state.clearAcked);
-  const focusAgent = useHookoramaStore((state) => state.focusAgent);
 
   const pending = notifications.filter((n) => !n.ack).toReversed();
   const criticalCount = pending.filter((n) => n.severity === 'critical').length;
@@ -98,10 +95,7 @@ function NotificationPopover() {
               <div key={n.id} className="flex items-start gap-2 p-2 text-xs hover:bg-muted/30">
                 <Icon className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${tone}`} />
                 <button
-                  onClick={() => {
-                    if (agent) focusAgent(agent.id);
-                    ackNotification(n.id);
-                  }}
+                  onClick={() => ackNotification(n.id)}
                   className="min-w-0 flex-1 text-left"
                 >
                   <div className="flex items-center gap-1.5">
@@ -133,11 +127,9 @@ function StatusControls() {
   const tickCount = useHookoramaStore((state) => state.tickCount);
   const paused = useHookoramaStore((state) => state.paused);
   const tickSpeed = useHookoramaStore((state) => state.tickSpeed);
-  const dockOpen = useHookoramaStore((state) => state.dockOpen);
   const togglePause = useHookoramaStore((state) => state.togglePause);
   const setSpeed = useHookoramaStore((state) => state.setSpeed);
   const toggleScanlines = useHookoramaStore((state) => state.toggleScanlines);
-  const toggleDock = useHookoramaStore((state) => state.toggleDock);
 
   const activeAgents = agents.filter((a) => a.status === 'running-tool' || a.status === 'thinking').length;
   const totalCost = agents.reduce((n, a) => n + a.metrics.cost, 0);
@@ -170,16 +162,6 @@ function StatusControls() {
           <option value={300}>4x</option>
         </select>
       </div>
-      <button
-        onClick={toggleDock}
-        className={
-          'flex items-center gap-1 border px-1.5 py-0.5 ' +
-          (dockOpen ? 'border-primary text-primary' : 'border-border text-muted-foreground hover:text-foreground')
-        }
-        title="toggle terminal (Ctrl+`)"
-      >
-        <TerminalSquare className="h-3.5 w-3.5" />
-      </button>
       <button onClick={toggleScanlines} className="hover:text-primary">
         crt
       </button>
@@ -191,14 +173,12 @@ const CONNECTION_LABELS: Record<string, string> = {
   connected: 'live',
   disconnected: 'offline',
   error: 'error',
-  mock: 'mock stream',
 };
 
 const CONNECTION_COLORS: Record<string, string> = {
   connected: 'text-accent',
   disconnected: 'text-destructive',
   error: 'text-destructive',
-  mock: 'text-muted-foreground',
 };
 
 function ConnectionBadge() {
@@ -224,8 +204,6 @@ function Header() {
 
 function Sidebar() {
   const path = useRouterState({ select: (s) => s.location.pathname });
-  const dockOpen = useHookoramaStore((state) => state.dockOpen);
-  const toggleDock = useHookoramaStore((state) => state.toggleDock);
 
   return (
     <aside className="flex w-48 shrink-0 flex-col gap-1 border-r border-border p-2">
@@ -248,17 +226,6 @@ function Sidebar() {
         );
       })}
       <div className="flex-1" />
-      <button
-        onClick={toggleDock}
-        className={
-          'flex items-center gap-2 border px-2 py-1.5 text-xs uppercase tracking-wider ' +
-          (dockOpen
-            ? 'border-primary bg-primary/5 text-primary'
-            : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground')
-        }
-      >
-        <TerminalSquare className="h-3.5 w-3.5" /> terminal
-      </button>
       <div className="border-t border-border pt-2 mt-2 text-[10px] leading-relaxed text-dim">
         &gt; run <span className="text-primary">hookorama attach</span> in any agent to stream real hooks.
       </div>
@@ -310,7 +277,6 @@ export function Shell(): ReactElement {
           <main className="min-h-0 flex-1 overflow-auto">
             <Outlet />
           </main>
-          <TerminalDock />
           <Toaster position="bottom-right" richColors />
         </div>
       </div>
