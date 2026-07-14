@@ -6,12 +6,15 @@
  */
 
 export { Supervisor, SupervisorProcess } from './supervisor.js';
+export type { SupervisorOptions } from './supervisor.js';
 export type {
   ProcessDiscovery,
   ProcessRow,
 } from './process-discovery/index.js';
 export type { OpenTerminal, ResolvedIdentity } from './identity/resolve.js';
 export type { ProcessEntry, Status, StateStore } from './state/store.js';
+export { WireServer } from './wire/server.js';
+export type { WireServerOptions } from './wire/server.js';
 export {
   pidFilePath,
   acquirePidSlot,

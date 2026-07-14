@@ -1,7 +1,7 @@
 {
   "name": "@hookorama/supervisor",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
+  "private": false,
   "type": "module",
   "types": "./dist/index.d.mts",
   "exports": {

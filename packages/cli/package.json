@@ -1,16 +1,17 @@
 {
   "name": "hookorama",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
+  "private": false,
   "type": "module",
   "description": "Hookorama CLI — install, lifecycle, and hook dispatch for the local supervisor.",
   "license": "MIT",
   "bin": {
-    "hookorama": "./dist/index.mjs"
+    "hookorama": "./dist/main.mjs"
   },
   "types": "./dist/index.d.mts",
   "exports": {
     ".": "./dist/index.mjs",
+    "./main": "./dist/main.mjs",
     "./package.json": "./package.json"
   },
   "files": [
@@ -20,5 +21,10 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
+  },
+  "dependencies": {
+    "@hookorama/client": "workspace:*",
+    "@hookorama/supervisor": "workspace:*",
+    "commander": "12.1.0"
   }
 }
