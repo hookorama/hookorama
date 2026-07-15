@@ -17,13 +17,13 @@
     "build": "tsdown && bun run --cwd packages/web-app build",
     "typecheck": "tsdown && tsc -b --noEmit packages/client packages/supervisor packages/cli packages/extension packages/web-app",
     "lint": "oxlint . --ignore-pattern .worktrees",
-    "test": "bun --bun vitest run --passWithNoTests",
+    "test": "bun --bun vitest run --passWithNoTests --exclude .worktrees",
     "check:md": "bun run scripts/check-md.ts",
     "check:files": "bun run scripts/check-files.ts",
     "check": "bun run check:md && bun run check:files",
     "ci": "bun run typecheck && bun run lint && bun run check && bun run test && bun run build",
-    "demo": "bun demo/run.mjs",
-    "demo:setup": "bun demo/run.mjs --setup",
+    "demo:setup": "bun scripts/demo-setup.mjs",
+    "demo": "bun run demo:setup",
     "memory:reindex": "bun run scripts/reindex-memory.ts"
   },
   "devDependencies": {

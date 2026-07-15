@@ -45,8 +45,8 @@ Key contracts:
   - `buildHookRequest(args: string[]): HookRequest` parses the raw CLI tokens
     after `hook <agent>` and returns a valid `HookRequest`.
   - `install(opts)`, `update(opts)`, `remove(opts)` manage the agent's
-    hook configuration (e.g. `~/.claude/settings.json`,
-    `~/.devin/hooks.v1.json`).
+    project-scoped hook configuration (e.g. `.claude/settings.json`,
+    `.devin/config.json`).
   - Optional `status()` returns whether the plugin is installed and where.
 - Built-in plugins live in `packages/cli/src/plugins/` and are registered by
   `packages/cli/src/plugin-registry.ts`. PR 4 ships `claude` and `devin`.
@@ -107,8 +107,8 @@ removing the command would break those agents.
 
 ## Open questions
 
-- What is the exact schema for `~/.claude/settings.json` and
-  `~/.devin/hooks.v1.json`? The plugins will start with the most common
+- What is the exact schema for `.claude/settings.json` and
+  `.devin/config.json`? The plugins will start with the most common
   conventions and adjust once the first real agent environments are tested.
 - Should `hookorama dev` be a future command? Not in this PR; `packages/web-app`
   keeps its own `dev` script.

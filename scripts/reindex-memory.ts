@@ -26,7 +26,7 @@ interface Entry {
 }
 
 function parseFrontmatter(text: string): Record<string, string> | null {
-  const lines = text.split(/\r?\n/);
+  const lines = text.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').split('\n');
   if (lines[0]?.trim() !== '---') return null;
   let end = -1;
   for (let i = 1; i < lines.length; i++) {
