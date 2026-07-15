@@ -1,9 +1,9 @@
 /**
  * `@hookorama/web-app` — public barrel.
  *
- * Placeholder in PR 1. The web app's framework choice and the
- * first real exports land in Phase 5, after the supervisor and
- * the wire protocol exist.
+ * The web app is a Vite + React SPA; its real entry point is
+ * `src/main.tsx`. This barrel only carries a placeholder because the
+ * package is not consumed as a library.
  */
 
 export const PLACEHOLDER = true as const;

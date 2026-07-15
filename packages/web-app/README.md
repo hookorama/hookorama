@@ -5,21 +5,20 @@ interface on `127.0.0.1:7354` (the only network surface in the
 system) and renders the panorama: agents, processes, history,
 analytics, web terminal.
 
-This package is a placeholder in PR 1 (the bootstrap). The
-framework choice (TanStack Start vs another) lands in Phase 5
-when the supervisor and the wire protocol exist. The placeholder
-keeps the workspace build green and reserves the package slot.
+This is a Vite + React + TanStack Router SPA. It is built with
+`vite` and served by the CLI in PR 3.
 
 ## Public API
 
 ```ts
-import { /* … */ } from '@hookorama/web-app';
+import { PLACEHOLDER } from '@hookorama/web-app';
 ```
 
-> No runtime exports yet. Phase 5 adds them.
+> The app is not a library; `src/index.ts` is a placeholder barrel.
+> The real entry point is `src/main.tsx`.
 
 ## Pinned by
 
-- ADR(s): not yet; this package is a placeholder
+- ADR(s): `0003`
 - Rules: `.agents/rules/package-readme.md.rule`
 - Skills: none
