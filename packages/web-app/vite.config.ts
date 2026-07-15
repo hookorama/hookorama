@@ -25,7 +25,7 @@ function supervisorPlugin(): Plugin {
         // not running yet, start it
       }
 
-      child = spawn('bun', ['src/main.ts'], { cwd: supervisorDir });
+      child = spawn('bun', ['src/main.ts'], { cwd: supervisorDir, windowsHide: true });
 
       let childExited = false;
       let childExitCode: number | null = null;
