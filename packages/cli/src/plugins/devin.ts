@@ -58,7 +58,7 @@ interface DevinConfig {
 
 function buildCommand(status: string): string {
   const self = getSelfCommandString();
-  return `${self} hook devin ${status} --cwd "$(pwd)"`;
+  return `${self} hook devin ${status}`;
 }
 
 function buildHooks(): DevinHooks {
