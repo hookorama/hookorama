@@ -21,5 +21,6 @@ export function getSelfCommand(): { readonly runtime: string; readonly script: s
 /** Return a shell-quoted string `bun "<script>"` for use in agent configs. */
 export function getSelfCommandString(): string {
   const { runtime, script } = getSelfCommand();
-  return `"${runtime}" "${script}"`;
+  // Forward slashes are safe for PowerShell, cmd and bash on Windows.
+  return `"${runtime.replace(/\\/g, '/')}" "${script.replace(/\\/g, '/')}"`;
 }

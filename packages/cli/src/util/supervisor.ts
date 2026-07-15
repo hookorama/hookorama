@@ -30,6 +30,7 @@ export async function startSupervisor(): Promise<void> {
   const child = spawn(process.execPath, [process.argv[1], 'supervisor', 'start'], {
     detached: true,
     stdio: 'ignore',
+    windowsHide: true,
   });
   child.unref();
 

@@ -27,4 +27,7 @@ Thumbs.db
 *.log
 
 # demo runtime home (configs and supervisor state are created on the fly)
-packages/cli/demo/home/
+demo/home/
+
+# local runtime home (real agent configs and supervisor state are created on the fly)
+/local/

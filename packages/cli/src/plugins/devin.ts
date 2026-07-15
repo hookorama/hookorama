@@ -36,7 +36,8 @@ const EVENT_TO_STATUS: Record<DevinHookEvent, string> = {
   SessionEnd: 'done',
 };
 
-const configPath = join(homedir(), '.config', 'devin', 'config.json');
+// Devin uses %APPDATA%\devin\config.json on Windows and ~/.config/devin/config.json on POSIX.
+const configPath = join(process.env['APPDATA'] ?? join(homedir(), '.config'), 'devin', 'config.json');
 
 interface DevinHookCommand {
   readonly type: 'command';

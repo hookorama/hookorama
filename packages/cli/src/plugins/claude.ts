@@ -13,7 +13,7 @@ import { dirname, join } from 'node:path';
 import type { HookRequest } from '@hookorama/client';
 import type { AgentPlugin, AgentPluginOptions, AgentPluginStatus } from '../plugin.js';
 import { buildCommonHookRequest } from './shared/hook-args.js';
-import { getSelfCommandString } from '../util/self-command.js';
+import { getSelfCommand } from '../util/self-command.js';
 
 const HOOK_EVENTS = ['SessionStart', 'PreToolUse', 'PostToolUse', 'Notification', 'Stop'] as const;
 
@@ -32,6 +32,7 @@ const settingsPath = join(homedir(), '.claude', 'settings.json');
 interface ClaudeHookCommand {
   readonly type: 'command';
   readonly command: string;
+  readonly args?: readonly string[];
 }
 
 interface ClaudeHookEntry {
@@ -45,9 +46,13 @@ interface ClaudeSettings {
   hooks?: ClaudeHooks;
 }
 
-function buildCommand(status: string): string {
-  const self = getSelfCommandString();
-  return `${self} hook claude ${status} --cwd "$(pwd)"`;
+function buildHookCommand(status: string): ClaudeHookCommand {
+  const { runtime, script } = getSelfCommand();
+  return {
+    type: 'command',
+    command: runtime,
+    args: [script, 'hook', 'claude', status],
+  };
 }
 
 function buildHooks(): ClaudeHooks {
@@ -56,7 +61,7 @@ function buildHooks(): ClaudeHooks {
     hooks[event] = [
       {
         matcher: '',
-        hooks: [{ type: 'command', command: buildCommand(EVENT_TO_STATUS[event]) }],
+        hooks: [buildHookCommand(EVENT_TO_STATUS[event])],
       },
     ];
   }
@@ -85,8 +90,9 @@ async function writeSettings(settings: ClaudeSettings, dryRun?: boolean): Promis
   await writeFile(settingsPath, `${JSON.stringify(settings, null, 2)}\n`, 'utf8');
 }
 
-function isHookoramaCommand(command: string): boolean {
-  return command.includes('hook claude ');
+function isHookoramaCommand(hook: ClaudeHookCommand): boolean {
+  if (!Array.isArray(hook.args)) return false;
+  return hook.args[1] === 'hook' && hook.args[2] === 'claude';
 }
 
 export const claudePlugin: AgentPlugin = {
@@ -125,7 +131,7 @@ export const claudePlugin: AgentPlugin = {
     const remaining: ClaudeHooks = {};
     for (const [event, entries] of Object.entries(settings.hooks)) {
       const filtered = entries
-        .map((entry) => Object.assign({}, entry, { hooks: entry.hooks.filter((h) => !isHookoramaCommand(h.command)) }))
+        .map((entry) => Object.assign({}, entry, { hooks: entry.hooks.filter((h) => !isHookoramaCommand(h)) }))
         .filter((entry) => entry.hooks.length > 0);
       if (filtered.length > 0) {
         remaining[event] = filtered;
@@ -149,7 +155,7 @@ export const claudePlugin: AgentPlugin = {
     const hasHookorama =
       settings.hooks !== undefined &&
       Object.values(settings.hooks).some((entries) =>
-        entries.some((entry) => entry.hooks.some((h) => isHookoramaCommand(h.command))),
+        entries.some((entry) => entry.hooks.some((h) => isHookoramaCommand(h))),
       );
     return { installed: hasHookorama, path: settingsPath };
   },

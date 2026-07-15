@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 
 const agent = process.argv[2] || 'claude';
 const cwd = process.cwd();
-const cliMain = process.env.HOOKORAMA_CLI || resolvePath(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'main.ts');
+const cliMain = process.env.HOOKORAMA_CLI || resolvePath(dirname(fileURLToPath(import.meta.url)), '..', 'packages', 'cli', 'src', 'main.ts');
 
 function runHook(status, extra = []) {
   return new Promise((resolve, reject) => {

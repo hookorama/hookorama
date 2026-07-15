@@ -24,8 +24,8 @@ import { fileURLToPath } from 'node:url';
 import { setTimeout } from 'node:timers/promises';
 
 const demoDir = dirname(fileURLToPath(import.meta.url));
-const repoRoot = resolvePath(demoDir, '..', '..', '..');
-const cliMain = resolvePath(demoDir, '..', 'src', 'main.ts');
+const repoRoot = resolvePath(demoDir, '..');
+const cliMain = resolvePath(demoDir, '..', 'packages', 'cli', 'src', 'main.ts');
 const demoHome = resolvePath(demoDir, 'home');
 const agentsDir = join(demoHome, 'agents');
 const httpUrl = 'http://127.0.0.1:7354';
@@ -43,6 +43,7 @@ function buildDemoEnv() {
     ...process.env,
     HOME: demoHome,
     USERPROFILE: demoHome,
+    APPDATA: join(demoHome, 'AppData', 'Roaming'),
     LOCALAPPDATA: localAppData,
     XDG_CONFIG_HOME: configDir,
     XDG_CACHE_HOME: cacheDir,
@@ -156,7 +157,7 @@ async function main() {
   if (setupOnly) {
     console.warn('\n==> configs ready in', demoHome);
     console.warn('    claude:', resolvePath(demoHome, '.claude', 'settings.json'));
-    console.warn('    devin: ', resolvePath(demoHome, '.config', 'devin', 'config.json'));
+    console.warn('    devin: ', resolvePath(demoHome, 'AppData', 'Roaming', 'devin', 'config.json'));
     console.warn('\nRun a real agent from this home, e.g.:');
     console.warn('  Windows:');
     console.warn(`    set USERPROFILE=${demoHome}`);
