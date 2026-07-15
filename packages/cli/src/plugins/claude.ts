@@ -1,14 +1,13 @@
 /**
  * Claude Code plugin for `hookorama`.
  *
- * Writes a `hooks` block to `~/.claude/settings.json` that dispatches
- * `hookorama hook claude <status>` at the lifecycle events Claude Code
- * supports: SessionStart, PreToolUse, PostToolUse, Notification, and Stop.
+ * Writes a `hooks` block to `.claude/settings.json` in the current project that
+ * dispatches `hookorama hook claude <status>` at the lifecycle events Claude
+ * Code supports: SessionStart, PreToolUse, PostToolUse, Notification, and Stop.
  */
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import type { HookRequest } from '@hookorama/client';
 import type { AgentPlugin, AgentPluginOptions, AgentPluginStatus } from '../plugin.js';
@@ -27,7 +26,7 @@ const EVENT_TO_STATUS: Record<ClaudeHookEvent, string> = {
   Stop: 'done',
 };
 
-const settingsPath = join(homedir(), '.claude', 'settings.json');
+const settingsPath = join(process.cwd(), '.claude', 'settings.json');
 
 interface ClaudeHookCommand {
   readonly type: 'command';

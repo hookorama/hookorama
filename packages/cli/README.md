@@ -1,9 +1,9 @@
 # `@hookorama/cli` (binary name: `hookorama`)
 
 The user-facing command-line tool. Owns agent install / uninstall
-(writing `~/.claude/settings.json`, `~/.config/devin/config.json`,
-etc.) and the `hookorama hook <agent> <event>` dispatch that the agents
-call from their native hook configs.
+(writing `.claude/settings.json` and `.devin/config.json` in the current
+project, etc.) and the `hookorama hook <agent> <event>` dispatch that the
+agents call from their native hook configs.
 
 ## Public API
 

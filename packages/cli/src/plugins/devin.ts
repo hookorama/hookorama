@@ -1,13 +1,12 @@
 /**
  * Devin plugin for `hookorama`.
  *
- * Writes a `hooks` block to `~/.config/devin/config.json` that dispatches
- * `hookorama hook devin <status>` at Devin CLI lifecycle events.
+ * Writes a `hooks` block to `.devin/config.json` in the current project that
+ * dispatches `hookorama hook devin <status>` at Devin CLI lifecycle events.
  */
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import type { HookRequest } from '@hookorama/client';
 import type { AgentPlugin, AgentPluginOptions, AgentPluginStatus } from '../plugin.js';
@@ -36,8 +35,8 @@ const EVENT_TO_STATUS: Record<DevinHookEvent, string> = {
   SessionEnd: 'done',
 };
 
-// Devin uses %APPDATA%\devin\config.json on Windows and ~/.config/devin/config.json on POSIX.
-const configPath = join(process.env['APPDATA'] ?? join(homedir(), '.config'), 'devin', 'config.json');
+// Devin project config is .devin/config.json in the current project root.
+const configPath = join(process.cwd(), '.devin', 'config.json');
 
 interface DevinHookCommand {
   readonly type: 'command';
