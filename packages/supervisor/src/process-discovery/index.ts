@@ -17,6 +17,9 @@ export interface ProcessRow {
   readonly pid: number;
   readonly ppid: number;
   readonly command: string;
+  readonly user?: string;
+  readonly startedAt?: number;
+  readonly tty?: string;
 }
 
 export interface ProcessDiscovery {

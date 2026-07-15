@@ -1,17 +1,16 @@
 /**
  * Daemon entry. Wires together identity, state, process
- * discovery, and lifecycle. The full NDJSON socket and HTTP/WS
- * servers ship in PR 3 (wire protocol); PR 2 ships the daemon
- * skeleton so the lifecycle and PID‑file behaviour are
- * exercised by CI.
+ * discovery, and lifecycle. The HTTP/WebSocket wire server ships
+ * alongside the daemon skeleton so surfaces can read live state.
  */
 
 import { acquirePidSlot, pidFilePath, releasePidSlot } from './lifecycle/pid-file.js';
+import type { AgentMetadata, ProcessRow, ProcessType } from '@hookorama/client';
 import { StateStore, type ProcessEntry, type Status } from './state/store.js';
 import {
   pickDiscovery,
   type ProcessDiscovery,
-  type ProcessRow,
+  type ProcessRow as RawProcessRow,
 } from './process-discovery/index.js';
 import {
   normaliseCwd,
@@ -141,13 +140,16 @@ export class Supervisor {
     readonly sessionId?: string;
     readonly agent?: string;
     readonly status: Status;
+    readonly at?: string;
+    readonly metadata?: AgentMetadata;
   }): ResolvedIdentity | null {
     const identity = resolveIdentity(input.pidChain, input.cwd, this.openTerminals());
     if (identity === null) return null;
-    this.store.applyEvent(identity, input.status, this.now().toISOString(), {
+    this.store.applyEvent(identity, input.status, input.at ?? this.now().toISOString(), {
       ...(input.sessionId !== undefined ? { sessionId: input.sessionId } : {}),
       ...(input.agent !== undefined ? { agent: input.agent } : {}),
       ...(input.pidChain !== undefined ? { pidChain: input.pidChain } : {}),
+      ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
     });
     return identity;
   }
@@ -216,7 +218,66 @@ export class Supervisor {
     return this.store.snapshot();
   }
 
-  private ingestProcessTable(rows: readonly ProcessRow[]): void {
+  /** OS process tree annotated with the agents that own each process. */
+  async processes(): Promise<ProcessRow[]> {
+    if (this.discovery === null) return [];
+    const rows: readonly RawProcessRow[] = await this.discovery.list();
+    const entries = this.store.snapshot();
+
+    const pidToAgent = new Map<number, { agentId: string; projectId?: string | undefined }>();
+    for (const entry of entries) {
+      if (entry.pid !== undefined) {
+        const projectId = entry.metadata?.projectId;
+        pidToAgent.set(
+          entry.pid,
+          projectId === undefined ? { agentId: entry.key } : { agentId: entry.key, projectId },
+        );
+      }
+    }
+
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const row of rows) {
+        if (pidToAgent.has(row.pid)) continue;
+        const parent = pidToAgent.get(row.ppid);
+        if (parent !== undefined) {
+          pidToAgent.set(row.pid, parent);
+          changed = true;
+        }
+      }
+    }
+
+    return rows.map((row) => {
+      const mapped = pidToAgent.get(row.pid);
+      const cmdLower = row.command.toLowerCase();
+      const type: ProcessType = mapped
+        ? 'agent'
+        : cmdLower.includes('code') || cmdLower.includes('cursor')
+          ? 'ide'
+          : 'system';
+      const result: Record<string, unknown> = {
+        pid: row.pid,
+        ppid: row.ppid,
+        cmd: row.command,
+        user: row.user ?? '?',
+        startedAt: row.startedAt ?? 0,
+        type,
+      };
+      if (row.tty !== undefined) {
+        result['tty'] = row.tty;
+      }
+      if (mapped !== undefined) {
+        result['agentId'] = mapped.agentId;
+        if (mapped.projectId !== undefined) {
+          result['projectId'] = mapped.projectId;
+        }
+      }
+      return result as unknown as ProcessRow;
+    });
+  }
+
+  private ingestProcessTable(rows: readonly RawProcessRow[]): void {
     // Process discovery does not contribute to live status; it
     // only feeds a future cwd-only fallback when the extension
     // is unavailable. The supervisor relies on the extension for

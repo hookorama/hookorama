@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Supervisor } from './supervisor.js';
+import type { ProcessDiscovery } from './process-discovery/index.js';
 
 describe('Supervisor', () => {
   let workDir: string;
@@ -89,6 +90,36 @@ describe('Supervisor', () => {
     const sup = new Supervisor({ lifecycle: { customPidPath: pidPath }, discovery: null });
     const results = await Promise.all([sup.start(), sup.start()]);
     expect(results).toEqual([true, true]);
+    await sup.stop();
+  });
+
+  test('processes annotates the OS tree with agent ids', async () => {
+    const mockDiscovery: ProcessDiscovery = {
+      list: async () => [
+        { pid: 7, ppid: 0, command: 'bash', user: 'u', startedAt: 1 },
+        { pid: 123, ppid: 7, command: 'worker', user: 'u', startedAt: 2 },
+        { pid: 456, ppid: 0, command: 'Code', user: 'u', startedAt: 3 },
+      ],
+    };
+    const sup = new Supervisor({ lifecycle: { customPidPath: pidPath }, discovery: mockDiscovery });
+    await sup.start();
+    sup.setOpenTerminals([{ pid: 7, cwd: '/p' }]);
+    sup.applyHook({ pidChain: [7], cwd: '/p', status: 'thinking', agent: 'claude' });
+
+    const rows = await sup.processes();
+    expect(rows).toHaveLength(3);
+
+    const bash = rows.find((r) => r.pid === 7);
+    const worker = rows.find((r) => r.pid === 123);
+    const code = rows.find((r) => r.pid === 456);
+
+    expect(bash?.type).toBe('agent');
+    expect(bash?.agentId).toBe('pid:7');
+    expect(worker?.type).toBe('agent');
+    expect(worker?.agentId).toBe('pid:7');
+    expect(code?.type).toBe('ide');
+    expect(code?.agentId).toBeUndefined();
+
     await sup.stop();
   });
 });
