@@ -8,8 +8,18 @@
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-/** Return the executable runtime path (Bun) and the CLI script path. */
+/** Return the executable runtime path (Bun) and the CLI script path.
+ *
+ * `HOOKORAMA_SELF_COMMAND` (and optional `HOOKORAMA_SELF_SCRIPT`) override the
+ * command so agent configs can call a global runtime (e.g. `bun`) linked to a
+ * local wrapper script (e.g. `demo/hookorama.mjs`).
+ */
 export function getSelfCommand(): { readonly runtime: string; readonly script: string } {
+  const overrideCommand = process.env['HOOKORAMA_SELF_COMMAND'];
+  if (overrideCommand !== undefined && overrideCommand.length > 0) {
+    return { runtime: overrideCommand, script: process.env['HOOKORAMA_SELF_SCRIPT'] ?? '' };
+  }
+
   const runtime = process.execPath;
   const script =
     process.argv[1] !== undefined && process.argv[1].length > 0
@@ -18,9 +28,12 @@ export function getSelfCommand(): { readonly runtime: string; readonly script: s
   return { runtime, script };
 }
 
-/** Return a shell-quoted string `bun "<script>"` for use in agent configs. */
+/** Return the command string for use in agent configs. */
 export function getSelfCommandString(): string {
   const { runtime, script } = getSelfCommand();
+  if (script === '') {
+    return runtime;
+  }
   // Forward slashes are safe for PowerShell, cmd and bash on Windows.
   return `"${runtime.replace(/\\/g, '/')}" "${script.replace(/\\/g, '/')}"`;
 }

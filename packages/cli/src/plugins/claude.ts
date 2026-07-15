@@ -51,7 +51,7 @@ function buildHookCommand(status: string): ClaudeHookCommand {
   return {
     type: 'command',
     command: runtime,
-    args: [script, 'hook', 'claude', status],
+    args: script.length > 0 ? [script, 'hook', 'claude', status] : ['hook', 'claude', status],
   };
 }
 
