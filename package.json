@@ -17,7 +17,7 @@
     "build": "tsdown && bun run --cwd packages/web-app build",
     "typecheck": "tsdown && tsc -b --noEmit packages/client packages/supervisor packages/cli packages/extension packages/web-app",
     "lint": "oxlint . --ignore-pattern .worktrees",
-    "test": "bun --bun vitest run --passWithNoTests",
+    "test": "bun --bun vitest run --passWithNoTests --exclude .worktrees",
     "check:md": "bun run scripts/check-md.ts",
     "check:files": "bun run scripts/check-files.ts",
     "check": "bun run check:md && bun run check:files",
