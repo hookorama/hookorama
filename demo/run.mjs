@@ -49,6 +49,8 @@ function buildDemoEnv() {
     XDG_CACHE_HOME: cacheDir,
     XDG_RUNTIME_DIR: cacheDir,
     HOOKORAMA_CLI: cliMain,
+    HOOKORAMA_SELF_COMMAND: 'bun',
+    HOOKORAMA_SELF_SCRIPT: resolvePath(demoDir, 'hookorama.mjs'),
     HOOKORAMA_DEMO: '1',
   };
 }
