@@ -9,6 +9,7 @@ tmp/
 
 # agent plans (worktree-local, never tracked)
 .kilo/
+.worktrees/
 
 # generated memory index (rebuilt by `bun run memory:reindex`)
 .agents/memory/index.tsv

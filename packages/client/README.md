@@ -1,24 +1,26 @@
 # `@hookorama/client`
 
-The shared library used by every surface (the CLI, the supervisor,
-the VS Code extension) and by external consumers that want to talk
-to the supervisor. Owns the wire-protocol types and the socket
-client.
-
-This package is a placeholder in PR 1 (the bootstrap). The
-supervisor-shape ADR ships the first real public API in PR 2.
+The shared, isomorphic library used by every surface (CLI, web dashboard,
+VS Code extension) and by external consumers that want to talk to the
+supervisor. Owns the wire-protocol types and the WebSocket/HTTP client.
 
 ## Public API
 
 ```ts
-import type { /* … */ } from '@hookorama/client';
-// import { /* … */ } from '@hookorama/client'; // runtime helpers come later
+import {
+  SupervisorClient,
+  type Status,
+  type ProcessEntry,
+  type AgentMetadata,
+  type HookRequest,
+  type HookEvent,
+  type WireSnapshot,
+  type WireMessage,
+} from '@hookorama/client';
 ```
-
-> No runtime exports yet. PR 2 adds them.
 
 ## Pinned by
 
-- ADR(s): not yet; this package is a placeholder
+- ADR(s): ADR 0001 (supervisor shape); wire-protocol ADR pending
 - Rules: `.agents/rules/package-readme.md.rule`
 - Skills: none

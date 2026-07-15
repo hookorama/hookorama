@@ -1,13 +1,22 @@
 /**
  * `@hookorama/client` — public barrel.
  *
- * This file is intentionally empty in PR 1 (the bootstrap). Real
- * exports land in PR 2 with the supervisor's shape ADR.
- *
- * Conventions enforced here:
- *   - Public types and helpers are exported from this barrel only.
- *   - Internal modules stay under `src/` without a barrel.
- *   - No `vscode` imports anywhere in this package.
+ * Isomorphic wire-protocol types and the WebSocket/HTTP client used by
+ * every surface (CLI, dashboard, VS Code extension) to talk to the
+ * supervisor.
  */
 
-export const PLACEHOLDER = true as const;
+export type {
+  Status,
+  ProcessEntry,
+  AgentMetadata,
+  HookRequest,
+  HookEvent,
+  WireSnapshot,
+  WireAck,
+  WireEvent,
+  WireHook,
+  WireError,
+  WireMessage,
+} from './wire.js';
+export { SupervisorClient, type SupervisorClientOptions } from './supervisor-client.js';
