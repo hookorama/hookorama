@@ -1,5 +1,5 @@
 ---
-appliesTo: docs/adr/NNNN-*.md
+appliesTo: docs/adr/????-*.md
 purpose: One product/architecture decision per file; numbered, frontmatter-led, lifecycle-tracked.
 owner: governance
 created: 2026-07-10
