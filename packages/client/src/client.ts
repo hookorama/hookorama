@@ -67,18 +67,22 @@ export class SupervisorClient {
   }
 
   /** Fetch the current snapshot and open the WebSocket. */
-  async start(): Promise<void> {
+  async start(signal?: AbortSignal): Promise<void> {
     this.stop();
     this.abortController = new AbortController();
-    const signal = this.abortController.signal;
+    const internalSignal = this.abortController.signal;
+    const onAbort = () => this.stop();
+    signal?.addEventListener('abort', onAbort, { once: true });
     try {
-      const initial = await this.fetchSnapshot(signal);
-      if (signal.aborted) return;
+      const initial = await this.fetchSnapshot(internalSignal);
+      if (internalSignal.aborted || signal?.aborted) return;
       this.onSnapshot?.(initial);
       this.connect();
     } catch (error) {
-      if (signal.aborted) return;
+      if (internalSignal.aborted || signal?.aborted) return;
       throw error;
+    } finally {
+      signal?.removeEventListener('abort', onAbort);
     }
   }
 
@@ -91,9 +95,9 @@ export class SupervisorClient {
   }
 
   /** Fetch the OS process table from GET /api/processes. */
-  async fetchProcesses(): Promise<ProcessRow[]> {
+  async fetchProcesses(signal?: AbortSignal): Promise<ProcessRow[]> {
     const response = await fetch(`${this.httpUrl}/api/processes`, {
-      signal: this.abortController?.signal ?? null,
+      signal: signal ?? this.abortController?.signal ?? null,
     });
     if (!response.ok) {
       throw new Error(`processes failed: ${response.status}`);
