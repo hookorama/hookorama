@@ -38,6 +38,10 @@ function supervisorPlugin(): Plugin {
 
       child = spawn(process.execPath, ['src/main.ts'], { cwd: supervisorDir });
 
+      let spawnErr: Error | undefined;
+      child.on('error', (err) => {
+        spawnErr = err;
+      });
       child.stderr?.on('data', (data: Buffer) => {
         console.warn(data.toString().trim());
       });
@@ -46,6 +50,9 @@ function supervisorPlugin(): Plugin {
       });
 
       for (let i = 0; i < 50; i++) {
+        if (spawnErr !== undefined) {
+          throw new Error(`supervisor failed to start: ${spawnErr.message}`);
+        }
         if (child.exitCode !== null) {
           throw new Error(`supervisor exited with code ${child.exitCode ?? 'unknown'}`);
         }
@@ -53,6 +60,9 @@ function supervisorPlugin(): Plugin {
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
 
+      if (spawnErr !== undefined) {
+        throw new Error(`supervisor failed to start: ${spawnErr.message}`);
+      }
       if (child.exitCode !== null) {
         throw new Error(`supervisor exited with code ${child.exitCode ?? 'unknown'}`);
       }
