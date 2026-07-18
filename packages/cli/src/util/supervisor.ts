@@ -21,7 +21,9 @@ export function isSupervisorRunning(httpUrl = DEFAULT_HTTP_URL): Promise<boolean
 
 function childExitPromise(child: ChildProcess): Promise<'exit'> {
   return new Promise((resolve) => {
-    child.once('exit', () => resolve('exit'));
+    child.once('exit', () => {
+      resolve('exit');
+    });
   });
 }
 
@@ -74,15 +76,15 @@ export async function startSupervisor(): Promise<void> {
       // The child exited before we saw our PID in the file. If an old
       // supervisor still owns the slot, wait for it to release and retry.
       const currentPid = await readCurrentPid(pidFile);
-      if (currentPid !== null && isProcessRunning(currentPid)) {
+      if (currentPid !== null && (await isProcessRunning(currentPid))) {
         console.warn('waiting for existing supervisor (pid %d) to release the PID file', currentPid);
         for (let wait = 0; wait < MAX_ATTEMPTS; wait += 1) {
           await setTimeout(POLL_MS);
-          if (!isProcessRunning(currentPid)) {
+          if (!(await isProcessRunning(currentPid))) {
             break;
           }
         }
-        if (isProcessRunning(currentPid)) {
+        if (await isProcessRunning(currentPid)) {
           throw new Error('existing supervisor did not release the PID file');
         }
         continue;
