@@ -8,7 +8,7 @@
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-/** Return the executable runtime path (Bun) and the CLI script path.
+/** Return the executable runtime path and the CLI script path.
  *
  * `HOOKORAMA_SELF_COMMAND` (and optional `HOOKORAMA_SELF_SCRIPT`) override the
  * command so agent configs can call a global runtime (e.g. `bun`) linked to a

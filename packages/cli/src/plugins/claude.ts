@@ -122,7 +122,7 @@ function mergeHooks(existing: ClaudeHooks | undefined, generated: ClaudeHooks): 
 
 export const claudePlugin: AgentPlugin = {
   name: 'claude',
-  description: 'Claude Code — writes ~/.claude/settings.json hooks',
+  description: 'Claude Code — writes .claude/settings.json hooks in the current project',
 
   buildHookRequest(agent: string, status: Status, args: readonly string[]): HookRequest {
     return buildCommonHookRequest(agent, status, args);

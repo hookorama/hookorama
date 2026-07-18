@@ -120,7 +120,7 @@ function isHookoramaCommand(command: string): boolean {
 
 export const devinPlugin: AgentPlugin = {
   name: 'devin',
-  description: 'Devin CLI — writes ~/.config/devin/config.json hooks',
+  description: 'Devin CLI — writes .devin/config.json hooks in the current project',
 
   buildHookRequest(agent: string, status: Status, args: readonly string[]): HookRequest {
     return buildCommonHookRequest(agent, status, args, process.env['DEVIN_PROJECT_DIR']);
