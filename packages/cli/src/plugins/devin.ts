@@ -97,15 +97,16 @@ async function writeConfig(config: DevinConfig, dryRun?: boolean): Promise<void>
 }
 
 function mergeHooks(existing: DevinHooks | undefined, generated: DevinHooks): DevinHooks {
-  const merged: DevinHooks = { ...existing };
-  for (const [event, generatedEntries] of Object.entries(generated)) {
-    const existingEntries = merged[event] ?? [];
+  const merged = new Map<string, readonly DevinHookEntry[]>(Object.entries(existing ?? {}));
+  const generatedMap = new Map<string, readonly DevinHookEntry[]>(Object.entries(generated));
+  for (const event of HOOK_EVENTS) {
+    const existingEntries = merged.get(event) ?? [];
     const cleaned = existingEntries
       .map((entry) => Object.assign({}, entry, { hooks: entry.hooks.filter((h) => !isHookoramaCommand(h.command)) }))
       .filter((entry) => entry.hooks.length > 0);
-    merged[event] = [...cleaned, ...generatedEntries];
+    merged.set(event, [...cleaned, ...(generatedMap.get(event) ?? [])]);
   }
-  return merged;
+  return Object.fromEntries(merged) as DevinHooks;
 }
 
 function isHookoramaCommand(command: string): boolean {

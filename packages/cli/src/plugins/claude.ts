@@ -108,15 +108,16 @@ function isHookoramaCommand(hook: ClaudeHookCommand): boolean {
 }
 
 function mergeHooks(existing: ClaudeHooks | undefined, generated: ClaudeHooks): ClaudeHooks {
-  const merged: ClaudeHooks = { ...existing };
-  for (const [event, generatedEntries] of Object.entries(generated)) {
-    const existingEntries = merged[event] ?? [];
+  const merged = new Map<string, readonly ClaudeHookEntry[]>(Object.entries(existing ?? {}));
+  const generatedMap = new Map<string, readonly ClaudeHookEntry[]>(Object.entries(generated));
+  for (const event of HOOK_EVENTS) {
+    const existingEntries = merged.get(event) ?? [];
     const cleaned = existingEntries
       .map((entry) => Object.assign({}, entry, { hooks: entry.hooks.filter((h) => !isHookoramaCommand(h)) }))
       .filter((entry) => entry.hooks.length > 0);
-    merged[event] = [...cleaned, ...generatedEntries];
+    merged.set(event, [...cleaned, ...(generatedMap.get(event) ?? [])]);
   }
-  return merged;
+  return Object.fromEntries(merged) as ClaudeHooks;
 }
 
 export const claudePlugin: AgentPlugin = {
