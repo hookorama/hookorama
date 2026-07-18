@@ -1,0 +1,8 @@
+
+==> PR #6 (feat/packages-supervisor)
+PR #6 (feat/packages-supervisor) is not clean.
+  mergeStateStatus: UNSTABLE
+  non-passing checks:
+    - Codacy Static Code Analysis: ACTION_REQUIRED
+
+Run /act pr 6

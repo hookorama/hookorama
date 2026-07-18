@@ -1,8 +1,8 @@
 ---
 name: act-train
 when to use: The user invokes `/act train`, `/act loop`, or asks to run a stacked-PR merge train — applying `/act` to each PR bottom-up and merging once clean.
-procedure: Run `bun .agents/skills/act-train/scripts/train.mjs`. If it exits 2, load `/act` on the reported PR, fix it, then re-run the script. Repeat until all PRs are merged.
-outputs: A fully merged stack, or the identity of the first dirty PR that needs `/act`.
+procedure: Run `bun .agents/skills/act-train/scripts/train.mjs`. If it exits 2, load `/act` on the reported PR, fix it and produce an `.evidence/.../claim.json` that proves the fix, then re-run the script. Repeat until all PRs are merged.
+outputs: A fully merged stack, or the identity of the first dirty PR that needs `/act` with an evidence-backed fix.
 ---
 
 # Skill: `act-train`
@@ -35,8 +35,10 @@ try the train again.
    Use `--dry-run` to only report what it would merge.
 3. If the script exits `0`, every stacked PR was merged. Done.
 4. If the script exits `2`, it prints the first dirty PR and why. Load the
-   `/act` skill for that PR and follow it to completion (fix code, reply in
-   threads, resolve, push until CI green).
+   `/act` skill for that PR and follow it to completion. Every fix must be
+   proved with an `.evidence/<date>/<task>/<slug>/claim.json` (run the relevant
+   checks/tests and capture the output; validate with
+   `.agents/skills/evidence/scripts/validate.py`).
 5. Re-run the script. It will pick up the now-clean PR, merge it, and continue
    to the next one.
 6. Repeat until the script exits `0`.

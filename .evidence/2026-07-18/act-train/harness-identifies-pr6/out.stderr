@@ -1,0 +1,1 @@
+$ bun .agents/skills/act-train/scripts/train.mjs

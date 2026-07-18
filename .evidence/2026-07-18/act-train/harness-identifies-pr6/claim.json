@@ -1,0 +1,76 @@
+{
+  "version": 1,
+  "claim": "The act-train harness is set up and correctly identifies PR #6 (feat/packages-supervisor) as the first dirty PR in the stack due to Codacy Static Code Analysis ACTION_REQUIRED.",
+  "slug": "harness-identifies-pr6",
+  "task_id": "act-train",
+  "agent": "devin-ai-integration",
+  "session_id": "e875504b-ebc5-4b80-902c-d7347d710c6d",
+  "produced_at": "2026-07-18T13:09:20.5769227Z",
+  "target_environment": "cli",
+  "verification_method": "command",
+  "preconditions": [
+    "gh CLI is authenticated for hookorama/hookorama",
+    "gh stackx extension is installed and the worktree is part of the packages-stack",
+    "PRs #6, #8, and #7 are open in the repository",
+    "The act-train script and skill are committed in packages-web-app"
+  ],
+  "commands": [
+    {
+      "cmd": "bun run act:train",
+      "cwd": "C:\\Users\\petrp\\Documents\\GitHub\\hookorama\\.worktrees\\packages-stack",
+      "exit_code": 2,
+      "duration_ms": 5000,
+      "stdout_excerpt": "==> PR #6 (feat/packages-supervisor)\nPR #6 (feat/packages-supervisor) is not clean.\n  mergeStateStatus: UNSTABLE\n  non-passing checks:\n    - Codacy Static Code Analysis: ACTION_REQUIRED\n\nRun /act pr 6",
+      "stderr_excerpt": "$ bun .agents/skills/act-train/scripts/train.mjs\n"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "harness detects dirty PR",
+      "passed": true,
+      "evidence_quote": "PR #6 (feat/packages-supervisor) is not clean."
+    },
+    {
+      "name": "harness reports Codacy as the blocker",
+      "passed": true,
+      "evidence_quote": "    - Codacy Static Code Analysis: ACTION_REQUIRED"
+    },
+    {
+      "name": "harness exits 2 for dirty PR",
+      "passed": true,
+      "evidence_quote": "Run /act pr 6"
+    }
+  ],
+  "files_changed": [
+    "C:\\Users\\petrp\\Documents\\GitHub\\hookorama\\.worktrees\\packages-stack\\.agents\\skills\\act-train\\SKILL.md",
+    "C:\\Users\\petrp\\Documents\\GitHub\\hookorama\\.worktrees\\packages-stack\\.agents\\skills\\act-train\\scripts\\train.mjs",
+    "C:\\Users\\petrp\\Documents\\GitHub\\hookorama\\.worktrees\\packages-stack\\package.json"
+  ],
+  "artifacts": [
+    {
+      "kind": "log",
+      "path": ".evidence/2026-07-18/act-train/harness-identifies-pr6/out.stdout",
+      "sha256": "343184A14996E43C97273CFF4714B44AAA9CA2273234F5234A92DBB83FDD0F20",
+      "content_excerpt": "PR #6 (feat/packages-supervisor) is not clean.\n  mergeStateStatus: UNSTABLE\n  non-passing checks:\n    - Codacy Static Code Analysis: ACTION_REQUIRED\n\nRun /act pr 6"
+    },
+    {
+      "kind": "log",
+      "path": ".evidence/2026-07-18/act-train/harness-identifies-pr6/out.stderr",
+      "sha256": "4D8D8C31FADAFFDCD8855D023D1B25A9D5083836498ABFA241F44AE4ED6BFC05",
+      "content_excerpt": "$ bun .agents/skills/act-train/scripts/train.mjs\n"
+    },
+    {
+      "kind": "log",
+      "path": ".evidence/2026-07-18/act-train/harness-identifies-pr6/exit.code",
+      "sha256": "DF4E26A04A444901B95AFEF44E4A96CFAE34690FFF2AD2C66389C70079CDFF2B",
+      "content_excerpt": "2"
+    }
+  ],
+  "remaining_gaps": [],
+  "self_recheck": {
+    "performed": true,
+    "performed_at": "2026-07-18T13:09:20.5769227Z",
+    "method": "re-ran-command",
+    "result": "still-holds"
+  }
+}

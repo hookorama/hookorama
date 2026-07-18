@@ -118,6 +118,10 @@ function mergePr(owner, repo, prNumber, headSha) {
   return result;
 }
 
+function log(message) {
+  console.log(message);
+}
+
 function setBaseMain(owner, repo, prNumber) {
   // idempotent; harmless if already based on main
   sh('gh', ['pr', 'edit', String(prNumber), '--base', 'main', '--repo', `${owner}/${repo}`]);
@@ -181,12 +185,12 @@ function run() {
     const next = openBranches[0];
 
     if (!next) {
-      console.warn('All stacked PRs are merged. Done.');
+      log('All stacked PRs are merged. Done.');
       return 0;
     }
 
     const prNumber = next.pr.number;
-    console.warn(`\n==> PR #${prNumber} (${next.name})`);
+    log(`\n==> PR #${prNumber} (${next.name})`);
 
     const pr = prView(prNumber, [
       'mergeStateStatus',
@@ -200,7 +204,7 @@ function run() {
     ]);
 
     if (pr.state !== 'OPEN') {
-      console.warn(`  state is ${pr.state}; skipping.`);
+      log(`  state is ${pr.state}; skipping.`);
       continue;
     }
 
@@ -211,15 +215,15 @@ function run() {
       pr.reviewDecision !== 'CHANGES_REQUESTED' &&
       unresolvedThreads === 0
     ) {
-      console.warn(`  CLEAN. ${DRY_RUN ? '[dry-run] would merge' : 'Merging'}...`);
+      log(`  CLEAN. ${DRY_RUN ? '[dry-run] would merge' : 'Merging'}...`);
 
       if (DRY_RUN) {
-        console.warn(
+        log(
           `  [dry-run] would merge PR #${prNumber} and delete ${pr.headRefName}`,
         );
       } else {
         const result = mergePr(owner, repo, prNumber, pr.headRefOid);
-        console.warn(`  merged: ${result.sha}`);
+        log(`  merged: ${result.sha}`);
       }
 
       // Ensure the following PR is targeted at main now that its base branch is gone.
@@ -231,7 +235,7 @@ function run() {
       continue;
     }
 
-    console.warn(summarizeDirty(pr, unresolvedThreads));
+    log(summarizeDirty(pr, unresolvedThreads));
     return 2;
   }
 }
