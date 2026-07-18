@@ -9,13 +9,10 @@ const DEFAULT_HTTP_URL = 'http://127.0.0.1:7354';
 const MAX_ATTEMPTS = 25;
 const POLL_MS = 200;
 
-export async function isSupervisorRunning(httpUrl = DEFAULT_HTTP_URL): Promise<boolean> {
-  try {
-    const response = await fetch(`${httpUrl}/api/state`, { signal: AbortSignal.timeout(1000) });
-    return response.ok;
-  } catch {
-    return false;
-  }
+export function isSupervisorRunning(httpUrl = DEFAULT_HTTP_URL): Promise<boolean> {
+  return fetch(`${httpUrl}/api/state`, { signal: AbortSignal.timeout(1000) })
+    .then((response) => response.ok)
+    .catch(() => false);
 }
 
 /**
@@ -23,11 +20,12 @@ export async function isSupervisorRunning(httpUrl = DEFAULT_HTTP_URL): Promise<b
  * running the `supervisor start` subcommand.
  */
 export async function startSupervisor(): Promise<void> {
-  if (process.argv[1] === undefined || process.argv[1].length === 0) {
+  const scriptPath = process.argv[1] ?? '';
+  if (scriptPath.length === 0) {
     throw new Error('cannot determine CLI script path');
   }
 
-  const child = spawn(process.execPath, [process.argv[1], 'supervisor', 'start'], {
+  const child = spawn(process.execPath, [scriptPath, 'supervisor', 'start'], {
     detached: true,
     stdio: 'ignore',
     windowsHide: true,

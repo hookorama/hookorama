@@ -53,25 +53,38 @@ async function buildDist() {
   await runScript(['x', 'tsdown']);
 }
 
-function runNpm(args, options = {}) {
-  return new Promise((resolve, reject) => {
-    const child = spawn('npm', args, {
-      cwd: repoRoot,
-      env: process.env,
-      shell: true,
-      stdio: 'inherit',
-      ...options,
-    });
+function runCommand(command, args, options = {}) {
+  if (!Array.isArray(args) || args.some((arg) => typeof arg !== 'string')) {
+    throw new TypeError('command args must be an array of strings');
+  }
 
+  const isWindows = process.platform === 'win32';
+  const child = isWindows
+    ? spawn('cmd', ['/c', command, ...args], {
+        ...options,
+        shell: false,
+        stdio: 'inherit',
+      })
+    : spawn(command, args, {
+        ...options,
+        shell: false,
+        stdio: 'inherit',
+      });
+
+  return new Promise((resolve, reject) => {
     child.on('error', reject);
     child.on('close', (code) => {
       if (code !== 0) {
-        reject(new Error(`npm ${args.join(' ')} exited with ${code}`));
+        reject(new Error(`${command} ${args.join(' ')} exited with ${code}`));
         return;
       }
       resolve();
     });
   });
+}
+
+function runNpm(args, options = {}) {
+  return runCommand('npm', args, { cwd: repoRoot, env: process.env, ...options });
 }
 
 async function npmLinkCli() {
@@ -80,24 +93,7 @@ async function npmLinkCli() {
 }
 
 function runHookorama(args, options = {}) {
-  return new Promise((resolve, reject) => {
-    const child = spawn('hookorama', args, {
-      cwd: demoHome,
-      env: buildDemoEnv(),
-      shell: true,
-      stdio: 'inherit',
-      ...options,
-    });
-
-    child.on('error', reject);
-    child.on('close', (code) => {
-      if (code !== 0) {
-        reject(new Error(`hookorama ${args.join(' ')} exited with ${code}`));
-        return;
-      }
-      resolve();
-    });
-  });
+  return runCommand('hookorama', args, { cwd: demoHome, env: buildDemoEnv(), ...options });
 }
 
 async function prepareDemo() {

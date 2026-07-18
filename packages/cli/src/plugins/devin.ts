@@ -61,16 +61,12 @@ function buildCommand(status: string): string {
 }
 
 function buildHooks(): DevinHooks {
-  const hooks: Record<string, DevinHookEntry[]> = {};
-  for (const event of HOOK_EVENTS) {
-    hooks[event] = [
-      {
-        matcher: '',
-        hooks: [{ type: 'command', command: buildCommand(EVENT_TO_STATUS[event]) }],
-      },
-    ];
-  }
-  return hooks;
+  return Object.fromEntries(
+    HOOK_EVENTS.map((event) => {
+      const status = EVENT_TO_STATUS[event];
+      return [event, [{ matcher: '', hooks: [{ type: 'command', command: buildCommand(status) }] }]] as const;
+    }),
+  ) as DevinHooks;
 }
 
 async function readConfig(): Promise<DevinConfig> {
@@ -109,12 +105,8 @@ export const devinPlugin: AgentPlugin = {
 
   async install(opts: AgentPluginOptions = {}): Promise<void> {
     const config = await readConfig();
-    const hooks: DevinHooks = { ...config.hooks };
-
     const newHooks = buildHooks();
-    for (const event of HOOK_EVENTS) {
-      hooks[event] = newHooks[event]!;
-    }
+    const hooks: DevinHooks = { ...config.hooks, ...newHooks };
 
     await writeConfig({ ...config, hooks }, opts.dryRun);
     console.warn('Devin hooks installed to %s', configPath);
@@ -132,15 +124,15 @@ export const devinPlugin: AgentPlugin = {
       return;
     }
 
-    const remaining: DevinHooks = {};
-    for (const [event, entries] of Object.entries(config.hooks)) {
-      const filtered = entries
-        .map((entry) => Object.assign({}, entry, { hooks: entry.hooks.filter((h) => !isHookoramaCommand(h.command)) }))
-        .filter((entry) => entry.hooks.length > 0);
-      if (filtered.length > 0) {
-        remaining[event] = filtered;
-      }
-    }
+    const remainingEntries = Object.entries(config.hooks)
+      .map(([event, entries]) => {
+        const filtered = entries
+          .map((entry) => ({ ...entry, hooks: entry.hooks.filter((h) => !isHookoramaCommand(h.command)) }))
+          .filter((entry) => entry.hooks.length > 0);
+        return [event, filtered] as const;
+      })
+      .filter(([, filtered]) => filtered.length > 0);
+    const remaining = Object.fromEntries(remainingEntries) as DevinHooks;
 
     const next: DevinConfig = { ...config };
     if (Object.keys(remaining).length > 0) {

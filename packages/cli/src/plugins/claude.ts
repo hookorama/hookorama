@@ -55,16 +55,12 @@ function buildHookCommand(status: string): ClaudeHookCommand {
 }
 
 function buildHooks(): ClaudeHooks {
-  const hooks: Record<string, ClaudeHookEntry[]> = {};
-  for (const event of HOOK_EVENTS) {
-    hooks[event] = [
-      {
-        matcher: '',
-        hooks: [buildHookCommand(EVENT_TO_STATUS[event])],
-      },
-    ];
-  }
-  return hooks;
+  return Object.fromEntries(
+    HOOK_EVENTS.map((event) => {
+      const status = EVENT_TO_STATUS[event];
+      return [event, [{ matcher: '', hooks: [buildHookCommand(status)] }]] as const;
+    }),
+  ) as ClaudeHooks;
 }
 
 async function readSettings(): Promise<ClaudeSettings> {
@@ -90,7 +86,7 @@ async function writeSettings(settings: ClaudeSettings, dryRun?: boolean): Promis
 }
 
 function isHookoramaCommand(hook: ClaudeHookCommand): boolean {
-  if (!Array.isArray(hook.args)) return false;
+  if (!Array.isArray(hook.args) || hook.args.length < 3) return false;
   return hook.args[1] === 'hook' && hook.args[2] === 'claude';
 }
 
@@ -104,12 +100,8 @@ export const claudePlugin: AgentPlugin = {
 
   async install(opts: AgentPluginOptions = {}): Promise<void> {
     const settings = await readSettings();
-    const hooks: ClaudeHooks = { ...settings.hooks };
-
     const newHooks = buildHooks();
-    for (const event of HOOK_EVENTS) {
-      hooks[event] = newHooks[event]!;
-    }
+    const hooks: ClaudeHooks = { ...settings.hooks, ...newHooks };
 
     await writeSettings({ ...settings, hooks }, opts.dryRun);
     console.warn('Claude Code hooks installed to %s', settingsPath);
@@ -127,15 +119,15 @@ export const claudePlugin: AgentPlugin = {
       return;
     }
 
-    const remaining: ClaudeHooks = {};
-    for (const [event, entries] of Object.entries(settings.hooks)) {
-      const filtered = entries
-        .map((entry) => Object.assign({}, entry, { hooks: entry.hooks.filter((h) => !isHookoramaCommand(h)) }))
-        .filter((entry) => entry.hooks.length > 0);
-      if (filtered.length > 0) {
-        remaining[event] = filtered;
-      }
-    }
+    const remainingEntries = Object.entries(settings.hooks)
+      .map(([event, entries]) => {
+        const filtered = entries
+          .map((entry) => ({ ...entry, hooks: entry.hooks.filter((h) => !isHookoramaCommand(h)) }))
+          .filter((entry) => entry.hooks.length > 0);
+        return [event, filtered] as const;
+      })
+      .filter(([, filtered]) => filtered.length > 0);
+    const remaining = Object.fromEntries(remainingEntries) as ClaudeHooks;
 
     const next: ClaudeSettings = { ...settings };
     if (Object.keys(remaining).length > 0) {

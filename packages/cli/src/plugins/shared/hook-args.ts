@@ -105,6 +105,7 @@ export function buildCommonHookRequest(
   const cwd = opts.cwd ?? defaultCwd ?? process.cwd();
   const pid = numberOrUndefined(opts.pid);
 
+  const metadata = buildMetadata(opts);
   const hookRequest: HookRequest = {
     status: status as Status,
     cwd,
@@ -112,7 +113,7 @@ export function buildCommonHookRequest(
     ...(opts['agent-name'] !== undefined ? { agent: opts['agent-name'] } : {}),
     ...(opts['session-id'] !== undefined ? { sessionId: opts['session-id'] } : {}),
     ...(pid !== undefined ? { pidChain: [pid] } : {}),
-    ...(buildMetadata(opts) !== undefined ? { metadata: buildMetadata(opts)! } : {}),
+    ...(metadata !== undefined ? { metadata } : {}),
   };
 
   return hookRequest;

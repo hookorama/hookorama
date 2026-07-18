@@ -1,0 +1,93 @@
+{
+  "version": 1,
+  "session_id": "625164e9-517d-4e51-b89d-e96c1fd23453",
+  "preconditions": [
+    "PR #8 (feat/packages-cli) has Codacy warnings in packages/cli/src/commands/supervisor.ts, packages/cli/src/index.ts, packages/cli/src/plugins/claude.ts, packages/cli/src/plugins/devin.ts, packages/cli/src/plugins/shared/hook-args.ts, packages/cli/src/util/self-command.ts, packages/cli/src/util/supervisor.ts, and scripts/demo-setup.mjs",
+    "The fixes are applied in the packages-stack worktree",
+    "bun, gh, and the repo dependencies are available"
+  ],
+  "target_environment": "test-suite",
+  "verification_method": "command",
+  "task_id": "act-pr8",
+  "remaining_gaps": [
+    "Remote Codacy and SonarCloud checks have not yet been re-run on the pushed commit; they must pass before PR #8 is clean.",
+    "Review threads on PR #8 still need to be replied to and resolved before merge."
+  ],
+  "produced_at": "2026-07-18T15:42:11.1035112+02:00",
+  "claim": "PR #8 (feat/packages-cli) local CI passes after addressing Codacy warnings (typecheck, lint, check, tests, build all green).",
+  "agent": "devin-ai-integration",
+  "files_changed": [
+    "packages/cli/src/commands/supervisor.ts",
+    "packages/cli/src/index.ts",
+    "packages/cli/src/plugins/claude.ts",
+    "packages/cli/src/plugins/devin.ts",
+    "packages/cli/src/plugins/shared/hook-args.ts",
+    "packages/cli/src/util/self-command.ts",
+    "packages/cli/src/util/supervisor.ts",
+    "scripts/demo-setup.mjs"
+  ],
+  "commands": [
+    {
+      "exit_code": 0,
+      "stderr_excerpt": "\r\n\r\n WARN  TypeScript 7.0 does not yet have a stable API and is experimental. Some options will be unavailable.\r\n\r\n",
+      "cmd": "NO_COLOR=1 CI=1 bun run ci",
+      "stdout_excerpt": "check-md: OK (26 .md files matched)\ncheck-files: OK (55 files matched)\n Test Files  8 passed (8)\n      Tests  55 passed (55)\n   Duration  781ms (transform 1.09s, setup 0ms, import 1.89s, tests 380ms, environment 2ms)\n✔ [hookorama] Build complete in 877ms\n✔ [@hookorama/web-app] Build complete in 894ms\n✔ [@hookorama/extension] Build complete in 942ms\n✔ [@hookorama/supervisor] Build complete in 955ms\n✔ [@hookorama/client] Build complete in 958ms",
+      "duration_ms": 0,
+      "cwd": "C:\\Users\\petrp\\Documents\\GitHub\\hookorama\\.worktrees\\packages-stack"
+    }
+  ],
+  "slug": "pr8-local-ci",
+  "artifacts": [
+    {
+      "content_excerpt": "check-md: OK (26 .md files matched)\ncheck-files: OK (55 files matched)\n Test Files  8 passed (8)\n      Tests  55 passed (55)\n   Duration  781ms (transform 1.09s, setup 0ms, import 1.89s, tests 380ms, environment 2ms)\n✔ [hookorama] Build complete in 877ms\n✔ [@hookorama/web-app] Build complete in 894ms\n✔ [@hookorama/extension] Build complete in 942ms\n✔ [@hookorama/supervisor] Build complete in 955ms\n✔ [@hookorama/client] Build complete in 958ms",
+      "path": "ci.stdout",
+      "kind": "log",
+      "sha256": "E4846387C37C12C79347894570B00FF8A2CFD0FC9AF421704773AB77A63DE040"
+    },
+    {
+      "content_excerpt": "\r\n\r\n WARN  TypeScript 7.0 does not yet have a stable API and is experimental. Some options will be unavailable.\r\n\r\n",
+      "path": "ci.stderr",
+      "kind": "log",
+      "sha256": "61EB854BFEE48CAA3591AF581A9F3FEC992276A5C1BFA51B3183BE36B89DDA85"
+    },
+    {
+      "content_excerpt": "0",
+      "path": "ci.exit.code",
+      "kind": "log",
+      "sha256": "5FECEB66FFC86F38D952786C6D696C79C2DBC239DD4E91B46729D73A27FB57E9"
+    }
+  ],
+  "self_recheck": {
+    "result": "still-holds",
+    "performed_at": "2026-07-18T15:42:11.1053338+02:00",
+    "performed": true,
+    "method": "re-ran-command"
+  },
+  "assertions": [
+    {
+      "passed": true,
+      "evidence_quote": "Found 0 warnings and 0 errors.",
+      "name": "lint has zero warnings and errors"
+    },
+    {
+      "passed": true,
+      "evidence_quote": "check-md: OK",
+      "name": "markdown and file checks pass"
+    },
+    {
+      "passed": true,
+      "evidence_quote": "Test Files",
+      "name": "all test files pass"
+    },
+    {
+      "passed": true,
+      "evidence_quote": "Tests ",
+      "name": "all tests pass"
+    },
+    {
+      "passed": true,
+      "evidence_quote": "[hookorama] Build complete",
+      "name": "CLI builds successfully"
+    }
+  ]
+}

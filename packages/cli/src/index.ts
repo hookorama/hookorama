@@ -37,7 +37,9 @@ program
   .action(statusCommand);
 
 program
-  .command('hook <agent> <status>')
+  .command('hook')
+  .argument('<agent>')
+  .argument('<status>')
   .description('dispatch a hook event to the supervisor')
   .allowUnknownOption()
   .action(async (agent: string, statusValue: string, _command: Command) => {

@@ -21,9 +21,10 @@ export function getSelfCommand(): { readonly runtime: string; readonly script: s
   }
 
   const runtime = process.execPath;
+  const argv1 = process.argv[1] ?? '';
   const script =
-    process.argv[1] !== undefined && process.argv[1].length > 0
-      ? resolve(process.argv[1])
+    argv1.length > 0
+      ? resolve(argv1)
       : fileURLToPath(new URL('./main.mjs', import.meta.url));
   return { runtime, script };
 }
