@@ -54,6 +54,7 @@ export async function supervisorStop(): Promise<void> {
     console.warn('supervisor stopped (pid %d)', pid);
   } catch (error) {
     console.warn('failed to stop supervisor:', error);
+    await releasePidSlot(pidFile);
     process.exitCode = 1;
   }
 }

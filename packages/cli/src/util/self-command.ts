@@ -29,12 +29,20 @@ export function getSelfCommand(): { readonly runtime: string; readonly script: s
   return { runtime, script };
 }
 
+function escapeShellArg(path: string): string {
+  // Forward slashes are safe for PowerShell, cmd and bash on Windows.
+  const withForwardSlashes = path.replaceAll('\\', '/');
+  // Escape double quotes, dollar signs, backticks, and backslashes inside a
+  // double-quoted shell argument to prevent command injection.
+  const escaped = withForwardSlashes.replace(/["$`\\]/g, '\\$&');
+  return `"${escaped}"`;
+}
+
 /** Return the command string for use in agent configs. */
 export function getSelfCommandString(): string {
   const { runtime, script } = getSelfCommand();
   if (script === '') {
-    return runtime;
+    return escapeShellArg(runtime);
   }
-  // Forward slashes are safe for PowerShell, cmd and bash on Windows.
-  return `"${runtime.replaceAll('\\', '/')}" "${script.replaceAll('\\', '/')}"`;
+  return `${escapeShellArg(runtime)} ${escapeShellArg(script)}`;
 }

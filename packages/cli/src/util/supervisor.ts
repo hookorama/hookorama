@@ -25,17 +25,29 @@ export async function startSupervisor(): Promise<void> {
     throw new Error('cannot determine CLI script path');
   }
 
+  let startupError = '';
   const child = spawn(process.execPath, [scriptPath, 'supervisor', 'start'], {
     detached: true,
-    stdio: 'ignore',
+    stdio: ['ignore', 'ignore', 'pipe'],
     windowsHide: true,
   });
   child.unref();
+
+  child.stderr?.on('data', (data) => {
+    startupError += data.toString();
+  });
+
+  if (await isSupervisorRunning()) {
+    return;
+  }
 
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
     await setTimeout(POLL_MS);
     if (await isSupervisorRunning()) {
       return;
+    }
+    if (startupError.length > 0) {
+      throw new Error(`supervisor failed to start: ${startupError.trim()}`);
     }
   }
 

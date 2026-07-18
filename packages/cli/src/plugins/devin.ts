@@ -95,7 +95,12 @@ async function writeConfig(config: DevinConfig, dryRun?: boolean): Promise<void>
 }
 
 function isHookoramaCommand(command: string): boolean {
-  return command.includes('hook devin ');
+  for (const status of EVENT_TO_STATUS.values()) {
+    if (command === buildCommand(status)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 export const devinPlugin: AgentPlugin = {
