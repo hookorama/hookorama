@@ -15,7 +15,7 @@ const supervisor = new Supervisor({
 
 await supervisor.start(); // returns false if another supervisor is running
 supervisor.setOpenTerminals([{ pid: 1234, cwd: '/home/user' }]);
-supervisor.applyHook({ status: 'thinking', pidChain: [1234], cwd: '/home/user' });
+await supervisor.applyHook({ status: 'thinking', pidChain: [1234], cwd: '/home/user' });
 console.warn(supervisor.snapshot());
 await supervisor.stop();
 ```

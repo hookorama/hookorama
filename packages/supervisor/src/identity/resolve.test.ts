@@ -24,6 +24,15 @@ describe('resolveIdentity', () => {
     expect(result?.pid).toBeUndefined();
   });
 
+  test('falls back to the OS process table when pid is known there', () => {
+    const result = resolveIdentity([999], '/Users/alice/projects/lone', TERMINALS, new Set([999]));
+    expect(result).not.toBeNull();
+    expect(result?.kind).toBe('pid');
+    expect(result?.key).toBe('pid:999');
+    expect(result?.pid).toBe(999);
+    expect(result?.cwd).toBe('/Users/alice/projects/lone');
+  });
+
   test('walks pidChain and picks the first match', () => {
     const result = resolveIdentity([1, 2, 200, 3], undefined, TERMINALS);
     expect(result?.kind).toBe('pid');

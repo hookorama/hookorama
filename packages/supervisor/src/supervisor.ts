@@ -50,6 +50,8 @@ export class Supervisor {
     return Array.from(this.openTerminalsByPid.values());
   }
   private readonly openTerminalsByPid = new Map<number, OpenTerminal>();
+  private processRowsCache: { readonly rows: readonly RawProcessRow[]; readonly at: number } | null = null;
+  private readonly processRowsTtlMs = 1000;
 
   setOpenTerminals(terminals: readonly OpenTerminal[]): void {
     this.openTerminalsByPid.clear();
@@ -134,7 +136,7 @@ export class Supervisor {
    * Apply a hook event. Returns the resolved identity if the
    * event could be mapped to a known process.
    */
-  applyHook(input: {
+  async applyHook(input: {
     readonly pidChain?: readonly number[];
     readonly cwd?: string;
     readonly sessionId?: string;
@@ -142,8 +144,9 @@ export class Supervisor {
     readonly status: Status;
     readonly at?: string;
     readonly metadata?: AgentMetadata;
-  }): ResolvedIdentity | null {
-    const identity = resolveIdentity(input.pidChain, input.cwd, this.openTerminals());
+  }): Promise<ResolvedIdentity | null> {
+    const knownPids = await this.knownPidsFromDiscovery();
+    const identity = resolveIdentity(input.pidChain, input.cwd, this.openTerminals(), knownPids);
     if (identity === null) return null;
     this.store.applyEvent(identity, input.status, input.at ?? this.now().toISOString(), {
       ...(input.sessionId !== undefined ? { sessionId: input.sessionId } : {}),
@@ -152,6 +155,29 @@ export class Supervisor {
       ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
     });
     return identity;
+  }
+
+  private async fetchProcessRows(): Promise<readonly RawProcessRow[] | null> {
+    if (this.discovery === null) return null;
+
+    const now = this.now().getTime();
+    if (this.processRowsCache !== null && now - this.processRowsCache.at < this.processRowsTtlMs) {
+      return this.processRowsCache.rows;
+    }
+
+    try {
+      const rows = await this.discovery.list();
+      this.processRowsCache = { rows, at: now };
+      return rows;
+    } catch {
+      return null;
+    }
+  }
+
+  private async knownPidsFromDiscovery(): Promise<ReadonlySet<number>> {
+    const rows = await this.fetchProcessRows();
+    if (rows === null) return new Set();
+    return new Set(rows.map((row) => row.pid));
   }
 
   /**
@@ -220,8 +246,8 @@ export class Supervisor {
 
   /** OS process tree annotated with the agents that own each process. */
   async processes(): Promise<ProcessRow[]> {
-    if (this.discovery === null) return [];
-    const rows: readonly RawProcessRow[] = await this.discovery.list();
+    const rows = await this.fetchProcessRows();
+    if (rows === null) return [];
     const entries = this.store.snapshot();
 
     const pidToAgent = new Map<number, { agentId: string; projectId?: string | undefined }>();

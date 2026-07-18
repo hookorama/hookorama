@@ -46,11 +46,15 @@ A process is identified, in order of preference:
 1. **OS PID** — the supervisor receives a `pidChain` (own pid
    first, ancestors after, FR‑D.6 of the predecessor) and walks
    the open terminal table (`vscode.Terminal.processId` shipped
-   by the extension over the wire) for an exact match.
+   by the extension over the wire) for an exact match. When the
+   extension is not present, the supervisor falls back to the OS
+   process table: a pid in `pidChain` that exists in the live
+   process list is accepted, using the hook's `cwd` as its working
+   directory.
 2. **`cwd`** — only when no pid in `pidChain` resolves to a
-   known open terminal. Multiple terminals sharing a `cwd` are
-   collapsed into one row, marked with a visible "ambiguous" badge
-   in the UI.
+   known open terminal or a live OS process. Multiple terminals
+   sharing a `cwd` are collapsed into one row, marked with a visible
+   "ambiguous" badge in the UI.
 
 `session_id` is never used as a key. It is always carried as
 enrichment only. A session id changes across `/clear` and
