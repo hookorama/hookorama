@@ -238,12 +238,12 @@ export function Shell(): ReactElement {
     void (async () => {
       try {
         await client.start(controller.signal);
-        if (controller.signal.aborted) return;
+        controller.signal.throwIfAborted();
         const processes = await client.fetchProcesses(controller.signal);
-        if (controller.signal.aborted) return;
+        controller.signal.throwIfAborted();
         setProcesses(processes);
       } catch (err) {
-        if (controller.signal.aborted) return;
+        if (err instanceof Error && err.name === 'AbortError') return;
         console.error('Failed to initialize supervisor client:', err);
         setConnection('error');
       }

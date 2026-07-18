@@ -71,7 +71,9 @@ export class SupervisorClient {
     this.stop();
     this.abortController = new AbortController();
     const internalSignal = this.abortController.signal;
-    const onAbort = () => this.stop();
+    const onAbort = () => {
+      this.stop();
+    };
     signal?.addEventListener('abort', onAbort, { once: true });
     try {
       const initial = await this.fetchSnapshot(internalSignal);
