@@ -23,9 +23,15 @@ function isPortReachable(timeoutMs = 500): Promise<boolean> {
       resolve(result);
     };
     socket.setTimeout(timeoutMs);
-    socket.once('connect', () => finish(true));
-    socket.once('error', () => finish(false));
-    socket.once('timeout', () => finish(false));
+    socket.once('connect', () => {
+      finish(true);
+    });
+    socket.once('error', () => {
+      finish(false);
+    });
+    socket.once('timeout', () => {
+      finish(false);
+    });
   });
 }
 

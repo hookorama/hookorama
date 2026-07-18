@@ -11,7 +11,6 @@
   "types": "./dist/index.d.mts",
   "exports": {
     ".": "./dist/index.mjs",
-    "./main": "./dist/main.mjs",
     "./package.json": "./package.json"
   },
   "files": [

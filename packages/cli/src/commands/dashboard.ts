@@ -71,24 +71,24 @@ async function findSourceWebApp(cliDir: string): Promise<string | undefined> {
 
 function mimeType(filePath: string): string {
   const ext = path.extname(filePath).toLowerCase();
-  const map: Record<string, string> = {
-    '.html': 'text/html',
-    '.js': 'application/javascript',
-    '.mjs': 'application/javascript',
-    '.css': 'text/css',
-    '.json': 'application/json',
-    '.svg': 'image/svg+xml',
-    '.png': 'image/png',
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.gif': 'image/gif',
-    '.ico': 'image/x-icon',
-    '.woff2': 'font/woff2',
-    '.woff': 'font/woff',
-    '.ttf': 'font/ttf',
-    '.otf': 'font/otf',
-  };
-  return map[ext] ?? 'application/octet-stream';
+  const map = new Map<string, string>([
+    ['.html', 'text/html'],
+    ['.js', 'application/javascript'],
+    ['.mjs', 'application/javascript'],
+    ['.css', 'text/css'],
+    ['.json', 'application/json'],
+    ['.svg', 'image/svg+xml'],
+    ['.png', 'image/png'],
+    ['.jpg', 'image/jpeg'],
+    ['.jpeg', 'image/jpeg'],
+    ['.gif', 'image/gif'],
+    ['.ico', 'image/x-icon'],
+    ['.woff2', 'font/woff2'],
+    ['.woff', 'font/woff'],
+    ['.ttf', 'font/ttf'],
+    ['.otf', 'font/otf'],
+  ]);
+  return map.get(ext) ?? 'application/octet-stream';
 }
 
 function serveStatic(webAppDir: string, port = 3000): void {
