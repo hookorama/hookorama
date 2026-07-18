@@ -24,7 +24,8 @@
     "demo:setup": "bun scripts/demo-setup.mjs",
     "demo": "bun run demo:setup",
     "ci": "bun run typecheck && bun run lint && bun run check && bun run test && bun run build",
-    "memory:reindex": "bun run scripts/reindex-memory.ts"
+    "memory:reindex": "bun run scripts/reindex-memory.ts",
+    "act:train": "bun .agents/skills/act-train/scripts/train.mjs"
   },
   "devDependencies": {
     "@types/bun": "^1.3.14",
