@@ -255,7 +255,7 @@ function AnalyticsPage() {
         : slicedBuckets.map((b) => {
             const p = emptyProjectMetrics();
             for (const pid of projectFilter) {
-              const pm = b.byProject[pid];
+              const pm = b.byProject.get(pid);
               if (!pm) continue;
               p.tasks += pm.tasks;
               p.toolCalls += pm.toolCalls;
@@ -278,11 +278,12 @@ function AnalyticsPage() {
   );
 
   const kpiSeries = projectFilter.size > 0 ? projectSeries : series;
-  const firstBucket = kpiSeries[0];
+  const firstBucket = kpiSeries.at(0);
   const lastBucket = kpiSeries.at(-1);
-  const totalTasks = firstBucket && lastBucket ? lastBucket.tasks - firstBucket.tasks : 0;
-  const totalCost = firstBucket && lastBucket ? lastBucket.cost - firstBucket.cost : 0;
-  const totalCalls = firstBucket && lastBucket ? lastBucket.tools - firstBucket.tools : 0;
+  const hasRange = firstBucket !== undefined && lastBucket !== undefined;
+  const totalTasks = hasRange ? lastBucket.tasks - firstBucket.tasks : 0;
+  const totalCost = hasRange ? lastBucket.cost - firstBucket.cost : 0;
+  const totalCalls = hasRange ? lastBucket.tools - firstBucket.tools : 0;
   const activeAgents = lastBucket?.active ?? 0;
 
   const rollupProjects = projectFilter.size === 0 ? projects : projects.filter((p) => projectFilter.has(p.id));
@@ -291,8 +292,8 @@ function AnalyticsPage() {
       rollupProjects
         .map((p) => {
           const own = agents.filter((a) => a.projectId === p.id);
-          const firstPm = slicedBuckets[0]?.byProject[p.id] ?? emptyProjectMetrics();
-          const lastPm = slicedBuckets.at(-1)?.byProject[p.id] ?? emptyProjectMetrics();
+          const firstPm = slicedBuckets[0]?.byProject.get(p.id) ?? emptyProjectMetrics();
+          const lastPm = slicedBuckets.at(-1)?.byProject.get(p.id) ?? emptyProjectMetrics();
           return {
             project: p,
             agents: own.length,
@@ -308,7 +309,9 @@ function AnalyticsPage() {
   );
 
   const freq = Math.min(100, totalCalls * 2);
-  const depth = Math.min(100, agents.reduce((n, a) => n + a.metrics.tasks, 0) * 3);
+  let taskCount = 0;
+  for (const a of agents) taskCount += a.metrics.tasks;
+  const depth = Math.min(100, taskCount * 3);
   const cover = Math.min(
     100,
     (new Set(agents.map((a) => a.name)).size + Object.keys(skillHistory).length + Object.keys(modelHistory).length) * 4,

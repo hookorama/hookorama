@@ -22,7 +22,7 @@ interface Bucket {
   cost: number;
   active: number;
   errors: number;
-  byProject: Record<string, ProjectMetrics>;
+  byProject: Map<string, ProjectMetrics>;
 }
 
 const MAX_BUCKETS = 2000;
@@ -33,12 +33,12 @@ function emptyProjectMetrics(): ProjectMetrics {
 }
 
 function updateBuckets(buckets: Bucket[], agents: Agent[]): Bucket[] {
-  const byProject: Record<string, ProjectMetrics> = {};
+  const byProject = new Map<string, ProjectMetrics>();
   for (const a of agents) {
-    let pm = byProject[a.projectId];
+    let pm = byProject.get(a.projectId);
     if (!pm) {
       pm = emptyProjectMetrics();
-      byProject[a.projectId] = pm;
+      byProject.set(a.projectId, pm);
     }
     pm.tasks += a.metrics.tasks;
     pm.toolCalls += a.metrics.toolCalls;
