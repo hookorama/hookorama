@@ -247,9 +247,22 @@ function AnalyticsPage() {
 
   const firstBucket = series[0];
   const lastBucket = series.at(-1);
-  const totalTasks = firstBucket && lastBucket ? lastBucket.tasks - firstBucket.tasks : 0;
-  const totalCost = firstBucket && lastBucket ? lastBucket.cost - firstBucket.cost : 0;
-  const totalCalls = firstBucket && lastBucket ? lastBucket.tools - firstBucket.tools : 0;
+  const projectFiltered = projectFilter.size > 0;
+  const totalTasks = projectFiltered
+    ? agents.reduce((n, a) => n + a.metrics.tasks, 0)
+    : firstBucket && lastBucket
+      ? lastBucket.tasks - firstBucket.tasks
+      : 0;
+  const totalCost = projectFiltered
+    ? agents.reduce((n, a) => n + a.metrics.cost, 0)
+    : firstBucket && lastBucket
+      ? lastBucket.cost - firstBucket.cost
+      : 0;
+  const totalCalls = projectFiltered
+    ? agents.reduce((n, a) => n + a.metrics.toolCalls, 0)
+    : firstBucket && lastBucket
+      ? lastBucket.tools - firstBucket.tools
+      : 0;
   const activeAgents = agents.filter((a) => a.status === 'running-tool' || a.status === 'thinking').length;
 
   const freq = Math.min(100, totalCalls * 2);
