@@ -2,6 +2,7 @@
  * Supervisor lifecycle helpers used by `hook` and `status` commands.
  */
 
+import type { ChildProcess } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { setTimeout } from 'node:timers/promises';
@@ -18,6 +19,12 @@ export function isSupervisorRunning(httpUrl = DEFAULT_HTTP_URL): Promise<boolean
     .catch(() => false);
 }
 
+function childExitPromise(child: ChildProcess): Promise<'exit'> {
+  return new Promise((resolve) => {
+    child.once('exit', () => resolve('exit'));
+  });
+}
+
 /**
  * Start the supervisor in a detached process. This is the same CLI binary
  * running the `supervisor start` subcommand.
@@ -32,7 +39,6 @@ export async function startSupervisor(): Promise<void> {
 
   const MAX_RETRIES = 3;
   for (let retry = 0; retry < MAX_RETRIES; retry += 1) {
-    let childExited = false;
     const child = spawn(runtime, args, {
       detached: true,
       stdio: ['ignore', 'ignore', 'ignore'],
@@ -40,13 +46,12 @@ export async function startSupervisor(): Promise<void> {
     });
     child.unref();
 
-    child.on('exit', () => {
-      childExited = true;
-    });
+    const exited = childExitPromise(child);
 
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
-      await setTimeout(POLL_MS);
-      if (childExited) {
+      // Wait for either the child to exit or the poll interval to elapse.
+      const result = await Promise.race([exited, setTimeout(POLL_MS, 'timeout' as const)]);
+      if (result === 'exit') {
         break;
       }
       const childPid = child.pid;
@@ -65,28 +70,27 @@ export async function startSupervisor(): Promise<void> {
       }
     }
 
-    if (!childExited) {
-      throw new Error('supervisor did not write its PID file in time');
-    }
-
-    // The child exited before we saw our PID in the file. If an old supervisor
-    // still owns the slot, wait for it to release and then retry.
-    const currentPid = await readCurrentPid(pidFile);
-    if (currentPid !== null && isProcessRunning(currentPid)) {
-      console.warn('waiting for existing supervisor (pid %d) to release the PID file', currentPid);
-      for (let wait = 0; wait < MAX_ATTEMPTS; wait += 1) {
-        await setTimeout(POLL_MS);
-        if (!isProcessRunning(currentPid)) {
-          break;
+    if (child.exitCode !== null || child.signalCode !== null) {
+      // The child exited before we saw our PID in the file. If an old
+      // supervisor still owns the slot, wait for it to release and retry.
+      const currentPid = await readCurrentPid(pidFile);
+      if (currentPid !== null && isProcessRunning(currentPid)) {
+        console.warn('waiting for existing supervisor (pid %d) to release the PID file', currentPid);
+        for (let wait = 0; wait < MAX_ATTEMPTS; wait += 1) {
+          await setTimeout(POLL_MS);
+          if (!isProcessRunning(currentPid)) {
+            break;
+          }
         }
+        if (isProcessRunning(currentPid)) {
+          throw new Error('existing supervisor did not release the PID file');
+        }
+        continue;
       }
-      if (isProcessRunning(currentPid)) {
-        throw new Error('existing supervisor did not release the PID file');
-      }
-      continue;
+      throw new Error('supervisor exited before acquiring the PID file');
     }
 
-    throw new Error('supervisor exited before acquiring the PID file');
+    throw new Error('supervisor did not write its PID file in time');
   }
 
   throw new Error('supervisor failed to start after retries');
@@ -94,6 +98,9 @@ export async function startSupervisor(): Promise<void> {
 
 async function readCurrentPid(pidFile: ReturnType<typeof pidFilePath>): Promise<number | null> {
   try {
+    // NOSONAR: pidFilePath returns a deterministic, platform-specific path for the
+    // supervisor PID file; it is not derived from user input.
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
     const raw = await readFile(pidFile.path, 'utf8');
     const pid = Number(raw.trim());
     return Number.isFinite(pid) && pid > 0 ? pid : null;
