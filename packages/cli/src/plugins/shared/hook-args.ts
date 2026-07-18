@@ -50,7 +50,7 @@ const parseOptions = {
 };
 
 function numberOrThrow(raw: string | undefined, name: string): number | undefined {
-  if (raw === undefined) return undefined;
+  if (raw === undefined || raw.trim().length === 0) return undefined;
   const value = Number(raw);
   if (!Number.isFinite(value)) {
     throw new Error(`invalid ${name}: ${raw}`);

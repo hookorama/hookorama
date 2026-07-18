@@ -84,12 +84,7 @@ async function readConfig(): Promise<DevinConfig> {
   }
 }
 
-async function writeConfig(config: DevinConfig, dryRun?: boolean): Promise<void> {
-  if (dryRun) {
-    console.warn('[dry-run] would write %s', configPath);
-    console.warn(JSON.stringify(config, null, 2));
-    return;
-  }
+async function writeConfig(config: DevinConfig): Promise<void> {
   await mkdir(dirname(configPath), { recursive: true });
   const tempPath = `${configPath}.tmp`;
   await writeFile(tempPath, `${JSON.stringify(config, null, 2)}\n`, 'utf8');
@@ -131,12 +126,32 @@ export const devinPlugin: AgentPlugin = {
     const newHooks = buildHooks();
     const hooks = mergeHooks(config.hooks, newHooks);
 
-    await writeConfig({ ...config, hooks }, opts.dryRun);
+    const next = { ...config, hooks };
+    if (opts.dryRun) {
+      console.warn('[dry-run] would install Devin hooks to %s', configPath);
+      console.warn(JSON.stringify(next, null, 2));
+      return;
+    }
+    await writeConfig(next);
     console.warn('Devin hooks installed to %s', configPath);
   },
 
   async update(opts: AgentPluginOptions = {}): Promise<void> {
-    await this.install(opts);
+    const config = await readConfig();
+    if (config.hooks === undefined) {
+      console.warn('Devin hooks not installed');
+      return;
+    }
+    const newHooks = buildHooks();
+    const hooks = mergeHooks(config.hooks, newHooks);
+
+    const next = { ...config, hooks };
+    if (opts.dryRun) {
+      console.warn('[dry-run] would update Devin hooks in %s', configPath);
+      console.warn(JSON.stringify(next, null, 2));
+      return;
+    }
+    await writeConfig(next);
     console.warn('Devin hooks updated');
   },
 
@@ -164,7 +179,12 @@ export const devinPlugin: AgentPlugin = {
       delete next.hooks;
     }
 
-    await writeConfig(next, opts.dryRun);
+    if (opts.dryRun) {
+      console.warn('[dry-run] would remove Devin hooks from %s', configPath);
+      console.warn(JSON.stringify(next, null, 2));
+      return;
+    }
+    await writeConfig(next);
     console.warn('Devin hooks removed from %s', configPath);
   },
 

@@ -5,6 +5,7 @@
 import { readFile } from 'node:fs/promises';
 import { setTimeout } from 'node:timers/promises';
 import { pidFilePath, isProcessRunning, releasePidSlot, runSupervisorDaemon } from '@hookorama/supervisor';
+import { isSupervisorRunning } from '../util/supervisor.js';
 
 const STOP_ATTEMPTS = 25;
 const STOP_POLL_MS = 200;
@@ -53,6 +54,12 @@ export async function supervisorStop(): Promise<void> {
     return;
   }
 
+  if (!(await isSupervisorRunning())) {
+    console.warn('supervisor is not listening on its HTTP port, cleaning up stale PID file');
+    await releasePidSlot(pidFile);
+    return;
+  }
+
   try {
     process.kill(pid, 'SIGTERM');
   } catch (error) {
@@ -64,10 +71,12 @@ export async function supervisorStop(): Promise<void> {
 
   for (let attempt = 0; attempt < STOP_ATTEMPTS; attempt += 1) {
     if (!(await isProcessRunning(pid))) {
-      break;
+      console.warn('supervisor stopped (pid %d)', pid);
+      return;
     }
     await setTimeout(STOP_POLL_MS);
   }
 
-  console.warn('supervisor stopped (pid %d)', pid);
+  console.warn('supervisor did not stop in time (pid %d)', pid);
+  process.exitCode = 1;
 }

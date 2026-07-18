@@ -1,0 +1,42 @@
+{
+  "claim": "PR #8 (feat/packages-cli) local CI passes after fixing cubic-flagged review issues (binary name, hook args parsing, supervisor stop message, sendHook timeout, and empty metrics string handling).",
+  "preconditions": [
+    "Packages-stack checkout on Windows",
+    "bun and dependencies installed",
+    "Previous SAST gates already green"
+  ],
+  "artifacts": [
+    {
+      "sha256": "94108FF4681B7D45E0324A1AFBD76909E122AA6E7558ADCB8BCF203356341EDC",
+      "kind": "log",
+      "path": "ci.stdout",
+      "content_excerpt": "\u2139 tsdown v0.22.4 powered by rolldown v1.1.5\n\u2139 config file: C:\\Users\\petrp\\Documents\\GitHub\\hookorama\\.worktrees\\packages-stack\\tsdown.config.ts\n\u2139 [@hookorama/cli] entry: src/index.ts, src/main.ts\n\u2139 [@hookorama/cli] target: node24\n\u2139 [@hookorama/cli] tsconfig: tsconfig.json\n\u2139 Build start"
+    },
+    {
+      "sha256": "1438F4CD9A678E2FE4940B5CEBEE28E30ADD37F19AA04BDB44B5C594C25ED0F0",
+      "kind": "log",
+      "path": "ci.stderr",
+      "content_excerpt": "$ bun run typecheck && bun run lint && bun run check && bun run test && bun run build\n$ tsdown && tsc -b --noEmit packages/client packages/supervisor packages/cli packages/extension packages/web-app\n\n WARN  We recommend using the ESM format instead of CommonJS.\nThe ESM format is compatible with modern platforms and runtimes, and most new libraries are now distributed only in ESM format.\n\nTypeScript 7.0 does not yet have a stable API and is experimental. Some options will be unavailable."
+    },
+    {
+      "sha256": "5FECEB66FFC86F38D952786C6D696C79C2DBC239DD4E91B46729D73A27FB57E9",
+      "kind": "log",
+      "path": "ci.exit.code",
+      "content_excerpt": "0"
+    }
+  ],
+  "verification_method": "command",
+  "assertions": [
+    { "name": "typecheck and build complete", "evidence_quote": "Build complete", "passed": true },
+    { "name": "lint has zero warnings", "evidence_quote": "Found 0 warnings and 0 errors.", "passed": true },
+    { "name": "markdown and file checks pass", "evidence_quote": "check-md: OK", "passed": true },
+    { "name": "all tests pass", "evidence_quote": "58 passed", "passed": true },
+    { "name": "exit code is zero", "evidence_quote": "0", "passed": true }
+  ],
+  "version": 1,
+  "target_environment": "test-suite",
+  "task_id": "pr8-cubic-fixes",
+  "slug": "local-ci-pass",
+  "agent": "devin",
+  "produced_at": "2026-07-18T18:18:00+02:00"
+}

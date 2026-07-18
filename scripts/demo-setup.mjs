@@ -61,10 +61,20 @@ function runCommand(command, args, { cwd } = {}) {
   }
 
   const isWindows = process.platform === 'win32';
-  // NOSONAR: demo script spawns the globally linked `npm`/`hookorama` CLIs inherited from the
-  // user's PATH; this is not an injection of user-controlled data into the command line.
+  // NOSONAR: This demo script runs fixed developer-tool literals (`npm`, `hookorama`)
+  // that are resolved through the developer's environment PATH. No user-controlled
+  // data is injected into the command line, and `shell: false` prevents shell
+  // metacharacter expansion. On Windows we explicitly use the trusted system
+  // `cmd.exe` (`%SystemRoot%\System32\cmd.exe`) so `cmd` cannot be shadowed by a
+  // writable PATH entry, but the `npm`/`hookorama` .cmd wrappers still rely on
+  // PATH for their own resolution. For a local developer-only demo this is an
+  // acceptable trade-off; hard-coding absolute install paths would make the demo
+  // non-portable across machines and package managers.
+  const trustedComSpec = isWindows
+    ? join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'cmd.exe')
+    : command;
   const child = isWindows
-    ? spawn('cmd', ['/c', command, ...args], { cwd, shell: false, stdio: 'inherit' }) // NOSONAR
+    ? spawn(trustedComSpec, ['/c', command, ...args], { cwd, shell: false, stdio: 'inherit' }) // NOSONAR
     : spawn(command, args, { cwd, shell: false, stdio: 'inherit' }); // NOSONAR
 
   return new Promise((resolve, reject) => {

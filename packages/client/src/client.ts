@@ -88,11 +88,12 @@ export class SupervisorClient {
   }
 
   /** Send a hook event via POST /api/hook. */
-  async sendHook(request: HookRequest): Promise<void> {
+  async sendHook(request: HookRequest, signal?: AbortSignal): Promise<void> {
     const response = await fetch(`${this.httpUrl}/api/hook`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(request),
+      signal: signal ?? null,
     });
     if (!response.ok) {
       throw new Error(`hook failed: ${response.status}`);

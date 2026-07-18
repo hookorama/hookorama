@@ -43,14 +43,13 @@ program
   .addArgument(new Argument('status').argRequired())
   .description('dispatch a hook event to the supervisor')
   .allowUnknownOption()
-  .action(async (agent: string, statusValue: string, _command: Command) => {
+  .action(async (agent: string, statusValue: string, _options: unknown, command: Command) => {
     if (!VALID_STATUSES.has(statusValue as Status)) {
       console.error('invalid status: %s (expected one of: %s)', statusValue, [...VALID_STATUSES].join(', '));
       process.exitCode = 1;
       return;
     }
-    const hookIndex = program.args.indexOf('hook');
-    const argv = hookIndex >= 0 ? program.args.slice(hookIndex + 3) : [];
+    const argv = command.args.slice(2);
     await hook(agent, statusValue as Status, argv);
   });
 

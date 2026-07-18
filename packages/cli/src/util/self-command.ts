@@ -30,7 +30,15 @@ export function getSelfCommand(): { readonly runtime: string; readonly script: s
 }
 
 function escapeShellArg(path: string): string {
-  // Forward slashes are safe for PowerShell, cmd and bash on Windows.
+  if (process.platform === 'win32') {
+    // PowerShell double-quoted string: double-up double quotes and escape
+    // PowerShell-special characters ($ and `) with a backtick.
+    const escaped = path.replace(/`/g, '``').replace(/\$/g, '`$').replace(/"/g, '""');
+    return `"${escaped}"`;
+  }
+
+  // POSIX shell double-quoted string.
+  // Forward slashes are safe for bash/zsh on Windows paths too.
   const withForwardSlashes = path.replaceAll('\\', '/');
   // Escape double quotes, dollar signs, backticks, and backslashes inside a
   // double-quoted shell argument to prevent command injection.
