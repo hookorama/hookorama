@@ -15,7 +15,7 @@ import {
   X,
   Zap,
 } from 'lucide-react';
-import { useHookoramaStore } from '@/lib/store.js';
+import { useHookoramaStore, type Connection } from '@/lib/store.js';
 import { ProjectTag, Volatile } from '@/components/hk/primitives.js';
 import { Toaster } from 'sonner';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover.js';
@@ -78,7 +78,7 @@ function NotificationPopover() {
         <div className="max-h-[420px] divide-y divide-border overflow-auto">
           {pending.length === 0 && <div className="p-6 text-center text-xs text-dim">&gt; inbox zero</div>}
           {pending.map((n) => {
-            const Icon = kindIcon[n.kind] ?? Bell;
+            const Icon = kindIcon[n.kind];
             const agent = agents.find((a) => a.id === n.agentId);
             const project = projects.find((p) => p.id === n.projectId);
             const tone =
@@ -140,13 +140,13 @@ function StatusControls() {
   );
 }
 
-const CONNECTION_LABELS: Record<string, string> = {
+const CONNECTION_LABELS: Record<Connection, string> = {
   connected: 'live',
   disconnected: 'offline',
   error: 'error',
 };
 
-const CONNECTION_COLORS: Record<string, string> = {
+const CONNECTION_COLORS: Record<Connection, string> = {
   connected: 'text-accent',
   disconnected: 'text-destructive',
   error: 'text-destructive',
@@ -154,8 +154,8 @@ const CONNECTION_COLORS: Record<string, string> = {
 
 function ConnectionBadge() {
   const connection = useHookoramaStore((state) => state.connection);
-  const label = CONNECTION_LABELS[connection] ?? 'unknown';
-  const color = CONNECTION_COLORS[connection] ?? 'text-muted-foreground';
+  const label = CONNECTION_LABELS[connection];
+  const color = CONNECTION_COLORS[connection];
 
   return <span className={color}>● {label}</span>;
 }
@@ -228,7 +228,8 @@ export function Shell(): ReactElement {
         await client.start();
         const processes = await client.fetchProcesses();
         setProcesses(processes);
-      } catch {
+      } catch (err) {
+        console.error('Failed to initialize supervisor client:', err);
         setConnection('error');
       }
     })();

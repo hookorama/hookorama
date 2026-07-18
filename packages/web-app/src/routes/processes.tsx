@@ -38,7 +38,9 @@ function PNode({
   return (
     <>
       <div
-        onClick={() => onSelect(node.pid)}
+        onClick={() => {
+          onSelect(node.pid);
+        }}
         className={
           'grid grid-cols-[1fr_60px_60px_60px_60px] gap-2 cursor-pointer hover:bg-muted/40 ' +
           (selectedPid === node.pid ? 'bg-primary/10' : '')
@@ -85,8 +87,9 @@ function ProcessesPage() {
   const [q, setQ] = useState('');
   const [tf, setTf] = useState('all');
 
-  const roots = (tree.get(0) ?? [])
-    .concat(tree.get(1) ?? [])
+  const pidSet = new Set(processes.map((p) => p.pid));
+  const roots = processes
+    .filter((p) => p.ppid === 0 || p.ppid === 1 || !pidSet.has(p.ppid))
     .filter((p, i, arr) => arr.findIndex((x) => x.pid === p.pid) === i);
   const selected = processes.find((p) => p.pid === selPid);
   const selectedAgent = selected?.agentId ? agents.find((a) => a.id === selected.agentId) : null;

@@ -50,7 +50,7 @@ function updateModelHistory(agents: Agent[]): Record<string, { calls: number; co
   return history;
 }
 
-type Connection = 'connected' | 'disconnected' | 'error';
+export type Connection = 'connected' | 'disconnected' | 'error';
 
 interface Store {
   projects: Project[];
@@ -195,7 +195,7 @@ function mapEvent(event: WireHookEvent): HookEvent {
     ...(projectId !== undefined ? { projectId } : {}),
     ...(typeof event.sessionId === 'string' ? { sessionId: event.sessionId } : {}),
     ...(typeof event.pid === 'number' ? { pid: event.pid } : {}),
-    type: 'status.update' as EventType,
+    type: (event.type as EventType) ?? 'status.update',
     summary: event.summary,
     payload,
   };
@@ -255,8 +255,12 @@ export function selectAgentTree(state: { agents: Agent[] }): Map<string | undefi
   const byParent = new Map<string | undefined, Agent[]>();
   for (const a of state.agents) {
     const key = a.parentId;
-    if (!byParent.has(key)) byParent.set(key, []);
-    byParent.get(key)!.push(a);
+    let arr = byParent.get(key);
+    if (!arr) {
+      arr = [];
+      byParent.set(key, arr);
+    }
+    arr.push(a);
   }
   return byParent;
 }
@@ -264,8 +268,12 @@ export function selectAgentTree(state: { agents: Agent[] }): Map<string | undefi
 export function selectProcessTree(state: { processes: Process[] }): Map<number, Process[]> {
   const byPpid = new Map<number, Process[]>();
   for (const p of state.processes) {
-    if (!byPpid.has(p.ppid)) byPpid.set(p.ppid, []);
-    byPpid.get(p.ppid)!.push(p);
+    let arr = byPpid.get(p.ppid);
+    if (!arr) {
+      arr = [];
+      byPpid.set(p.ppid, arr);
+    }
+    arr.push(p);
   }
   return byPpid;
 }

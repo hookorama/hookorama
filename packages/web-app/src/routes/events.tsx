@@ -53,13 +53,17 @@ function EventsPage() {
           <div className="flex items-center gap-2 text-xs">
             <input
               value={q}
-              onChange={(e) => setQ(e.target.value)}
+              onChange={(e) => {
+                setQ(e.target.value);
+              }}
               placeholder="&gt; filter"
               className="w-40 border border-border bg-background px-2 py-0.5"
             />
             <select
               value={eventType}
-              onChange={(e) => setEventType(e.target.value)}
+              onChange={(e) => {
+                setEventType(e.target.value);
+              }}
               className="border border-border bg-background px-1"
             >
               {TYPES.map((t) => (
@@ -69,7 +73,14 @@ function EventsPage() {
               ))}
             </select>
             <label className="flex cursor-pointer items-center gap-1">
-              <input type="checkbox" checked={follow} onChange={(e) => setFollow(e.target.checked)} /> follow
+              <input
+                type="checkbox"
+                checked={follow}
+                onChange={(e) => {
+                  setFollow(e.target.checked);
+                }}
+              />{' '}
+              follow
             </label>
           </div>
         }
@@ -89,7 +100,9 @@ function EventsPage() {
               return (
                 <div
                   key={e.id}
-                  onClick={() => setSelected(e)}
+                  onClick={() => {
+                    setSelected(e);
+                  }}
                   className="grid cursor-pointer grid-cols-[100px_140px_120px_60px_1fr] gap-2 px-2 hover:bg-muted/40"
                 >
                   <span className="text-dim">

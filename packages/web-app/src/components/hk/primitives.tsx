@@ -30,15 +30,28 @@ export function Panel({
 }
 
 export function StatusDot({ status }: { status: Status }): ReactElement {
-  const map: Record<Status, string> = {
-    idle: 'bg-muted-foreground',
-    thinking: 'bg-accent',
-    'running-tool': 'bg-primary shadow-[0_0_6px] shadow-primary',
-    'waiting-input': 'bg-accent',
-    done: 'bg-dim',
-    error: 'bg-destructive',
-  };
-  return <span className={cn('inline-block h-2 w-2', map[status])} />;
+  let color: string;
+  switch (status) {
+    case 'idle':
+      color = 'bg-muted-foreground';
+      break;
+    case 'thinking':
+    case 'waiting-input':
+      color = 'bg-accent';
+      break;
+    case 'running-tool':
+      color = 'bg-primary shadow-[0_0_6px] shadow-primary';
+      break;
+    case 'done':
+      color = 'bg-dim';
+      break;
+    case 'error':
+      color = 'bg-destructive';
+      break;
+    default:
+      color = 'bg-muted-foreground';
+  }
+  return <span className={cn('inline-block h-2 w-2', color)} />;
 }
 
 export function Kpi({
@@ -85,7 +98,9 @@ export function ProjectTag({ project, size = 'sm' }: { project?: Project | undef
 // would hydration-mismatch otherwise.
 export function useHydrated(): boolean {
   const [hydrated, setHydrated] = useState(false);
-  useEffect(() => setHydrated(true), []);
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
   return hydrated;
 }
 

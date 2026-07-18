@@ -42,14 +42,14 @@ function ProjectRollup({
           return (
             <button
               key={r.project.id}
-              onClick={() =>
+              onClick={() => {
                 setFilter((prev) => {
                   const next = new Set(prev);
                   if (next.has(r.project.id)) next.delete(r.project.id);
                   else next.add(r.project.id);
                   return next;
-                })
-              }
+                });
+              }}
               className={
                 'grid w-full grid-cols-[1fr_repeat(6,minmax(0,70px))] items-center gap-2 px-1 py-1 text-left hover:bg-muted/30 ' +
                 (on ? '' : 'opacity-40')
@@ -99,8 +99,8 @@ function TopAgents({ agents }: { agents: Agent[] }) {
           <span className="text-right">cost</span>
           <span className="text-right">err</span>
         </div>
-        {top.map((a) => (
-          <div key={a.name} className="grid grid-cols-[1fr_60px_60px_60px_60px] gap-2 py-1">
+        {top.map((a, i) => (
+          <div key={`${a.name}-${i}`} className="grid grid-cols-[1fr_60px_60px_60px_60px] gap-2 py-1">
             <span className="truncate text-primary">{a.name}</span>
             <span className="text-right">{a.tasks}</span>
             <span className="text-right text-info">{a.calls}</span>
@@ -238,9 +238,9 @@ function AnalyticsPage() {
     [projects, allAgents],
   );
 
-  const totalTasks = series.reduce((n, b) => n + b.tasks, 0);
-  const totalCost = series.reduce((n, b) => n + b.cost, 0);
-  const totalCalls = series.reduce((n, b) => n + b.tools, 0);
+  const totalTasks = agents.reduce((n, a) => n + a.metrics.tasks, 0);
+  const totalCost = agents.reduce((n, a) => n + a.metrics.cost, 0);
+  const totalCalls = agents.reduce((n, a) => n + a.metrics.toolCalls, 0);
   const activeAgents = agents.filter((a) => a.status === 'running-tool' || a.status === 'thinking').length;
 
   const freq = Math.min(100, totalCalls * 2);
@@ -258,7 +258,9 @@ function AnalyticsPage() {
         {(['24h', '7d', '30d'] as const).map((r) => (
           <button
             key={r}
-            onClick={() => setRange(r)}
+            onClick={() => {
+              setRange(r);
+            }}
             className={
               'border px-2 py-0.5 text-xs ' +
               (range === r ? 'border-primary text-primary' : 'border-border text-muted-foreground hover:text-foreground')
@@ -270,7 +272,9 @@ function AnalyticsPage() {
         <div className="mx-2 h-4 w-px bg-border" />
         <div className="text-xs uppercase tracking-widest text-muted-foreground">project:</div>
         <button
-          onClick={() => setProjectFilter(new Set())}
+          onClick={() => {
+            setProjectFilter(new Set());
+          }}
           className={
             'border px-2 py-0.5 text-xs ' +
             (projectFilter.size === 0
@@ -285,14 +289,14 @@ function AnalyticsPage() {
           return (
             <button
               key={p.id}
-              onClick={() =>
+              onClick={() => {
                 setProjectFilter((prev) => {
                   const next = new Set(prev);
                   if (next.has(p.id)) next.delete(p.id);
                   else next.add(p.id);
                   return next;
-                })
-              }
+                });
+              }}
               className="border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider"
               style={{
                 borderColor: on ? p.color : 'hsl(var(--border))',

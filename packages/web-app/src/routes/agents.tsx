@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactElement, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactElement, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import {
   ChevronRight,
@@ -64,11 +64,12 @@ function filterAgent(
 function groupAgents(roots: Agent[], groupBy: GroupBy, sortBy: SortBy, projMap: Map<string, Project>): Group[] {
   const map = new Map<string, Group>();
   const put = (key: string, label: string, color: string | undefined, a: Agent) => {
-    if (!map.has(key)) {
-      const group: Group = color === undefined ? { key, label, roots: [] } : { key, label, color, roots: [] };
+    let group = map.get(key);
+    if (!group) {
+      group = color === undefined ? { key, label, roots: [] } : { key, label, color, roots: [] };
       map.set(key, group);
     }
-    map.get(key)!.roots.push(a);
+    group.roots.push(a);
   };
   for (const r of roots) {
     if (groupBy === 'project') {
@@ -117,6 +118,27 @@ function AgentsPage() {
   const [typeFilter, setTypeFilter] = useState<Set<NodeType>>(new Set(ALL_TYPES));
   const [originFilter, setOriginFilter] = useState<Set<Origin>>(new Set(ALL_ORIGINS));
   const [projectFilter, setProjectFilter] = useState<Set<string>>(new Set(projects.map((p) => p.id)));
+
+  useEffect(() => {
+    setProjectFilter((prev) => {
+      const next = new Set(prev);
+      let changed = false;
+      for (const p of projects) {
+        if (!next.has(p.id)) {
+          next.add(p.id);
+          changed = true;
+        }
+      }
+      for (const id of prev) {
+        if (!projects.some((p) => p.id === id)) {
+          next.delete(id);
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [projects]);
+
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [showTools, setShowTools] = useState(true);
@@ -128,16 +150,27 @@ function AgentsPage() {
     [statusFilter, typeFilter, originFilter, projectFilter, showTools, query],
   );
 
-  const roots = useMemo(() => (tree.get(undefined) ?? []).filter(matches), [tree, matches]);
+  const roots = useMemo(
+    () => (tree.get(undefined) ?? []).filter((a) => nodeVisible(a, tree, matches)),
+    [tree, matches],
+  );
 
   const groups = useMemo(() => groupAgents(roots, groupBy, sortBy, projMap), [roots, groupBy, sortBy, projMap]);
 
   const selected = agents.find((a) => a.id === selectedId);
 
-  const toggle = (id: string) => setCollapsed((s) => toggleSet(id, s));
-  const toggleGroup = (k: string) => setCollapsedGroups((s) => toggleSet(k, s));
-  const expandAll = () => setCollapsed(new Set());
-  const collapseAll = () => setCollapsed(collapseAllAgents(agents));
+  const toggle = (id: string) => {
+    setCollapsed((s) => toggleSet(id, s));
+  };
+  const toggleGroup = (k: string) => {
+    setCollapsedGroups((s) => toggleSet(k, s));
+  };
+  const expandAll = () => {
+    setCollapsed(new Set());
+  };
+  const collapseAll = () => {
+    setCollapsed(collapseAllAgents(agents));
+  };
 
   return (
     <div className="grid h-full grid-cols-[1fr_380px] gap-3">
@@ -155,7 +188,9 @@ function AgentsPage() {
               <Search className="h-3 w-3 text-dim" />
               <input
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                }}
                 placeholder="search name / task / id"
                 className="w-48 bg-transparent outline-none"
               />
@@ -164,7 +199,9 @@ function AgentsPage() {
             <Chip icon={Layers} label="group">
               <select
                 value={groupBy}
-                onChange={(e) => setGroupBy(e.target.value as GroupBy)}
+                onChange={(e) => {
+                  setGroupBy(e.target.value as GroupBy);
+                }}
                 className="border border-border bg-background px-1"
               >
                 <option value="project">project</option>
@@ -176,7 +213,9 @@ function AgentsPage() {
             <Chip icon={sortBy === 'name' ? ArrowDownAZ : ArrowDown10} label="sort">
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as SortBy)}
+                onChange={(e) => {
+                  setSortBy(e.target.value as SortBy);
+                }}
                 className="border border-border bg-background px-1"
               >
                 <option value="name">name</option>
@@ -193,7 +232,9 @@ function AgentsPage() {
               collapse all
             </button>
             <button
-              onClick={() => setShowTools((v) => !v)}
+              onClick={() => {
+                setShowTools((v) => !v);
+              }}
               className="flex items-center gap-1 border border-border px-1.5 py-0.5 hover:bg-muted"
             >
               {showTools ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />} tools
@@ -234,14 +275,14 @@ function AgentsPage() {
               return (
                 <button
                   key={p.id}
-                  onClick={() =>
+                  onClick={() => {
                     setProjectFilter((s) => {
                       const n = new Set(s);
                       if (n.has(p.id)) n.delete(p.id);
                       else n.add(p.id);
                       return n;
-                    })
-                  }
+                    });
+                  }}
                   className={
                     'flex items-center gap-1 border px-1.5 py-0.5 text-[10px] uppercase ' +
                     (on ? '' : 'opacity-30')
@@ -264,7 +305,9 @@ function AgentsPage() {
               <div key={g.key} className="mb-2">
                 {groupBy !== 'none' && (
                   <button
-                    onClick={() => toggleGroup(g.key)}
+                    onClick={() => {
+                      toggleGroup(g.key);
+                    }}
                     className="sticky top-0 z-10 flex w-full items-center gap-2 border-b border-border bg-panel px-1 py-1 hover:bg-muted/30"
                   >
                     {collapsedG ? <ChevronRight className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
@@ -461,14 +504,14 @@ function FilterRow<T extends string>({
         return (
           <button
             key={v}
-            onClick={() =>
+            onClick={() => {
               setSel((s) => {
                 const n = new Set(s);
                 if (n.has(v)) n.delete(v);
                 else n.add(v);
                 return n;
-              })
-            }
+              });
+            }}
             className={
               'border border-border px-1.5 py-0.5 text-[10px] uppercase ' +
               (on ? 'text-foreground' : 'text-dim opacity-40')
@@ -536,7 +579,9 @@ function TreeNode({
   return (
     <>
       <div
-        onClick={() => onSelect(node.id)}
+        onClick={() => {
+          onSelect(node.id);
+        }}
         className={
           'flex cursor-pointer items-center gap-2 px-1 py-0.5 hover:bg-muted/40 ' +
           (selectedId === node.id ? 'border-l-2 border-primary bg-primary/10' : '')
