@@ -16,6 +16,7 @@ interface ProjectMetrics {
 
 interface AgentTotal {
   projectId: string;
+  updatedAt: number;
   metrics: Metrics;
 }
 
@@ -31,6 +32,7 @@ interface Bucket {
 }
 
 const MAX_BUCKETS = 2000;
+const MAX_AGENT_TOTALS = 500;
 
 function emptyProjectMetrics(): ProjectMetrics {
   return { tasks: 0, toolCalls: 0, cost: 0, active: 0, errors: 0 };
@@ -40,14 +42,13 @@ function updateBuckets(
   buckets: Bucket[],
   agents: Agent[],
   agentTotals: Record<string, AgentTotal>,
+  completedProjectTotals: Record<string, ProjectMetrics>,
   nextBucketId: number,
 ): Bucket[] {
   const byProject = new Map<string, ProjectMetrics>();
   const totals = emptyProjectMetrics();
 
-  // Cumulative totals are built from every agent we have ever seen so that
-  // completed agents still contribute to range-based KPIs.
-  for (const { projectId, metrics } of Object.values(agentTotals)) {
+  function addMetrics(projectId: string, metrics: Metrics) {
     let pm = byProject.get(projectId);
     if (!pm) {
       pm = emptyProjectMetrics();
@@ -62,6 +63,16 @@ function updateBuckets(
     totals.toolCalls += metrics.toolCalls;
     totals.cost += metrics.cost;
     totals.errors += metrics.errors;
+  }
+
+  // Cumulative totals are built from active/recent agents plus pruned
+  // per-project totals, so completed agents still contribute to range-based
+  // KPIs without retaining an unbounded per-agent history.
+  for (const { projectId, metrics } of Object.values(agentTotals)) {
+    addMetrics(projectId, metrics);
+  }
+  for (const [projectId, metrics] of Object.entries(completedProjectTotals)) {
+    addMetrics(projectId, metrics);
   }
 
   // Active counts reflect the currently running/thinking agents only.
@@ -119,6 +130,7 @@ interface Store {
   scanlines: boolean;
   buckets: Bucket[];
   agentTotals: Record<string, AgentTotal>;
+  completedProjectTotals: Record<string, ProjectMetrics>;
   nextBucketId: number;
   skillHistory: Record<string, number>;
   modelHistory: Record<string, { calls: number; cost: number }>;
@@ -306,6 +318,7 @@ export const useHookoramaStore = create<Store>((set) => ({
   scanlines: false,
   buckets: [],
   agentTotals: {},
+  completedProjectTotals: {},
   nextBucketId: 0,
   skillHistory: {},
   modelHistory: {},
@@ -324,12 +337,40 @@ export const useHookoramaStore = create<Store>((set) => ({
         notifications: state.notifications,
         notificationAcks: state.notificationAcks,
       });
-      const agentTotals: Record<string, AgentTotal> = { ...state.agentTotals };
+      let agentTotals: Record<string, AgentTotal> = { ...state.agentTotals };
+      const completedProjectTotals: Record<string, ProjectMetrics> = { ...state.completedProjectTotals };
+
+      // Prune the oldest agent totals into per-project completed totals once we
+      // exceed the retention cap. This keeps cumulative history for range-based
+      // KPIs without retaining an unbounded per-agent map.
+      const entries = Object.entries(agentTotals);
+      if (entries.length > MAX_AGENT_TOTALS) {
+        entries.sort((a, b) => a[1].updatedAt - b[1].updatedAt);
+        const pruneCount = entries.length - MAX_AGENT_TOTALS;
+        const pruned = entries.slice(0, pruneCount);
+        const kept = entries.slice(pruneCount);
+        agentTotals = {};
+        for (const [key, value] of kept) {
+          agentTotals[key] = value;
+        }
+        for (const [, value] of pruned) {
+          let pm = completedProjectTotals[value.projectId];
+          if (!pm) {
+            pm = emptyProjectMetrics();
+            completedProjectTotals[value.projectId] = pm;
+          }
+          pm.tasks += value.metrics.tasks;
+          pm.toolCalls += value.metrics.toolCalls;
+          pm.cost += value.metrics.cost;
+          pm.errors += value.metrics.errors;
+        }
+      }
+
       for (const a of agents) {
         // Key by id + sessionId so a reused PID with a new session does not
         // overwrite the previous session's cumulative totals.
         const key = `${a.id}:${a.sessionId}`;
-        agentTotals[key] = { projectId: a.projectId, metrics: a.metrics };
+        agentTotals[key] = { projectId: a.projectId, updatedAt: a.updatedAt, metrics: a.metrics };
       }
       const nextBucketId = state.nextBucketId + 1;
       return {
@@ -337,8 +378,9 @@ export const useHookoramaStore = create<Store>((set) => ({
         agents,
         projects,
         notifications,
-        buckets: updateBuckets(state.buckets, agents, agentTotals, nextBucketId),
+        buckets: updateBuckets(state.buckets, agents, agentTotals, completedProjectTotals, nextBucketId),
         agentTotals,
+        completedProjectTotals,
         nextBucketId,
         skillHistory: updateSkillHistory(agents),
         modelHistory: updateModelHistory(agents),

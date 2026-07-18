@@ -26,6 +26,7 @@ describe('useHookoramaStore', () => {
       scanlines: false,
       buckets: [],
       agentTotals: {},
+      completedProjectTotals: {},
       nextBucketId: 0,
       skillHistory: {},
       modelHistory: {},
