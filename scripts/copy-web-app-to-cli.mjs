@@ -28,6 +28,7 @@ try {
 }
 
 try {
+  await rm(dst, { recursive: true, force: true });
   await cp(tmp, dst, { recursive: true, force: true });
 } catch (err) {
   console.error('failed to replace dashboard bundle:', err);

@@ -220,7 +220,9 @@ function toAgent(entry: ProcessEntry, previous?: Agent): Agent {
     ...toAgentOptions(entry, updatedAt, previous),
     createdAt: updatedAt,
     updatedAt,
-    metrics: entry.metadata?.metrics ?? { tasks: 0, toolCalls: 0, cost: 0, errors: 0 },
+    metrics:
+      entry.metadata?.metrics ??
+      (previous !== undefined && sameProcessSession(entry, previous) ? previous.metrics : { tasks: 0, toolCalls: 0, cost: 0, errors: 0 }),
     ...(entry.parentKey !== undefined ? { parentId: entry.parentKey } : {}),
   };
 }
