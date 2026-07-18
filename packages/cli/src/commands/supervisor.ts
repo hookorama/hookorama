@@ -71,10 +71,12 @@ export async function supervisorStop(): Promise<void> {
 
   for (let attempt = 0; attempt < STOP_ATTEMPTS; attempt += 1) {
     if (!(await isProcessRunning(pid))) {
-      break;
+      console.warn('supervisor stopped (pid %d)', pid);
+      return;
     }
     await setTimeout(STOP_POLL_MS);
   }
 
-  console.warn('supervisor stopped (pid %d)', pid);
+  console.warn('supervisor did not stop in time (pid %d)', pid);
+  process.exitCode = 1;
 }

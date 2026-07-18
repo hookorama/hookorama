@@ -2,7 +2,6 @@
  * `hookorama hook <agent> <status>` command.
  */
 
-import { setTimeout } from 'node:timers/promises';
 import { SupervisorClient } from '@hookorama/client';
 import type { Status } from '@hookorama/client';
 import type { AgentPlugin } from '../plugin.js';
@@ -26,11 +25,6 @@ export async function hook(agent: string, status: Status, argv: string[]): Promi
   await ensureSupervisor();
 
   const client = new SupervisorClient({ httpUrl: DEFAULT_HTTP_URL, wsUrl: DEFAULT_WS_URL });
-  await Promise.race([
-    client.sendHook(request),
-    setTimeout(5000).then(() => {
-      throw new Error('hook request timed out');
-    }),
-  ]);
+  await client.sendHook(request, AbortSignal.timeout(5000));
   console.warn('hook dispatched: %s -> %s', agent, status);
 }
