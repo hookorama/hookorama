@@ -32,7 +32,7 @@ function spawnLines(cmd: readonly string[]): Promise<readonly string[]> {
     return Promise.reject(new Error('spawnLines: empty command'));
   }
   return new Promise<readonly string[]>((resolve, reject) => {
-    const child = spawn(head, cmd.slice(1), { stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn(head, cmd.slice(1), { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
     const out: Buffer[] = [];
     const err: Buffer[] = [];
     child.stdout.on('data', (chunk: Buffer) => {
