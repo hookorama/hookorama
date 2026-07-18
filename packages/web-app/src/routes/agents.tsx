@@ -13,6 +13,7 @@ import {
   EyeOff,
   Search,
 } from 'lucide-react';
+import { useInitialSelection } from '@/lib/hooks.js';
 import { useHookoramaStore, selectAgentTree } from '@/lib/store.js';
 import { Panel, StatusDot, Ascii, ProjectTag, Volatile } from '@/components/hk/primitives.js';
 import type { Agent, NodeType, Origin, Project, Status } from '@/lib/types.js';
@@ -118,14 +119,7 @@ function AgentsPage() {
   const tree = useMemo(() => selectAgentTree({ agents }), [agents]);
   const projMap = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects]);
 
-  const [selectedId, setSelectedId] = useState<string | null>(agents[0]?.id ?? null);
-
-  useEffect(() => {
-    const first = agents[0];
-    if (first && (selectedId === null || !agents.some((a) => a.id === selectedId))) {
-      setSelectedId(first.id);
-    }
-  }, [selectedId, agents]);
+  const [selectedId, setSelectedId] = useInitialSelection(agents, (a) => a.id);
 
   const [query, setQuery] = useState('');
   const [groupBy, setGroupBy] = useState<GroupBy>('project');

@@ -165,7 +165,18 @@ function ModelTable({ models }: { readonly models: Record<string, { calls: numbe
   );
 }
 
-function UsageTable({ series }: { readonly series: { ts: number; t: string; tasks: number; tools: number; cost: number; errors: number; active: number }[] }) {
+interface UsageRow {
+  id: number;
+  ts: number;
+  t: string;
+  tasks: number;
+  tools: number;
+  cost: number;
+  errors: number;
+  active: number;
+}
+
+function UsageTable({ series }: { readonly series: UsageRow[] }) {
   return (
     <Panel title={`usage over time · ${series.length}`}>
       <div className="max-h-64 overflow-auto p-2 text-xs">
@@ -178,7 +189,7 @@ function UsageTable({ series }: { readonly series: { ts: number; t: string; task
           <span className="text-right">act</span>
         </div>
         {series.map((b) => (
-          <div key={b.ts} className="grid grid-cols-[100px_50px_50px_60px_40px_40px] gap-2 py-0.5">
+          <div key={b.id} className="grid grid-cols-[100px_50px_50px_60px_40px_40px] gap-2 py-0.5">
             <span className="text-dim">{b.t}</span>
             <span className="text-right">{b.tasks}</span>
             <span className="text-right text-info">{b.tools}</span>
@@ -197,6 +208,14 @@ export function Analytics(): ReactElement {
   return <AnalyticsPage />;
 }
 
+function formatBucketTime(ts: number): string {
+  return new Date(ts).toISOString().slice(5, 16).replace('T', ' ');
+}
+
+function emptyProjectMetrics() {
+  return { tasks: 0, toolCalls: 0, cost: 0, active: 0, errors: 0 };
+}
+
 function AnalyticsPage() {
   const allAgents = useHookoramaStore((state) => state.agents);
   const projects = useHookoramaStore((state) => state.projects);
@@ -212,19 +231,59 @@ function AnalyticsPage() {
   );
 
   const nBuckets = useMemo(() => bucketCount(range), [range]);
-  const series = useMemo(
+  const slicedBuckets = useMemo(() => buckets.slice(-nBuckets), [buckets, nBuckets]);
+
+  const series: UsageRow[] = useMemo(
     () =>
-      buckets.slice(-nBuckets).map((b) => ({
+      slicedBuckets.map((b) => ({
+        id: b.id,
         ts: b.ts,
-        t: new Date(b.ts).toISOString().slice(5, 16).replace('T', ' '),
+        t: formatBucketTime(b.ts),
         tasks: b.tasks,
         tools: b.toolCalls,
         cost: Number(b.cost.toFixed(4)),
         errors: b.errors,
         active: b.active,
       })),
-    [buckets, nBuckets],
+    [slicedBuckets],
   );
+
+  const projectSeries: UsageRow[] = useMemo(
+    () =>
+      projectFilter.size === 0
+        ? []
+        : slicedBuckets.map((b) => {
+            const p = emptyProjectMetrics();
+            for (const pid of projectFilter) {
+              const pm = b.byProject[pid];
+              if (!pm) continue;
+              p.tasks += pm.tasks;
+              p.toolCalls += pm.toolCalls;
+              p.cost += pm.cost;
+              p.active += pm.active;
+              p.errors += pm.errors;
+            }
+            return {
+              id: b.id,
+              ts: b.ts,
+              t: formatBucketTime(b.ts),
+              tasks: p.tasks,
+              tools: p.toolCalls,
+              cost: Number(p.cost.toFixed(4)),
+              errors: p.errors,
+              active: p.active,
+            };
+          }),
+    [slicedBuckets, projectFilter],
+  );
+
+  const kpiSeries = projectFilter.size > 0 ? projectSeries : series;
+  const firstBucket = kpiSeries[0];
+  const lastBucket = kpiSeries.at(-1);
+  const totalTasks = firstBucket && lastBucket ? lastBucket.tasks - firstBucket.tasks : 0;
+  const totalCost = firstBucket && lastBucket ? lastBucket.cost - firstBucket.cost : 0;
+  const totalCalls = firstBucket && lastBucket ? lastBucket.tools - firstBucket.tools : 0;
+  const activeAgents = lastBucket?.active ?? 0;
 
   const rollupProjects = projectFilter.size === 0 ? projects : projects.filter((p) => projectFilter.has(p.id));
   const projRollup = useMemo(
@@ -232,39 +291,21 @@ function AnalyticsPage() {
       rollupProjects
         .map((p) => {
           const own = agents.filter((a) => a.projectId === p.id);
+          const firstPm = slicedBuckets[0]?.byProject[p.id] ?? emptyProjectMetrics();
+          const lastPm = slicedBuckets.at(-1)?.byProject[p.id] ?? emptyProjectMetrics();
           return {
             project: p,
             agents: own.length,
-            running: own.filter((a) => a.status === 'running-tool' || a.status === 'thinking').length,
-            errors: own.reduce((n, a) => n + a.metrics.errors, 0),
-            tasks: own.reduce((n, a) => n + a.metrics.tasks, 0),
-            tools: own.reduce((n, a) => n + a.metrics.toolCalls, 0),
-            cost: own.reduce((n, a) => n + a.metrics.cost, 0),
+            running: lastPm.active,
+            errors: lastPm.errors,
+            tasks: lastPm.tasks - firstPm.tasks,
+            tools: lastPm.toolCalls - firstPm.toolCalls,
+            cost: lastPm.cost - firstPm.cost,
           };
         })
         .sort((a, b) => b.cost - a.cost),
-    [rollupProjects, agents],
+    [rollupProjects, agents, slicedBuckets],
   );
-
-  const firstBucket = series[0];
-  const lastBucket = series.at(-1);
-  const projectFiltered = projectFilter.size > 0;
-  const totalTasks = projectFiltered
-    ? agents.reduce((n, a) => n + a.metrics.tasks, 0)
-    : firstBucket && lastBucket
-      ? lastBucket.tasks - firstBucket.tasks
-      : 0;
-  const totalCost = projectFiltered
-    ? agents.reduce((n, a) => n + a.metrics.cost, 0)
-    : firstBucket && lastBucket
-      ? lastBucket.cost - firstBucket.cost
-      : 0;
-  const totalCalls = projectFiltered
-    ? agents.reduce((n, a) => n + a.metrics.toolCalls, 0)
-    : firstBucket && lastBucket
-      ? lastBucket.tools - firstBucket.tools
-      : 0;
-  const activeAgents = agents.filter((a) => a.status === 'running-tool' || a.status === 'thinking').length;
 
   const freq = Math.min(100, totalCalls * 2);
   const depth = Math.min(100, agents.reduce((n, a) => n + a.metrics.tasks, 0) * 3);

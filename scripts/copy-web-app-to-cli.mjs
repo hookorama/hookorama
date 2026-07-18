@@ -23,6 +23,7 @@ try {
   } else {
     console.error('failed to copy web-app:', err);
   }
+  await rm(tmp, { recursive: true, force: true });
   process.exit(1);
 }
 

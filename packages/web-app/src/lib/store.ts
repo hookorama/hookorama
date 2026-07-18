@@ -6,8 +6,7 @@ const PROJECT_COLORS = ['#39ff14', '#ffb000', '#22d3ee', '#ff5c8a', '#a78bfa'];
 
 const ORIGINS = new Set<string>(['terminal', 'vscode', 'jetbrains', 'ci']);
 
-interface Bucket {
-  ts: number;
+interface ProjectMetrics {
   tasks: number;
   toolCalls: number;
   cost: number;
@@ -15,16 +14,48 @@ interface Bucket {
   errors: number;
 }
 
+interface Bucket {
+  id: number;
+  ts: number;
+  tasks: number;
+  toolCalls: number;
+  cost: number;
+  active: number;
+  errors: number;
+  byProject: Record<string, ProjectMetrics>;
+}
+
 const MAX_BUCKETS = 2000;
+let nextBucketId = 0;
+
+function emptyProjectMetrics(): ProjectMetrics {
+  return { tasks: 0, toolCalls: 0, cost: 0, active: 0, errors: 0 };
+}
 
 function updateBuckets(buckets: Bucket[], agents: Agent[]): Bucket[] {
+  const byProject: Record<string, ProjectMetrics> = {};
+  for (const a of agents) {
+    let pm = byProject[a.projectId];
+    if (!pm) {
+      pm = emptyProjectMetrics();
+      byProject[a.projectId] = pm;
+    }
+    pm.tasks += a.metrics.tasks;
+    pm.toolCalls += a.metrics.toolCalls;
+    pm.cost += a.metrics.cost;
+    if (a.status === 'running-tool' || a.status === 'thinking') pm.active += 1;
+    if (a.status === 'error') pm.errors += 1;
+  }
+
   const bucket: Bucket = {
+    id: nextBucketId++,
     ts: Date.now(),
     tasks: agents.reduce((s, a) => s + a.metrics.tasks, 0),
     toolCalls: agents.reduce((s, a) => s + a.metrics.toolCalls, 0),
     cost: agents.reduce((s, a) => s + a.metrics.cost, 0),
     active: agents.filter((a) => a.status === 'running-tool' || a.status === 'thinking').length,
     errors: agents.filter((a) => a.status === 'error').length,
+    byProject,
   };
   return [...buckets, bucket].slice(-MAX_BUCKETS);
 }
@@ -106,18 +137,39 @@ function parseOrigin(raw: string | undefined): Origin {
   return raw !== undefined && ORIGINS.has(raw) ? (raw as Origin) : 'terminal';
 }
 
+function sameProcessSession(entry: ProcessEntry, previous: Agent): boolean {
+  // Only carry error timestamps forward when the snapshot row is confirmed
+  // to belong to the same process/session, otherwise a reused PID can hide
+  // a new failure behind an already-acknowledged notification.
+  if (entry.sessionId === undefined) return false;
+  return entry.sessionId === previous.sessionId;
+}
+
+function deriveLastErrorAt(entry: ProcessEntry, updatedAt: number, previous?: Agent): number | undefined {
+  let parsed: number | undefined;
+  if (entry.metadata?.lastErrorAt !== undefined) {
+    const ts = Date.parse(entry.metadata.lastErrorAt);
+    if (!Number.isNaN(ts)) parsed = ts;
+  }
+
+  if (parsed === undefined && entry.status === 'error') {
+    if (previous?.status === 'error' && sameProcessSession(entry, previous)) {
+      parsed = previous.lastErrorAt ?? updatedAt;
+    } else {
+      parsed = updatedAt;
+    }
+  }
+  return parsed;
+}
+
 function toAgentOptions(entry: ProcessEntry, updatedAt: number, previous?: Agent): Partial<Agent> {
   const options: Partial<Agent> = {};
   if (entry.metadata?.model !== undefined) options.model = entry.metadata.model;
   if (entry.metadata?.skill !== undefined) options.skill = entry.metadata.skill;
   if (entry.metadata?.currentTask !== undefined) options.currentTask = entry.metadata.currentTask;
   if (entry.metadata?.waitingReason !== undefined) options.waitingReason = entry.metadata.waitingReason;
-  if (entry.metadata?.lastErrorAt !== undefined) {
-    const ts = Date.parse(entry.metadata.lastErrorAt);
-    if (!Number.isNaN(ts)) options.lastErrorAt = ts;
-  } else if (entry.status === 'error') {
-    options.lastErrorAt = previous?.status === 'error' ? previous.lastErrorAt ?? updatedAt : updatedAt;
-  }
+  const lastErrorAt = deriveLastErrorAt(entry, updatedAt, previous);
+  if (lastErrorAt !== undefined) options.lastErrorAt = lastErrorAt;
   return options;
 }
 
