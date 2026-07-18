@@ -53,7 +53,8 @@ program
   });
 
 program
-  .command('setup <agent>')
+  .command('setup')
+  .addArgument(new Argument('agent').argRequired())
   .description('install, update, or remove an agent hook config')
   .option('--update', 'update the existing hook config')
   .option('--remove', 'remove the hook config')

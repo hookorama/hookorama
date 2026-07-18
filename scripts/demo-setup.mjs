@@ -55,23 +55,15 @@ async function buildDist() {
   await runScript(['x', 'tsdown']);
 }
 
-function runCommand(command, args, options = {}) {
+function runCommand(command, args, { cwd } = {}) {
   if (!Array.isArray(args) || args.some((arg) => typeof arg !== 'string')) {
     throw new TypeError('command args must be an array of strings');
   }
 
   const isWindows = process.platform === 'win32';
   const child = isWindows
-    ? spawn('cmd', ['/c', command, ...args], {
-        ...options,
-        shell: false,
-        stdio: 'inherit',
-      })
-    : spawn(command, args, {
-        ...options,
-        shell: false,
-        stdio: 'inherit',
-      });
+    ? spawn('cmd', ['/c', command, ...args], { cwd, shell: false, stdio: 'inherit' })
+    : spawn(command, args, { cwd, shell: false, stdio: 'inherit' });
 
   return new Promise((resolve, reject) => {
     child.on('error', reject);
@@ -85,8 +77,8 @@ function runCommand(command, args, options = {}) {
   });
 }
 
-function runNpm(args, options = {}) {
-  return runCommand('npm', args, { cwd: repoRoot, env: process.env, ...options });
+function runNpm(args, { cwd } = {}) {
+  return runCommand('npm', args, { cwd: cwd ?? repoRoot });
 }
 
 async function npmLinkCli() {
@@ -94,8 +86,12 @@ async function npmLinkCli() {
   await runNpm(['link'], { cwd: resolvePath(repoRoot, 'packages', 'cli') });
 }
 
-function runHookorama(args, options = {}) {
-  return runCommand('hookorama', args, { cwd: demoHome, env: buildDemoEnv(), ...options });
+function runHookorama(args, { cwd } = {}) {
+  const env = buildDemoEnv();
+  for (const [key, value] of Object.entries(env)) {
+    process.env[key] = value;
+  }
+  return runCommand('hookorama', args, { cwd: cwd ?? demoHome });
 }
 
 async function prepareDemo() {
