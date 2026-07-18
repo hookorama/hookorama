@@ -7,7 +7,7 @@
  * Run from the repository root (the `build` script does this).
  */
 
-import { cp, rm, rename } from 'node:fs/promises';
+import { cp, rm } from 'node:fs/promises';
 
 const src = 'packages/web-app/dist';
 const dst = 'packages/cli/dist/web-app';
@@ -28,17 +28,17 @@ try {
 }
 
 try {
-  await rm(dst, { recursive: true, force: true });
-  await rename(tmp, dst);
+  await cp(tmp, dst, { recursive: true, force: true });
 } catch (err) {
   console.error('failed to replace dashboard bundle:', err);
-  try {
-    await cp(tmp, dst, { recursive: true, force: true });
-  } catch {
-    // ignore secondary errors; the original failure is what matters
-  }
   await rm(tmp, { recursive: true, force: true });
   process.exit(1);
+}
+
+try {
+  await rm(tmp, { recursive: true, force: true });
+} catch {
+  // Best-effort cleanup; the destination is already in place.
 }
 
 console.log('copied %s -> %s', src, dst);

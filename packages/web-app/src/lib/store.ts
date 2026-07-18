@@ -31,7 +31,6 @@ interface Bucket {
 }
 
 const MAX_BUCKETS = 2000;
-let nextBucketId = 0;
 
 function emptyProjectMetrics(): ProjectMetrics {
   return { tasks: 0, toolCalls: 0, cost: 0, active: 0, errors: 0 };
@@ -41,6 +40,7 @@ function updateBuckets(
   buckets: Bucket[],
   agents: Agent[],
   agentTotals: Record<string, AgentTotal>,
+  nextBucketId: number,
 ): Bucket[] {
   const byProject = new Map<string, ProjectMetrics>();
   const totals = emptyProjectMetrics();
@@ -74,7 +74,7 @@ function updateBuckets(
   }
 
   const bucket: Bucket = {
-    id: nextBucketId++,
+    id: nextBucketId,
     ts: Date.now(),
     tasks: totals.tasks,
     toolCalls: totals.toolCalls,
@@ -119,6 +119,7 @@ interface Store {
   scanlines: boolean;
   buckets: Bucket[];
   agentTotals: Record<string, AgentTotal>;
+  nextBucketId: number;
   skillHistory: Record<string, number>;
   modelHistory: Record<string, { calls: number; cost: number }>;
   connection: Connection;
@@ -303,6 +304,7 @@ export const useHookoramaStore = create<Store>((set) => ({
   scanlines: false,
   buckets: [],
   agentTotals: {},
+  nextBucketId: 0,
   skillHistory: {},
   modelHistory: {},
   connection: 'disconnected',
@@ -324,13 +326,15 @@ export const useHookoramaStore = create<Store>((set) => ({
       for (const a of agents) {
         agentTotals[a.id] = { projectId: a.projectId, metrics: a.metrics };
       }
+      const nextBucketId = state.nextBucketId + 1;
       return {
         connection: 'connected',
         agents,
         projects,
         notifications,
-        buckets: updateBuckets(state.buckets, agents, agentTotals),
+        buckets: updateBuckets(state.buckets, agents, agentTotals, nextBucketId),
         agentTotals,
+        nextBucketId,
         skillHistory: updateSkillHistory(agents),
         modelHistory: updateModelHistory(agents),
       };

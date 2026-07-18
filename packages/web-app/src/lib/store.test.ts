@@ -26,6 +26,7 @@ describe('useHookoramaStore', () => {
       scanlines: false,
       buckets: [],
       agentTotals: {},
+      nextBucketId: 0,
       skillHistory: {},
       modelHistory: {},
       connection: 'disconnected',
@@ -334,14 +335,15 @@ describe('useHookoramaStore', () => {
   });
 
   it('falls back to updatedAt for an invalid lastErrorAt timestamp', () => {
-    const t1 = new Date('2026-01-01T00:00:00.000Z').toISOString();
+    const snapshotAt = new Date('2026-01-01T00:00:00.000Z').toISOString();
+    const entryAt = new Date('2026-01-01T00:00:01.000Z').toISOString();
     const snapshot: WireSnapshot = {
-      at: t1,
+      at: snapshotAt,
       entries: [
         makeEntry({
           key: 'pid:1',
           status: 'error',
-          at: t1,
+          at: entryAt,
           cwd: '/home/user/p1',
           sessionId: 's1',
           metadata: {
@@ -355,6 +357,6 @@ describe('useHookoramaStore', () => {
     useHookoramaStore.getState().syncSnapshot(snapshot);
 
     const { agents } = useHookoramaStore.getState();
-    expect(agents[0]?.lastErrorAt).toBe(Date.parse(t1));
+    expect(agents[0]?.lastErrorAt).toBe(Date.parse(entryAt));
   });
 });
