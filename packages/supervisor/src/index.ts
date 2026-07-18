@@ -6,6 +6,7 @@
  */
 
 export { Supervisor, SupervisorProcess } from './supervisor.js';
+export { runSupervisorDaemon } from './run.js';
 export { WireServer } from './wire/server.js';
 export type { WireServerOptions } from './wire/server.js';
 export type { ProcessDiscovery, ProcessRow } from './process-discovery/index.js';

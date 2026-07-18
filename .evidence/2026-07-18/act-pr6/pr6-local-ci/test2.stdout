@@ -1,0 +1,15 @@
+
+ RUN  v4.1.10 C:/Users/petrp/Documents/GitHub/hookorama/.worktrees/packages-stack
+
+ ✓ packages/supervisor/src/identity/resolve.test.ts (12 tests) 6ms
+ ✓ packages/supervisor/src/state/store.test.ts (6 tests) 6ms
+ ✓ packages/supervisor/src/process-discovery/index.test.ts (9 tests) 7ms
+ ✓ packages/supervisor/src/supervisor.test.ts (10 tests) 42ms
+ ✓ packages/supervisor/src/wire/server.test.ts (2 tests) 29ms
+ ✓ packages/supervisor/src/supervisor.bugs.test.ts (10 tests) 129ms
+
+ Test Files  6 passed (6)
+      Tests  49 passed (49)
+   Start at  15:14:37
+   Duration  492ms (transform 289ms, setup 0ms, import 696ms, tests 218ms, environment 1ms)
+

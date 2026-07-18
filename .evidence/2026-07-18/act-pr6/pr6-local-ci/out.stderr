@@ -1,0 +1,24 @@
+$ bun run typecheck && bun run lint && bun run check && bun run test && bun run build
+$ tsdown && tsc -b --noEmit packages/client packages/supervisor packages/cli packages/extension packages/web-app
+
+ WARN  We recommend using the ESM format instead of CommonJS.
+The ESM format is compatible with modern platforms and runtimes, and most new libraries are now distributed only in ESM format.
+Learn more at https://nodejs.org/en/learn/modules/publishing-a-package#how-did-we-get-here
+
+
+ WARN  TypeScript 7.0 does not yet have a stable API and is experimental. Some options will be unavailable.
+
+$ oxlint .
+$ bun run check:md && bun run check:files
+$ bun run scripts/check-md.ts
+$ bun run scripts/check-files.ts
+$ bun --bun vitest run --passWithNoTests
+$ tsdown
+
+ WARN  We recommend using the ESM format instead of CommonJS.
+The ESM format is compatible with modern platforms and runtimes, and most new libraries are now distributed only in ESM format.
+Learn more at https://nodejs.org/en/learn/modules/publishing-a-package#how-did-we-get-here
+
+
+ WARN  TypeScript 7.0 does not yet have a stable API and is experimental. Some options will be unavailable.
+

@@ -1,0 +1,6 @@
+cubic · AI code reviewer	skipping	8s	https://www.cubic.dev/pr/hookorama/hookorama/pull/6	
+Codacy Static Code Analysis	pass	0	https://app.codacy.com/gh/hookorama/hookorama/pull-requests/6	
+CodeFactor	pass	1s	https://www.codefactor.io/repository/github/hookorama/hookorama/pull/6	
+CodeRabbit	pass	0		Review completed
+SonarCloud Code Analysis	pass	18s	https://sonarcloud.io/dashboard?id=hookorama_hookorama&pullRequest=6	
+bun-ci	pass	12s	https://github.com/hookorama/hookorama/actions/runs/29645908626/job/88084011077	

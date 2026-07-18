@@ -3,52 +3,16 @@
  */
 
 import { readFile } from 'node:fs/promises';
-import { pidFilePath, isProcessRunning, releasePidSlot, Supervisor, WireServer } from '@hookorama/supervisor';
+import { pidFilePath, isProcessRunning, releasePidSlot, runSupervisorDaemon } from '@hookorama/supervisor';
 
 export async function supervisorStart(): Promise<void> {
-  const supervisor = new Supervisor();
-  const acquired = await supervisor.start();
+  const acquired = await runSupervisorDaemon();
 
   if (!acquired) {
     console.warn('supervisor is already running');
     process.exitCode = 0;
     return;
   }
-
-  const server = new WireServer(supervisor);
-  await server.start();
-  console.warn('supervisor listening on %s', server.url().href);
-
-  let shuttingDown = false;
-  const shutdown = async (): Promise<void> => {
-    if (shuttingDown) return;
-    shuttingDown = true;
-    try {
-      await server.stop();
-      await supervisor.stop();
-    } catch (err) {
-      console.error('shutdown failed:', err);
-      // oxlint-disable-next-line unicorn/no-process-exit
-      process.exit(1);
-    }
-    // oxlint-disable-next-line unicorn/no-process-exit
-    process.exit(0);
-  };
-
-  process.on('SIGINT', () => {
-    shutdown().catch((err) => {
-      console.error('shutdown failed:', err);
-      // oxlint-disable-next-line unicorn/no-process-exit
-      process.exit(1);
-    });
-  });
-  process.on('SIGTERM', () => {
-    shutdown().catch((err) => {
-      console.error('shutdown failed:', err);
-      // oxlint-disable-next-line unicorn/no-process-exit
-      process.exit(1);
-    });
-  });
 
   // Bun.serve keeps the process alive once the server is started.
 }
