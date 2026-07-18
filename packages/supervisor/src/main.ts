@@ -20,12 +20,33 @@ const server = new WireServer(supervisor);
 await server.start();
 console.warn('supervisor listening on %s', server.url().href);
 
+let shuttingDown = false;
 const shutdown = async (): Promise<void> => {
-  await server.stop();
-  await supervisor.stop();
+  if (shuttingDown) return;
+  shuttingDown = true;
+  try {
+    await server.stop();
+    await supervisor.stop();
+  } catch (err) {
+    console.error('shutdown failed:', err);
+    // eslint-disable-next-line unicorn/no-process-exit
+    process.exit(1);
+  }
   // eslint-disable-next-line unicorn/no-process-exit
   process.exit(0);
 };
 
-process.on('SIGINT', shutdown);
-process.on('SIGTERM', shutdown);
+process.on('SIGINT', () => {
+  shutdown().catch((err) => {
+    console.error('shutdown failed:', err);
+    // eslint-disable-next-line unicorn/no-process-exit
+    process.exit(1);
+  });
+});
+process.on('SIGTERM', () => {
+  shutdown().catch((err) => {
+    console.error('shutdown failed:', err);
+    // eslint-disable-next-line unicorn/no-process-exit
+    process.exit(1);
+  });
+});

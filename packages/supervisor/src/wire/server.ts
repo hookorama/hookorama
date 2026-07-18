@@ -84,11 +84,15 @@ export class WireServer {
       fetch: (request, server) => this.handleRequest(request, server),
       websocket: {
         data: undefined,
-        open: (ws) => this.onOpen(ws),
+        open: (ws) => {
+          this.onOpen(ws);
+        },
         message: () => {
           /* client -> supervisor messages are not used in this PR */
         },
-        close: (ws) => this.onClose(ws),
+        close: (ws) => {
+          this.onClose(ws);
+        },
       },
     });
     return Promise.resolve();
@@ -100,7 +104,10 @@ export class WireServer {
   }
 
   url(): URL {
-    return this.server!.url;
+    if (this.server === null) {
+      throw new Error('WireServer is not started');
+    }
+    return this.server.url;
   }
 
   private handleRequest(
