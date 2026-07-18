@@ -90,7 +90,9 @@ describe('useHookoramaStore', () => {
     };
 
     useHookoramaStore.getState().syncSnapshot(snapshot);
-    useHookoramaStore.getState().ackNotification('pid:1234:waiting-input');
+    const id = useHookoramaStore.getState().notifications[0]?.id;
+    expect(id).toBeDefined();
+    useHookoramaStore.getState().ackNotification(id!);
     useHookoramaStore.getState().syncSnapshot(snapshot);
 
     const { notifications } = useHookoramaStore.getState();

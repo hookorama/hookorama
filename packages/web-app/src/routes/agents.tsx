@@ -119,6 +119,14 @@ function AgentsPage() {
   const projMap = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects]);
 
   const [selectedId, setSelectedId] = useState<string | null>(agents[0]?.id ?? null);
+
+  useEffect(() => {
+    const first = agents[0];
+    if (first && (selectedId === null || !agents.some((a) => a.id === selectedId))) {
+      setSelectedId(first.id);
+    }
+  }, [selectedId, agents]);
+
   const [query, setQuery] = useState('');
   const [groupBy, setGroupBy] = useState<GroupBy>('project');
   const [sortBy, setSortBy] = useState<SortBy>('name');

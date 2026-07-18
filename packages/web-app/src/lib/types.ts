@@ -1,6 +1,7 @@
-import type { ProcessRow, ProcessType, Status } from '@hookorama/client';
+import type { ProcessRow, ProcessType, Status, AgentMetrics } from '@hookorama/client';
 
 export type { Status };
+export type Metrics = AgentMetrics;
 
 export type NodeType = 'agent' | 'subagent' | 'tool';
 
@@ -17,13 +18,6 @@ export interface Project {
   repo?: string;
   branch?: string;
   color: string;
-}
-
-export interface Metrics {
-  tasks: number;
-  toolCalls: number;
-  cost: number;
-  errors: number;
 }
 
 export interface Agent {

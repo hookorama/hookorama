@@ -18,7 +18,7 @@
       "name": "@hookorama/cli",
       "version": "0.1.0",
       "bin": {
-        "cli": "./dist/main.mjs",
+        "hookorama": "./dist/main.mjs",
       },
       "dependencies": {
         "@hookorama/client": "workspace:^0.1.0",

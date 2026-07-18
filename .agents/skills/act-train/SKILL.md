@@ -8,8 +8,8 @@ outputs: A fully merged stack, or the identity of the first dirty PR that needs 
 # Skill: `act-train`
 
 Stacked-PR merge train. Walks the current `gh-stack` from the bottom. For each
-open PR it checks `mergeStateStatus`, review decision, and unresolved review
-threads. If the PR is clean, it merges with `merge_method=merge` and deletes the
+open PR it checks `mergeStateStatus`, review decision, and unresolved non-AI
+review threads. If the PR is clean, it merges with `merge_method=merge` and deletes the
 head branch so the next PR is automatically retargeted. If the PR is dirty, it
 stops and reports the PR, so the operator can run `/act pr <number>` on it and
 try the train again.
@@ -36,9 +36,11 @@ try the train again.
 3. If the script exits `0`, every stacked PR was merged. Done.
 4. If the script exits `2`, it prints the first dirty PR and why. Load the
    `/act` skill for that PR and follow it to completion. Every fix must be
-   proved with an `.evidence/<date>/<task>/<slug>/claim.json` (run the relevant
-   checks/tests and capture the output; validate with
-   `.agents/skills/evidence/scripts/validate.py`).
+   proved with an `.evidence/<date>/<task>/<slug>/claim.json`: run the relevant
+   checks/tests, capture the output, and validate the claim with the
+   evidence skill (`evidence/scripts/validate.py`) if it is available in this
+   checkout; otherwise include the command output, exit code, and a
+   reproduction snippet directly in the claim file.
 5. Re-run the script. It will pick up the now-clean PR, merge it, and continue
    to the next one.
 6. Repeat until the script exits `0`.

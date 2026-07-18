@@ -58,6 +58,7 @@ interface Store {
   processes: Process[];
   events: HookEvent[];
   notifications: Notification[];
+  notificationAcks: Set<string>;
   scanlines: boolean;
   buckets: Bucket[];
   skillHistory: Record<string, number>;
@@ -105,7 +106,7 @@ function parseOrigin(raw: string | undefined): Origin {
   return raw !== undefined && ORIGINS.has(raw) ? (raw as Origin) : 'terminal';
 }
 
-function toAgentOptions(entry: ProcessEntry): Partial<Agent> {
+function toAgentOptions(entry: ProcessEntry, updatedAt: number, previous?: Agent): Partial<Agent> {
   const options: Partial<Agent> = {};
   if (entry.metadata?.model !== undefined) options.model = entry.metadata.model;
   if (entry.metadata?.skill !== undefined) options.skill = entry.metadata.skill;
@@ -114,11 +115,13 @@ function toAgentOptions(entry: ProcessEntry): Partial<Agent> {
   if (entry.metadata?.lastErrorAt !== undefined) {
     const ts = Date.parse(entry.metadata.lastErrorAt);
     if (!Number.isNaN(ts)) options.lastErrorAt = ts;
+  } else if (entry.status === 'error') {
+    options.lastErrorAt = previous?.status === 'error' ? previous.lastErrorAt ?? updatedAt : updatedAt;
   }
   return options;
 }
 
-function toAgent(entry: ProcessEntry): Agent {
+function toAgent(entry: ProcessEntry, previous?: Agent): Agent {
   const ts = Date.parse(entry.at);
   const updatedAt = Number.isNaN(ts) ? Date.now() : ts;
 
@@ -131,7 +134,7 @@ function toAgent(entry: ProcessEntry): Agent {
     origin: parseOrigin(entry.metadata?.origin),
     sessionId: entry.sessionId ?? 'unknown',
     projectId: entry.metadata?.projectId ?? entry.cwd,
-    ...toAgentOptions(entry),
+    ...toAgentOptions(entry, updatedAt, previous),
     createdAt: updatedAt,
     updatedAt,
     metrics: entry.metadata?.metrics ?? { tasks: 0, toolCalls: 0, cost: 0, errors: 0 },
@@ -150,10 +153,15 @@ function buildProjects(entries: readonly ProcessEntry[]): Project[] {
   return Array.from(map.values());
 }
 
-function deriveNotifications(agents: readonly Agent[], existing: readonly Notification[]): Notification[] {
-  const acked = new Map<string, boolean>();
-  for (const n of existing) {
-    acked.set(n.id, n.ack ?? false);
+function deriveNotifications(
+  agents: readonly Agent[],
+  state: { notifications: readonly Notification[]; notificationAcks: ReadonlySet<string> },
+): Notification[] {
+  const acked = new Set<string>(state.notificationAcks);
+  for (const n of state.notifications) {
+    if (n.ack) {
+      acked.add(n.id);
+    }
   }
 
   const notifications: Notification[] = [];
@@ -161,8 +169,10 @@ function deriveNotifications(agents: readonly Agent[], existing: readonly Notifi
     if (agent.status !== 'waiting-input' && agent.status !== 'error') continue;
 
     const kind: NotificationKind = agent.status === 'error' ? 'error' : 'waiting-input';
-    const id = `${agent.id}:${kind}`;
-    const message = agent.status === 'error' ? (agent.currentTask ?? 'task failed') : (agent.waitingReason ?? 'input required');
+    const occurrence = kind === 'error' ? agent.lastErrorAt : undefined;
+    const id = occurrence !== undefined ? `${agent.id}:${kind}:${occurrence}` : `${agent.id}:${kind}`;
+    const message =
+      agent.status === 'error' ? (agent.currentTask ?? 'task failed') : (agent.waitingReason ?? 'input required');
 
     notifications.push({
       id,
@@ -172,7 +182,7 @@ function deriveNotifications(agents: readonly Agent[], existing: readonly Notifi
       projectId: agent.projectId,
       severity: agent.status === 'error' ? 'critical' : 'warn',
       message,
-      ack: acked.get(id) ?? false,
+      ack: acked.has(id),
     });
   }
 
@@ -207,6 +217,7 @@ export const useHookoramaStore = create<Store>((set) => ({
   processes: [],
   events: [],
   notifications: [],
+  notificationAcks: new Set<string>(),
   scanlines: false,
   buckets: [],
   skillHistory: {},
@@ -219,9 +230,13 @@ export const useHookoramaStore = create<Store>((set) => ({
 
   syncSnapshot: (snapshot) => {
     set((state) => {
-      const agents = snapshot.entries.map(toAgent);
+      const previousById = new Map(state.agents.map((a) => [a.id, a]));
+      const agents = snapshot.entries.map((entry) => toAgent(entry, previousById.get(entry.key)));
       const projects = buildProjects(snapshot.entries);
-      const notifications = deriveNotifications(agents, state.notifications);
+      const notifications = deriveNotifications(agents, {
+        notifications: state.notifications,
+        notificationAcks: state.notificationAcks,
+      });
       return {
         connection: 'connected',
         agents,
@@ -247,13 +262,21 @@ export const useHookoramaStore = create<Store>((set) => ({
   ackNotification: (id) => {
     set((state) => ({
       notifications: state.notifications.map((n) => (n.id === id ? { ...n, ack: true } : n)),
+      notificationAcks: new Set([...state.notificationAcks, id]),
     }));
   },
 
   clearAcked: () => {
-    set((state) => ({
-      notifications: state.notifications.filter((n) => !n.ack),
-    }));
+    set((state) => {
+      const ackedIds = new Set<string>();
+      for (const n of state.notifications) {
+        if (n.ack) ackedIds.add(n.id);
+      }
+      return {
+        notifications: state.notifications.filter((n) => !n.ack),
+        notificationAcks: new Set([...state.notificationAcks, ...ackedIds]),
+      };
+    });
   },
 
   setProcesses: (processes: Process[]) => {

@@ -14,7 +14,7 @@
   ],
   "scripts": {
     "dev": "bun run --cwd packages/web-app dev",
-    "build": "tsdown && bun run --cwd packages/web-app build",
+    "build": "tsdown && bun run --cwd packages/web-app build && bun run scripts/copy-web-app-to-cli.mjs",
     "typecheck": "tsdown && tsc -b --noEmit packages/client packages/supervisor packages/cli packages/extension packages/web-app",
     "lint": "oxlint . --ignore-pattern .worktrees",
     "test": "bun --bun vitest run --passWithNoTests --exclude .worktrees",
