@@ -15,7 +15,12 @@ export async function runSupervisorDaemon(): Promise<boolean> {
   }
 
   const server = new WireServer(supervisor);
-  await server.start();
+  try {
+    await server.start();
+  } catch (err) {
+    await supervisor.stop();
+    throw err;
+  }
   console.warn('supervisor listening on %s', server.url().href);
 
   let shuttingDown = false;
