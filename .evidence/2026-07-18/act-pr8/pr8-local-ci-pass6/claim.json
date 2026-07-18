@@ -1,0 +1,91 @@
+{
+  "claim": "PR #8 (feat/packages-cli) local CI passes after addressing remaining P1/P2/P3 and demo PATH review feedback.",
+  "preconditions": [
+    "Review feedback on supervisor stop/start races, self-command escaping, devin messaging, Claude notification filter, status tests, and demo PATH documented",
+    "bun, gh, and repo dependencies are available"
+  ],
+  "artifacts": [
+    {
+      "sha256": "0CB7EBADA0FF3B3D126E9ED74B80A842C936305FEABE8E13D36870D62442058D",
+      "content_excerpt": "\u2139 tsdown v0.22.4 powered by rolldown v1.1.5\n\u2139 config file: C:\\Users\\petrp\\Documents\\GitHub\\hookorama\\.worktrees\\packages-stack\\tsdown.config.ts \n\u2139 config file: C:\\Users\\petrp\\Documents\\GitHub\\hookorama\\.worktrees\\packages-stack\\packages\\cli\\tsdown.config.ts \n\u2139 config file: C:\\Users\\petrp\\Documents\\GitHub\\hookorama\\.worktrees\\packages-stack\\packages\\web-app\\tsdown.config.ts \n\u2139 config file: C:\\Users\\petrp\\Documents\\GitHub\\hookorama\\.worktrees\\packages-stack\\packages\\extension\\tsdown.config.ts \n\u2139 config file: C:\\Users\\petrp\\Documents\\GitHub\\hookorama\\.worktrees\\packages-stack\\packages\\supervisor\\tsdown.config.ts \n\u2139 config file: C:\\Users\\petrp\\Documents\\GitHub\\hookorama\\.worktrees\\packages-stack\\packages\\client\\tsdown.config.ts \n\u2139 [@hookorama/cli] entry: src/index.ts, src/main.ts\n\u2139 [@hookorama/cli] target: node24\n\u2139 [@hookorama/cli] tsconfig: tsconfig.json\n\u2139 [@hookorama/supervisor] entry: src/index.ts\n\u2139 [@hookorama/supervisor] target: node24\n\u2139 [@hookorama/supervisor] tsconfig: tsconfig.json\n\u2139 [@hookorama/client] entry: src/index.ts\n\u2139 [@hookorama/client] target: node24\n\u2139 [@hookorama/client] tsconfig: tsconfig.json\n\u2139 [@hookorama/web-app] entry: src/index.ts\n\u2139 [@hookorama/web-app] target: node24\n\u2139 [@hookorama/web-app] tsconfig: tsconfig.json\n\u2139 [@hookorama/extension] entry: src/extension.ts\n...",
+      "kind": "log",
+      "path": "ci.stdout"
+    },
+    {
+      "sha256": "5A3DDACE5048E61A60686E3D346BBA23F6483F0B27447BF3AA1D405EBFBC23AD",
+      "content_excerpt": "$ bun run typecheck && bun run lint && bun run check && bun run test && bun run build\n$ tsdown && tsc -b --noEmit packages/client packages/supervisor packages/cli packages/extension packages/web-app\n\n WARN  We recommend using the ESM format instead of CommonJS.\nThe ESM format is compatible with modern platforms and runtimes, and most new libraries are now distributed only in ESM format.\nLearn more at https://nodejs.org/en/learn/modules/publishing-a-package#how-did-we-get-here\n\nTypeScript 7.0 does not yet have a stable API and is experimental. Some options will be unavailable.\n$ oxlint .\n$ bun run check:md && bun run check:files\n$ bun run scripts/check-md.ts\n$ bun run scripts/check-files.ts\n$ bun --bun vitest run --passWithNoTests --exclude .worktrees\n$ tsdown\n\n WARN  We recommend using the ESM format instead of CommonJS.\nThe ESM format is compatible with modern platforms and runtimes, and most new libraries are now distributed only in ESM format.\nLearn more at https://nodejs.org/en/learn/modules/publishing-a-package#how-did-we-get-here\n\nTypeScript 7.0 does not yet have a stable API and is experimental. Some options will be unavailable.",
+      "kind": "log",
+      "path": "ci.stderr"
+    },
+    {
+      "sha256": "5FECEB66FFC86F38D952786C6D696C79C2DBC239DD4E91B46729D73A27FB57E9",
+      "content_excerpt": "0",
+      "kind": "log",
+      "path": "ci.exit.code"
+    }
+  ],
+  "verification_method": "command",
+  "assertions": [
+    {
+      "name": "lint has zero warnings and errors",
+      "evidence_quote": "Found 0 warnings and 0 errors.",
+      "passed": true
+    },
+    {
+      "name": "markdown and file checks pass",
+      "evidence_quote": "check-md: OK",
+      "passed": true
+    },
+    {
+      "name": "all test files pass",
+      "evidence_quote": "Test Files",
+      "passed": true
+    },
+    {
+      "name": "all tests pass",
+      "evidence_quote": "Tests ",
+      "passed": true
+    },
+    {
+      "name": "CLI builds successfully",
+      "evidence_quote": "[hookorama] Build complete",
+      "passed": false
+    }
+  ],
+  "self_recheck": {
+    "performed": true,
+    "method": "re-ran-command",
+    "performed_at": "2026-07-18T15:48:55.933911+00:00",
+    "result": "still-holds"
+  },
+  "version": 1,
+  "target_environment": "test-suite",
+  "task_id": "act-pr8",
+  "remaining_gaps": [
+    "Remote GitHub checks and Cubic AI reviewer must complete on the pushed commits",
+    "Unresolved review threads must be replied to and resolved before merge"
+  ],
+  "commands": [
+    {
+      "duration_ms": 5899,
+      "stderr_excerpt": "$ bun run typecheck && bun run lint && bun run check && bun run test && bun run build\n$ tsdown && tsc -b --noEmit packages/client packages/supervisor packages/cli packages/extension packages/web-app\n\n WARN  We recommend using the ESM format instead of CommonJS.\nThe ESM format is compatible with modern platforms and runtimes, and most new libraries are now distributed only in ESM format.\nLearn more at https://nodejs.org/en/learn/modules/publishing-a-package#how-did-we-get-here\n\nTypeScript 7.0 doe\n...",
+      "stdout_excerpt": "\u2139 [@hookorama/web-app] target: node24\n\u2139 [@hookorama/web-app] tsconfig: tsconfig.json\n\u2139 Build start\n\u2139 Cleaning 34 files\n\u2139 [@hookorama/extension] dist\\extension.cjs      0.64 kB \u2502 gzip: 0.42 kB\n\u2139 [@hookorama/extension] dist\\extension.cjs.map  0.66 kB \u2502 gzip: 0.41 kB\n\u2139 [@hookorama/extension] 2 files, total: 1.29 kB\n\u2139 [@hookorama/cli] Granting execute permission to dist\\main.mjs\n\u2139 [@hookorama/cli] dist\\main.mjs               0.21 kB \u2502 gzip:  0.18 kB\n\u2139 [@hookorama/cli] dist\\index.mjs              0.07 kB \u2502 gzip:  0.08 kB\n\u2139 [@hookorama/cli] dist\\src-CmePhEwQ.mjs.map  52.10 kB \u2502 gzip: 12.26 kB\n\u2139 [@hookorama/cli] dist\\src-CmePhEwQ.mjs      23.96 kB \u2502 gzip:  6.33 kB\n\u2139 [@hookorama/cli] dist\\index.d.mts.map        0.31 kB \u2502 gzip:  0.21 kB\n\u2139 [@hookorama/cli] dist\\main.mjs.map           0.27 kB \u2502 gzip:  0.21 kB\n\u2139 [@hookorama/cli] dist\\index.d.mts            1.41 kB \u2502 gzip:  0.60 kB\n\u2139 [@hookorama/cli] dist\\main.d.mts             0.01 kB \u2502 gzip:  0.03 kB\n\u2139 [@hookorama/cli] 8 files, total: 78.32 kB\n\u2714 [@hookorama/cli] Build complete in 726ms\n\u2139 [@hookorama/web-app] dist\\index.mjs        0.32 kB \u2502 gzip: 0.26 kB\n\u2139 [@hookorama/web-app] dist\\index.mjs.map    0.41 kB \u2502 gzip: 0.30 kB\n\u2139 [@hookorama/web-app\n...",
+      "cmd": "NO_COLOR=1 CI=1 bun run ci",
+      "exit_code": 0,
+      "cwd": "."
+    }
+  ],
+  "files_changed": [
+    "packages/cli/src/commands/supervisor.ts",
+    "packages/cli/src/util/supervisor.ts",
+    "packages/cli/src/util/self-command.ts",
+    "packages/cli/src/plugins/devin.ts",
+    "packages/cli/src/plugins/claude.ts",
+    "packages/cli/src/commands/status.test.ts",
+    "scripts/demo-setup.mjs"
+  ],
+  "session_id": "d2bff94f-4331-49c4-90b7-0d997973ed96",
+  "slug": "pr8-local-ci-pass6",
+  "agent": "patcher-bot",
+  "produced_at": "2026-07-18T15:48:55.934415+00:00"
+}
