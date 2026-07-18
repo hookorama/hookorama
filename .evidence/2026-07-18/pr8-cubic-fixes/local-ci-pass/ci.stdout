@@ -1,0 +1,142 @@
+ℹ tsdown v0.22.4 powered by rolldown v1.1.5
+ℹ config file: C:\Users\petrp\Documents\GitHub\hookorama\.worktrees\packages-stack\tsdown.config.ts 
+ℹ config file: C:\Users\petrp\Documents\GitHub\hookorama\.worktrees\packages-stack\packages\cli\tsdown.config.ts 
+ℹ config file: C:\Users\petrp\Documents\GitHub\hookorama\.worktrees\packages-stack\packages\extension\tsdown.config.ts 
+ℹ config file: C:\Users\petrp\Documents\GitHub\hookorama\.worktrees\packages-stack\packages\client\tsdown.config.ts 
+ℹ config file: C:\Users\petrp\Documents\GitHub\hookorama\.worktrees\packages-stack\packages\supervisor\tsdown.config.ts 
+ℹ config file: C:\Users\petrp\Documents\GitHub\hookorama\.worktrees\packages-stack\packages\web-app\tsdown.config.ts 
+ℹ [@hookorama/cli] entry: src/index.ts, src/main.ts
+ℹ [@hookorama/cli] target: node24
+ℹ [@hookorama/cli] tsconfig: tsconfig.json
+ℹ [@hookorama/extension] entry: src/extension.ts
+ℹ [@hookorama/extension] target: node24
+ℹ [@hookorama/extension] tsconfig: tsconfig.json
+ℹ [@hookorama/supervisor] entry: src/index.ts
+ℹ [@hookorama/supervisor] target: node24
+ℹ [@hookorama/supervisor] tsconfig: tsconfig.json
+ℹ [@hookorama/web-app] entry: src/index.ts
+ℹ [@hookorama/web-app] target: node24
+ℹ [@hookorama/web-app] tsconfig: tsconfig.json
+ℹ [@hookorama/client] entry: src/index.ts
+ℹ [@hookorama/client] target: node24
+ℹ [@hookorama/client] tsconfig: tsconfig.json
+ℹ Build start
+ℹ Cleaning 34 files
+ℹ [@hookorama/extension] dist\extension.cjs      0.64 kB │ gzip: 0.42 kB
+ℹ [@hookorama/extension] dist\extension.cjs.map  0.66 kB │ gzip: 0.41 kB
+ℹ [@hookorama/extension] 2 files, total: 1.29 kB
+ℹ [@hookorama/client] dist\index.mjs        2.54 kB │ gzip: 0.91 kB
+ℹ [@hookorama/client] dist\index.mjs.map    6.49 kB │ gzip: 2.08 kB
+ℹ [@hookorama/client] dist\index.d.mts.map  0.85 kB │ gzip: 0.39 kB
+ℹ [@hookorama/client] dist\index.d.mts      4.70 kB │ gzip: 1.51 kB
+ℹ [@hookorama/client] 4 files, total: 14.59 kB
+✔ [@hookorama/client] Build complete in 920ms
+ℹ [@hookorama/extension] dist\extension.d.cts.map  0.11 kB │ gzip: 0.11 kB
+ℹ [@hookorama/extension] dist\extension.d.cts      0.57 kB │ gzip: 0.37 kB
+ℹ [@hookorama/extension] 2 files, total: 0.69 kB
+✔ [@hookorama/extension] Build complete in 930ms
+ℹ [@hookorama/supervisor] dist\index.mjs        33.78 kB │ gzip: 10.29 kB
+ℹ [@hookorama/supervisor] dist\index.mjs.map    70.47 kB │ gzip: 18.64 kB
+ℹ [@hookorama/supervisor] dist\index.d.mts.map   1.23 kB │ gzip:  0.60 kB
+ℹ [@hookorama/supervisor] dist\index.d.mts       9.00 kB │ gzip:  3.35 kB
+ℹ [@hookorama/supervisor] 4 files, total: 114.47 kB
+✔ [@hookorama/supervisor] Build complete in 932ms
+ℹ [@hookorama/web-app] dist\index.mjs        0.32 kB │ gzip: 0.26 kB
+ℹ [@hookorama/web-app] dist\index.mjs.map    0.41 kB │ gzip: 0.30 kB
+ℹ [@hookorama/web-app] dist\index.d.mts.map  0.10 kB │ gzip: 0.11 kB
+ℹ [@hookorama/web-app] dist\index.d.mts      0.34 kB │ gzip: 0.27 kB
+ℹ [@hookorama/web-app] 4 files, total: 1.17 kB
+✔ [@hookorama/web-app] Build complete in 937ms
+ℹ [@hookorama/cli] Granting execute permission to dist\main.mjs
+ℹ [@hookorama/cli] dist\main.mjs               0.21 kB │ gzip:  0.18 kB
+ℹ [@hookorama/cli] dist\index.mjs              0.07 kB │ gzip:  0.08 kB
+ℹ [@hookorama/cli] dist\src-CHyUbbJY.mjs.map  52.72 kB │ gzip: 12.45 kB
+ℹ [@hookorama/cli] dist\src-CHyUbbJY.mjs      24.02 kB │ gzip:  6.34 kB
+ℹ [@hookorama/cli] dist\index.d.mts.map        0.31 kB │ gzip:  0.21 kB
+ℹ [@hookorama/cli] dist\main.mjs.map           0.27 kB │ gzip:  0.21 kB
+ℹ [@hookorama/cli] dist\index.d.mts            1.41 kB │ gzip:  0.60 kB
+ℹ [@hookorama/cli] dist\main.d.mts             0.01 kB │ gzip:  0.03 kB
+ℹ [@hookorama/cli] 8 files, total: 79.01 kB
+✔ [@hookorama/cli] Build complete in 983ms
+Found 0 warnings and 0 errors.
+Finished in 62ms on 49 files with 176 rules using 10 threads.
+check-md: OK (26 .md files matched)
+check-files: OK (57 files matched)
+
+ RUN  v4.1.10 C:/Users/petrp/Documents/GitHub/hookorama/.worktrees/packages-stack
+
+ ✓ packages/cli/src/commands/status.test.ts (3 tests) 10ms
+ ✓ packages/cli/src/plugins/shared/hook-args.test.ts (3 tests) 9ms
+ ✓ packages/supervisor/src/process-discovery/index.test.ts (9 tests) 13ms
+ ✓ packages/supervisor/src/state/store.test.ts (6 tests) 7ms
+ ✓ packages/supervisor/src/identity/resolve.test.ts (12 tests) 14ms
+ ✓ packages/cli/src/plugin-registry.test.ts (3 tests) 6ms
+ ✓ packages/supervisor/src/supervisor.test.ts (10 tests) 59ms
+ ✓ packages/supervisor/src/wire/server.test.ts (2 tests) 72ms
+ ✓ packages/supervisor/src/supervisor.bugs.test.ts (10 tests) 170ms
+
+ Test Files  9 passed (9)
+      Tests  58 passed (58)
+   Start at  18:17:43
+   Duration  678ms (transform 867ms, setup 0ms, import 1.66s, tests 359ms, environment 1ms)
+
+ℹ tsdown v0.22.4 powered by rolldown v1.1.5
+ℹ config file: C:\Users\petrp\Documents\GitHub\hookorama\.worktrees\packages-stack\tsdown.config.ts 
+ℹ config file: C:\Users\petrp\Documents\GitHub\hookorama\.worktrees\packages-stack\packages\client\tsdown.config.ts 
+ℹ config file: C:\Users\petrp\Documents\GitHub\hookorama\.worktrees\packages-stack\packages\cli\tsdown.config.ts 
+ℹ config file: C:\Users\petrp\Documents\GitHub\hookorama\.worktrees\packages-stack\packages\supervisor\tsdown.config.ts 
+ℹ config file: C:\Users\petrp\Documents\GitHub\hookorama\.worktrees\packages-stack\packages\extension\tsdown.config.ts 
+ℹ config file: C:\Users\petrp\Documents\GitHub\hookorama\.worktrees\packages-stack\packages\web-app\tsdown.config.ts 
+ℹ [@hookorama/cli] entry: src/index.ts, src/main.ts
+ℹ [@hookorama/cli] target: node24
+ℹ [@hookorama/cli] tsconfig: tsconfig.json
+ℹ [@hookorama/extension] entry: src/extension.ts
+ℹ [@hookorama/extension] target: node24
+ℹ [@hookorama/extension] tsconfig: tsconfig.json
+ℹ [@hookorama/client] entry: src/index.ts
+ℹ [@hookorama/client] target: node24
+ℹ [@hookorama/client] tsconfig: tsconfig.json
+ℹ [@hookorama/supervisor] entry: src/index.ts
+ℹ [@hookorama/supervisor] target: node24
+ℹ [@hookorama/supervisor] tsconfig: tsconfig.json
+ℹ [@hookorama/web-app] entry: src/index.ts
+ℹ [@hookorama/web-app] target: node24
+ℹ [@hookorama/web-app] tsconfig: tsconfig.json
+ℹ Build start
+ℹ Cleaning 34 files
+ℹ [@hookorama/extension] dist\extension.cjs      0.64 kB │ gzip: 0.42 kB
+ℹ [@hookorama/extension] dist\extension.cjs.map  0.66 kB │ gzip: 0.41 kB
+ℹ [@hookorama/extension] 2 files, total: 1.29 kB
+ℹ [@hookorama/web-app] dist\index.mjs        0.32 kB │ gzip: 0.26 kB
+ℹ [@hookorama/web-app] dist\index.mjs.map    0.41 kB │ gzip: 0.30 kB
+ℹ [@hookorama/web-app] dist\index.d.mts.map  0.10 kB │ gzip: 0.11 kB
+ℹ [@hookorama/web-app] dist\index.d.mts      0.34 kB │ gzip: 0.27 kB
+ℹ [@hookorama/web-app] 4 files, total: 1.17 kB
+✔ [@hookorama/web-app] Build complete in 823ms
+ℹ [@hookorama/extension] dist\extension.d.cts.map  0.11 kB │ gzip: 0.11 kB
+ℹ [@hookorama/extension] dist\extension.d.cts      0.57 kB │ gzip: 0.37 kB
+ℹ [@hookorama/extension] 2 files, total: 0.69 kB
+✔ [@hookorama/extension] Build complete in 872ms
+ℹ [@hookorama/client] dist\index.mjs        2.54 kB │ gzip: 0.91 kB
+ℹ [@hookorama/client] dist\index.mjs.map    6.49 kB │ gzip: 2.08 kB
+ℹ [@hookorama/client] dist\index.d.mts.map  0.85 kB │ gzip: 0.39 kB
+ℹ [@hookorama/client] dist\index.d.mts      4.70 kB │ gzip: 1.51 kB
+ℹ [@hookorama/client] 4 files, total: 14.59 kB
+✔ [@hookorama/client] Build complete in 882ms
+ℹ [@hookorama/cli] Granting execute permission to dist\main.mjs
+ℹ [@hookorama/cli] dist\main.mjs               0.21 kB │ gzip:  0.18 kB
+ℹ [@hookorama/cli] dist\index.mjs              0.07 kB │ gzip:  0.08 kB
+ℹ [@hookorama/cli] dist\src-CHyUbbJY.mjs.map  52.72 kB │ gzip: 12.45 kB
+ℹ [@hookorama/cli] dist\src-CHyUbbJY.mjs      24.02 kB │ gzip:  6.34 kB
+ℹ [@hookorama/cli] dist\index.d.mts.map        0.31 kB │ gzip:  0.21 kB
+ℹ [@hookorama/cli] dist\main.mjs.map           0.27 kB │ gzip:  0.21 kB
+ℹ [@hookorama/cli] dist\index.d.mts            1.41 kB │ gzip:  0.60 kB
+ℹ [@hookorama/cli] dist\main.d.mts             0.01 kB │ gzip:  0.03 kB
+ℹ [@hookorama/cli] 8 files, total: 79.01 kB
+✔ [@hookorama/cli] Build complete in 907ms
+ℹ [@hookorama/supervisor] dist\index.mjs        33.78 kB │ gzip: 10.29 kB
+ℹ [@hookorama/supervisor] dist\index.mjs.map    70.47 kB │ gzip: 18.64 kB
+ℹ [@hookorama/supervisor] dist\index.d.mts.map   1.23 kB │ gzip:  0.60 kB
+ℹ [@hookorama/supervisor] dist\index.d.mts       9.00 kB │ gzip:  3.35 kB
+ℹ [@hookorama/supervisor] 4 files, total: 114.47 kB
+✔ [@hookorama/supervisor] Build complete in 929ms

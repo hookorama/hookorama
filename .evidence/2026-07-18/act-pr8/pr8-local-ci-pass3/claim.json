@@ -1,0 +1,87 @@
+{
+  "claim": "PR #8 (feat/packages-cli) local CI passes after third pass of SAST fixes (typecheck, lint, check, tests, build all green).",
+  "remaining_gaps": [
+    "Remote Codacy and SonarCloud checks have not yet been re-run on the pushed third-pass commit; they must pass before PR #8 is clean.",
+    "Review threads on PR #8 still need to be replied to and resolved before merge."
+  ],
+  "session_id": "35015a36-c441-4cf1-893e-756a8f1e68fe",
+  "assertions": [
+    {
+      "evidence_quote": "Found 0 warnings and 0 errors.",
+      "passed": true,
+      "name": "lint has zero warnings and errors"
+    },
+    {
+      "evidence_quote": "check-md: OK",
+      "passed": true,
+      "name": "markdown and file checks pass"
+    },
+    {
+      "evidence_quote": "Test Files",
+      "passed": true,
+      "name": "all test files pass"
+    },
+    {
+      "evidence_quote": "Tests ",
+      "passed": true,
+      "name": "all tests pass"
+    },
+    {
+      "evidence_quote": "[hookorama] Build complete",
+      "passed": true,
+      "name": "CLI builds successfully"
+    }
+  ],
+  "slug": "pr8-local-ci-pass3",
+  "task_id": "act-pr8",
+  "target_environment": "test-suite",
+  "produced_at": "2026-07-18T15:51:46.2379485+02:00",
+  "version": 1,
+  "agent": "devin-ai-integration",
+  "preconditions": [
+    "PR #8 has remaining Codacy/Sonar findings after the second push",
+    "The third-pass fixes are applied in the packages-stack worktree",
+    "bun, gh, and the repo dependencies are available"
+  ],
+  "commands": [
+    {
+      "stderr_excerpt": "\r\n\r\n WARN  TypeScript 7.0 does not yet have a stable API and is experimental. Some options will be unavailable.\r\n\r\n",
+      "duration_ms": 0,
+      "cwd": "C:\\Users\\petrp\\Documents\\GitHub\\hookorama\\.worktrees\\packages-stack",
+      "exit_code": 0,
+      "cmd": "NO_COLOR=1 CI=1 bun run ci",
+      "stdout_excerpt": "check-md: OK (26 .md files matched)\ncheck-files: OK (55 files matched)\n Test Files  8 passed (8)\n      Tests  55 passed (55)\n   Duration  539ms (transform 457ms, setup 0ms, import 998ms, tests 243ms, environment 1ms)\n✔ [hookorama] Build complete in 675ms\n✔ [@hookorama/extension] Build complete in 716ms\n✔ [@hookorama/web-app] Build complete in 732ms\n✔ [@hookorama/client] Build complete in 763ms\n✔ [@hookorama/supervisor] Build complete in 822ms"
+    }
+  ],
+  "files_changed": [
+    "packages/cli/src/index.ts",
+    "scripts/demo-setup.mjs"
+  ],
+  "verification_method": "command",
+  "self_recheck": {
+    "performed": true,
+    "method": "re-ran-command",
+    "result": "still-holds",
+    "performed_at": "2026-07-18T15:51:46.2395701+02:00"
+  },
+  "artifacts": [
+    {
+      "kind": "log",
+      "sha256": "C93461CE8AC489E4DD6DBE6CBCE71B4F106A8CCCE1943582AE2ED8282E2CE972",
+      "path": "ci.stdout",
+      "content_excerpt": "check-md: OK (26 .md files matched)\ncheck-files: OK (55 files matched)\n Test Files  8 passed (8)\n      Tests  55 passed (55)\n   Duration  539ms (transform 457ms, setup 0ms, import 998ms, tests 243ms, environment 1ms)\n✔ [hookorama] Build complete in 675ms\n✔ [@hookorama/extension] Build complete in 716ms\n✔ [@hookorama/web-app] Build complete in 732ms\n✔ [@hookorama/client] Build complete in 763ms\n✔ [@hookorama/supervisor] Build complete in 822ms"
+    },
+    {
+      "kind": "log",
+      "sha256": "61EB854BFEE48CAA3591AF581A9F3FEC992276A5C1BFA51B3183BE36B89DDA85",
+      "path": "ci.stderr",
+      "content_excerpt": "\r\n\r\n WARN  TypeScript 7.0 does not yet have a stable API and is experimental. Some options will be unavailable.\r\n\r\n"
+    },
+    {
+      "kind": "log",
+      "sha256": "5FECEB66FFC86F38D952786C6D696C79C2DBC239DD4E91B46729D73A27FB57E9",
+      "path": "ci.exit.code",
+      "content_excerpt": "0"
+    }
+  ]
+}

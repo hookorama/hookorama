@@ -15,15 +15,20 @@
       },
     },
     "packages/cli": {
-      "name": "hookorama",
-      "version": "0.0.0",
+      "name": "@hookorama/cli",
+      "version": "0.1.0",
       "bin": {
-        "hookorama": "./dist/index.mjs",
+        "hookorama": "./dist/main.mjs",
+      },
+      "dependencies": {
+        "@hookorama/client": "workspace:^0.1.0",
+        "@hookorama/supervisor": "workspace:^0.1.0",
+        "commander": "12.1.0",
       },
     },
     "packages/client": {
       "name": "@hookorama/client",
-      "version": "0.0.0",
+      "version": "0.1.0",
       "devDependencies": {
         "ws": "^8.18.2",
       },
@@ -34,9 +39,9 @@
     },
     "packages/supervisor": {
       "name": "@hookorama/supervisor",
-      "version": "0.0.0",
+      "version": "0.1.0",
       "dependencies": {
-        "@hookorama/client": "workspace:*",
+        "@hookorama/client": "workspace:^0.1.0",
       },
     },
     "packages/web-app": {
@@ -50,6 +55,8 @@
     "@emnapi/runtime": ["@emnapi/runtime@1.11.1", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-vgj7R3y3Wgx24IQaGPA/R6YFXLHVMOZ0uVEyIQPaWs+rd1AzfEMXlAC22FYwO1XkKR6NPsq7mUandH8oIRdZFw=="],
 
     "@emnapi/wasi-threads": ["@emnapi/wasi-threads@1.2.2", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-c95qOXkHdydNKhscBTebqEC1CVAZpyqOfVfBzQ1qgzyl3gfeldUjIggDbIZgDKsHLgnsM+igH7TJ/eAasaVuMA=="],
+
+    "@hookorama/cli": ["@hookorama/cli@workspace:packages/cli"],
 
     "@hookorama/client": ["@hookorama/client@workspace:packages/client"],
 
@@ -261,6 +268,8 @@
 
     "chai": ["chai@6.2.2", "", {}, "sha512-NUPRluOfOiTKBKvWPtSD4PhFvWCqOi0BGStNWs57X9js7XGTprSmFoz5F0tWhR4WPjNeR9jXqdC7/UpSJTnlRg=="],
 
+    "commander": ["commander@12.1.0", "", {}, "sha512-Vw8qHK3bZM9y/P10u3Vib8o/DdkvA2OtPtZvD871QKjy74Wj1WSKFILMPRPSdUSx5RFK1arlJzEtA4PkFgnbuA=="],
+
     "convert-source-map": ["convert-source-map@2.0.0", "", {}, "sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg=="],
 
     "defu": ["defu@6.1.7", "", {}, "sha512-7z22QmUWiQ/2d0KkdYmANbRUVABpZ9SNYyH5vx6PZ+nE5bcC0l7uFvEfHlyld/HcGBFTL536ClDt3DEcSlEJAQ=="],
@@ -284,8 +293,6 @@
     "get-tsconfig": ["get-tsconfig@5.0.0-beta.5", "", { "dependencies": { "resolve-pkg-maps": "^1.0.0" } }, "sha512-/6gFNr0N04nob252sTQxyFLi3eKFRqIg1I87YcqAMT1i6SQrSF6KujUEQrtrjMV0H/eejTCltLdDSTEMzHbnsQ=="],
 
     "hookable": ["hookable@6.1.1", "", {}, "sha512-U9LYDy1CwhMCnprUfeAZWZGByVbhd54hwepegYTK7Pi5NvqEj63ifz5z+xukznehT7i6NIZRu89Ay1AZmRsLEQ=="],
-
-    "hookorama": ["hookorama@workspace:packages/cli"],
 
     "import-without-cache": ["import-without-cache@0.4.0", "", {}, "sha512-NkJQA7oZ4YHQhd2+H3BoRFKF3d/XNsiKpHZCQEMH9pDX27hQQLsTyOocyRgaIVtf8gHX3Nt3LPkR4e5EdtPAGQ=="],
 

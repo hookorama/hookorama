@@ -1,0 +1,86 @@
+{
+  "claim": "PR #8 (feat/packages-cli) local CI passes after adding SonarCloud exclusion config (typecheck, lint, check, tests, build all green).",
+  "preconditions": [
+    "SonarCloud quality gate failed on new duplicated lines density after evidence files were added",
+    "sonar-project.properties added to exclude generated/demo directories",
+    "bun, gh, and the repo dependencies are available"
+  ],
+  "artifacts": [
+    {
+      "sha256": "718F5472B6FC3F6DBDFF56FBBCED401A8C300A4CBAA3D067362784D28B127503",
+      "content_excerpt": "check-md: OK (26 .md files matched)\ncheck-files: OK (55 files matched)\n Test Files  8 passed (8)\n      Tests  55 passed (55)\n   Duration  652ms (transform 751ms, setup 0ms, import 1.42s, tests 319ms, environment 1ms)\n✔ [hookorama] Build complete in 755ms\n✔ [@hookorama/web-app] Build complete in 844ms\n✔ [@hookorama/extension] Build complete in 846ms\n✔ [@hookorama/client] Build complete in 857ms\n✔ [@hookorama/supervisor] Build complete in 918ms",
+      "kind": "log",
+      "path": "ci.stdout"
+    },
+    {
+      "sha256": "61EB854BFEE48CAA3591AF581A9F3FEC992276A5C1BFA51B3183BE36B89DDA85",
+      "content_excerpt": "\r\n\r\n WARN  TypeScript 7.0 does not yet have a stable API and is experimental. Some options will be unavailable.\r\n\r\n",
+      "kind": "log",
+      "path": "ci.stderr"
+    },
+    {
+      "sha256": "5FECEB66FFC86F38D952786C6D696C79C2DBC239DD4E91B46729D73A27FB57E9",
+      "content_excerpt": "0",
+      "kind": "log",
+      "path": "ci.exit.code"
+    }
+  ],
+  "verification_method": "command",
+  "assertions": [
+    {
+      "name": "lint has zero warnings and errors",
+      "evidence_quote": "Found 0 warnings and 0 errors.",
+      "passed": true
+    },
+    {
+      "name": "markdown and file checks pass",
+      "evidence_quote": "check-md: OK",
+      "passed": true
+    },
+    {
+      "name": "all test files pass",
+      "evidence_quote": "Test Files",
+      "passed": true
+    },
+    {
+      "name": "all tests pass",
+      "evidence_quote": "Tests ",
+      "passed": true
+    },
+    {
+      "name": "CLI builds successfully",
+      "evidence_quote": "[hookorama] Build complete",
+      "passed": true
+    }
+  ],
+  "self_recheck": {
+    "performed": true,
+    "method": "re-ran-command",
+    "performed_at": "2026-07-18T16:06:50.2965763+02:00",
+    "result": "still-holds"
+  },
+  "version": 1,
+  "target_environment": "test-suite",
+  "task_id": "act-pr8",
+  "remaining_gaps": [
+    "Remote SonarCloud and Cubic checks have not yet been re-run on the pushed commit; they must pass before PR #8 is clean.",
+    "Review threads on PR #8 still need to be replied to and resolved before merge."
+  ],
+  "commands": [
+    {
+      "duration_ms": 0,
+      "stderr_excerpt": "\r\n\r\n WARN  TypeScript 7.0 does not yet have a stable API and is experimental. Some options will be unavailable.\r\n\r\n",
+      "stdout_excerpt": "check-md: OK (26 .md files matched)\ncheck-files: OK (55 files matched)\n Test Files  8 passed (8)\n      Tests  55 passed (55)\n   Duration  652ms (transform 751ms, setup 0ms, import 1.42s, tests 319ms, environment 1ms)\n✔ [hookorama] Build complete in 755ms\n✔ [@hookorama/web-app] Build complete in 844ms\n✔ [@hookorama/extension] Build complete in 846ms\n✔ [@hookorama/client] Build complete in 857ms\n✔ [@hookorama/supervisor] Build complete in 918ms",
+      "cmd": "NO_COLOR=1 CI=1 bun run ci",
+      "exit_code": 0,
+      "cwd": "C:\\Users\\petrp\\Documents\\GitHub\\hookorama\\.worktrees\\packages-stack"
+    }
+  ],
+  "files_changed": [
+    "sonar-project.properties"
+  ],
+  "session_id": "d2bff94f-4331-49c4-90b7-0d997973ed96",
+  "slug": "pr8-local-ci-pass5",
+  "agent": "devin-ai-integration",
+  "produced_at": "2026-07-18T16:06:50.2950071+02:00"
+}

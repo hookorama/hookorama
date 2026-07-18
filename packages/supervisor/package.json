@@ -1,7 +1,7 @@
 {
   "name": "@hookorama/supervisor",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
+  "private": false,
   "type": "module",
   "types": "./dist/index.d.mts",
   "exports": {
@@ -18,6 +18,6 @@
     "start": "bun src/main.ts"
   },
   "dependencies": {
-    "@hookorama/client": "workspace:*"
+    "@hookorama/client": "workspace:^0.1.0"
   }
 }
