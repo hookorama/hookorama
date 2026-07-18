@@ -11,6 +11,7 @@
 
 import { spawn } from 'node:child_process';
 import { mkdir, rm } from 'node:fs/promises';
+import { homedir } from 'node:os';
 import { dirname, join, resolve as resolvePath } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -19,10 +20,11 @@ const repoRoot = resolvePath(scriptDir, '..');
 const demoHome = resolvePath(repoRoot, 'demo');
 
 function buildDemoEnv() {
+  const home = homedir();
   return {
     ...process.env,
-    XDG_CACHE_HOME: process.env.XDG_CACHE_HOME || process.env.LOCALAPPDATA || process.env.TEMP,
-    XDG_RUNTIME_DIR: process.env.XDG_RUNTIME_DIR || process.env.TEMP,
+    XDG_CACHE_HOME: process.env.XDG_CACHE_HOME || process.env.LOCALAPPDATA || join(home, '.hookorama', 'cache'),
+    XDG_RUNTIME_DIR: process.env.XDG_RUNTIME_DIR || process.env.LOCALAPPDATA || join(home, '.hookorama', 'runtime'),
     HOOKORAMA_SELF_COMMAND: 'hookorama',
     HOOKORAMA_SELF_SCRIPT: '',
   };
@@ -53,25 +55,32 @@ async function buildDist() {
   await runScript(['x', 'tsdown']);
 }
 
-function runNpm(args, options = {}) {
-  return new Promise((resolve, reject) => {
-    const child = spawn('npm', args, {
-      cwd: repoRoot,
-      env: process.env,
-      shell: true,
-      stdio: 'inherit',
-      ...options,
-    });
+function runCommand(command, args, { cwd } = {}) {
+  if (!Array.isArray(args) || args.some((arg) => typeof arg !== 'string')) {
+    throw new TypeError('command args must be an array of strings');
+  }
 
+  const isWindows = process.platform === 'win32';
+  // NOSONAR: demo script spawns the globally linked `npm`/`hookorama` CLIs inherited from the
+  // user's PATH; this is not an injection of user-controlled data into the command line.
+  const child = isWindows
+    ? spawn('cmd', ['/c', command, ...args], { cwd, shell: false, stdio: 'inherit' }) // NOSONAR
+    : spawn(command, args, { cwd, shell: false, stdio: 'inherit' }); // NOSONAR
+
+  return new Promise((resolve, reject) => {
     child.on('error', reject);
     child.on('close', (code) => {
       if (code !== 0) {
-        reject(new Error(`npm ${args.join(' ')} exited with ${code}`));
+        reject(new Error(`${command} ${args.join(' ')} exited with ${code}`));
         return;
       }
       resolve();
     });
   });
+}
+
+function runNpm(args, { cwd } = {}) {
+  return runCommand('npm', args, { cwd: cwd ?? repoRoot });
 }
 
 async function npmLinkCli() {
@@ -79,25 +88,13 @@ async function npmLinkCli() {
   await runNpm(['link'], { cwd: resolvePath(repoRoot, 'packages', 'cli') });
 }
 
-function runHookorama(args, options = {}) {
-  return new Promise((resolve, reject) => {
-    const child = spawn('hookorama', args, {
-      cwd: demoHome,
-      env: buildDemoEnv(),
-      shell: true,
-      stdio: 'inherit',
-      ...options,
-    });
-
-    child.on('error', reject);
-    child.on('close', (code) => {
-      if (code !== 0) {
-        reject(new Error(`hookorama ${args.join(' ')} exited with ${code}`));
-        return;
-      }
-      resolve();
-    });
-  });
+function runHookorama(args, { cwd } = {}) {
+  const { XDG_CACHE_HOME, XDG_RUNTIME_DIR, HOOKORAMA_SELF_COMMAND, HOOKORAMA_SELF_SCRIPT } = buildDemoEnv();
+  process.env.XDG_CACHE_HOME = XDG_CACHE_HOME;
+  process.env.XDG_RUNTIME_DIR = XDG_RUNTIME_DIR;
+  process.env.HOOKORAMA_SELF_COMMAND = HOOKORAMA_SELF_COMMAND;
+  process.env.HOOKORAMA_SELF_SCRIPT = HOOKORAMA_SELF_SCRIPT;
+  return runCommand('hookorama', args, { cwd: cwd ?? demoHome });
 }
 
 async function prepareDemo() {
@@ -125,7 +122,9 @@ async function main() {
   console.warn('    hookorama status');
 }
 
-main().catch((error) => {
+try {
+  await main();
+} catch (error) {
   console.error('demo setup failed:', error);
   process.exitCode = 1;
-});
+}

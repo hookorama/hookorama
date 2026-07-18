@@ -3,12 +3,10 @@
  */
 
 import type { ProcessRow, WireSnapshot } from '@hookorama/client';
-import { isSupervisorRunning } from '../util/supervisor.js';
-
-const DEFAULT_HTTP_URL = 'http://127.0.0.1:7354';
+import { DEFAULT_HTTP_URL, isSupervisorRunning } from '../util/supervisor.js';
 
 async function fetchJson<T>(path: string): Promise<T> {
-  const response = await fetch(`${DEFAULT_HTTP_URL}${path}`);
+  const response = await fetch(`${DEFAULT_HTTP_URL}${path}`, { signal: AbortSignal.timeout(5000) });
   if (!response.ok) {
     throw new Error(`${path} failed: ${response.status}`);
   }
@@ -22,10 +20,15 @@ export async function status(): Promise<void> {
     return;
   }
 
-  const [snapshot, processes] = await Promise.all([
-    fetchJson<WireSnapshot>('/api/state').catch(() => ({ entries: [], at: new Date().toISOString() })),
-    fetchJson<ProcessRow[]>('/api/processes').catch(() => []),
-  ]);
+  let snapshot: WireSnapshot;
+  let processes: ProcessRow[];
+  try {
+    [snapshot, processes] = await Promise.all([fetchJson<WireSnapshot>('/api/state'), fetchJson<ProcessRow[]>('/api/processes')]);
+  } catch (error) {
+    console.error('supervisor status fetch failed:', error instanceof Error ? error.message : error);
+    process.exitCode = 1;
+    return;
+  }
 
   const entries = snapshot.entries;
   const active = entries.filter((e) => e.status !== 'done' && e.status !== 'error').length;

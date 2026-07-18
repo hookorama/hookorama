@@ -49,17 +49,20 @@ const parseOptions = {
   'metrics-errors': { type: 'string' as const },
 };
 
-function numberOrUndefined(raw: string | undefined): number | undefined {
+function numberOrThrow(raw: string | undefined, name: string): number | undefined {
   if (raw === undefined) return undefined;
   const value = Number(raw);
-  return Number.isFinite(value) ? value : undefined;
+  if (!Number.isFinite(value)) {
+    throw new Error(`invalid ${name}: ${raw}`);
+  }
+  return value;
 }
 
 function buildMetadata(values: ParsedHookOptions): AgentMetadata | undefined {
-  const tasks = numberOrUndefined(values['metrics-tasks']);
-  const toolCalls = numberOrUndefined(values['metrics-calls']);
-  const cost = numberOrUndefined(values['metrics-cost']);
-  const errors = numberOrUndefined(values['metrics-errors']);
+  const tasks = numberOrThrow(values['metrics-tasks'], 'metrics-tasks');
+  const toolCalls = numberOrThrow(values['metrics-calls'], 'metrics-calls');
+  const cost = numberOrThrow(values['metrics-cost'], 'metrics-cost');
+  const errors = numberOrThrow(values['metrics-errors'], 'metrics-errors');
 
   const metadata: AgentMetadata = {
     ...(values.model !== undefined ? { model: values.model } : {}),
@@ -87,7 +90,7 @@ function buildMetadata(values: ParsedHookOptions): AgentMetadata | undefined {
 export function buildCommonHookRequest(
   agent: string,
   status: string,
-  args: string[],
+  args: readonly string[],
   defaultCwd?: string,
 ): HookRequest {
   if (!VALID_STATUSES.has(status as Status)) {
@@ -95,7 +98,7 @@ export function buildCommonHookRequest(
   }
 
   const { values } = parseArgs({
-    args,
+    args: [...args],
     options: parseOptions,
     allowPositionals: true,
     strict: false,
@@ -103,8 +106,17 @@ export function buildCommonHookRequest(
 
   const opts = values as ParsedHookOptions;
   const cwd = opts.cwd ?? defaultCwd ?? process.cwd();
-  const pid = numberOrUndefined(opts.pid);
 
+  let pid: number | undefined;
+  if (opts.pid !== undefined) {
+    const pidValue = Number(opts.pid);
+    if (!Number.isInteger(pidValue) || pidValue <= 0) {
+      throw new Error(`invalid pid: ${opts.pid}`);
+    }
+    pid = pidValue;
+  }
+
+  const metadata = buildMetadata(opts);
   const hookRequest: HookRequest = {
     status: status as Status,
     cwd,
@@ -112,7 +124,7 @@ export function buildCommonHookRequest(
     ...(opts['agent-name'] !== undefined ? { agent: opts['agent-name'] } : {}),
     ...(opts['session-id'] !== undefined ? { sessionId: opts['session-id'] } : {}),
     ...(pid !== undefined ? { pidChain: [pid] } : {}),
-    ...(buildMetadata(opts) !== undefined ? { metadata: buildMetadata(opts)! } : {}),
+    ...(metadata !== undefined ? { metadata } : {}),
   };
 
   return hookRequest;

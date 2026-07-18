@@ -6,7 +6,7 @@
  * plugin so that agent-specific config formats stay isolated.
  */
 
-import type { HookRequest } from '@hookorama/client';
+import type { HookRequest, Status } from '@hookorama/client';
 
 export interface AgentPluginOptions {
   /** When true, do not write files; only report what would change. */
@@ -31,7 +31,7 @@ export interface AgentPlugin {
    * `status` is validated by the CLI before this is called. `args` contains
    * the tokens after `hook <agent> <status>`.
    */
-  buildHookRequest(agent: string, status: string, args: string[]): HookRequest;
+  buildHookRequest(agent: string, status: Status, args: readonly string[]): HookRequest;
 
   /** Install the agent hook configuration. */
   install(opts?: AgentPluginOptions): Promise<void>;

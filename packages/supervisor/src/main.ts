@@ -5,27 +5,10 @@
  * cleanly on SIGINT/SIGTERM.
  */
 
-import { Supervisor } from './supervisor.js';
-import { WireServer } from './wire/server.js';
+import { runSupervisorDaemon } from './run.js';
 
-const supervisor = new Supervisor();
-const acquired = await supervisor.start();
-if (!acquired) {
+if (!(await runSupervisorDaemon())) {
   console.error('another supervisor is already running');
-  // eslint-disable-next-line unicorn/no-process-exit
+  // oxlint-disable-next-line unicorn/no-process-exit
   process.exit(1);
 }
-
-const server = new WireServer(supervisor);
-await server.start();
-console.warn('supervisor listening on %s', server.url().href);
-
-const shutdown = async (): Promise<void> => {
-  await server.stop();
-  await supervisor.stop();
-  // eslint-disable-next-line unicorn/no-process-exit
-  process.exit(0);
-};
-
-process.on('SIGINT', shutdown);
-process.on('SIGTERM', shutdown);
