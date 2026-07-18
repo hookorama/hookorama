@@ -104,7 +104,7 @@ describe('useHookoramaStore', () => {
       ts: Date.now(),
       key: 'pid:1234',
       agent: 'test-agent',
-      type: 'thinking',
+      type: 'tool.call',
       summary: 'test-agent is thinking',
       payload: { projectId: 'proj_hookorama' },
     };
@@ -115,7 +115,7 @@ describe('useHookoramaStore', () => {
     expect(events).toHaveLength(1);
     expect(events[0]?.agentId).toBe('pid:1234');
     expect(events[0]?.projectId).toBe('proj_hookorama');
-    expect(events[0]?.type).toBe('status.update');
+    expect(events[0]?.type).toBe('tool.call');
     expect(events[0]?.summary).toBe('test-agent is thinking');
   });
 
