@@ -41,6 +41,9 @@ const projectsRoute = createRoute({
 const agentsRoute = createRoute({
   getParentRoute: () => shellRoute,
   path: '/agents',
+  validateSearch: (search: Record<string, unknown>): { project: string | undefined } => ({
+    project: typeof search['project'] === 'string' ? (search['project'] as string) : undefined,
+  }),
   component: Agents,
 });
 

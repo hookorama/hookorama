@@ -32,6 +32,7 @@ export class SupervisorClient {
   private readonly wsUrl: string;
   private readonly WebSocketConstructor: WebSocketConstructor;
   private ws: WebSocketLike | null = null;
+  private abortController: AbortController | null = null;
 
   private onSnapshot?: (snapshot: WireSnapshot) => void;
   private onEvent?: (event: HookEvent) => void;
@@ -67,20 +68,33 @@ export class SupervisorClient {
 
   /** Fetch the current snapshot and open the WebSocket. */
   async start(): Promise<void> {
-    const initial = await this.fetchSnapshot();
-    this.onSnapshot?.(initial);
-    this.connect();
+    this.stop();
+    this.abortController = new AbortController();
+    const signal = this.abortController.signal;
+    try {
+      const initial = await this.fetchSnapshot(signal);
+      if (signal.aborted) return;
+      this.onSnapshot?.(initial);
+      this.connect();
+    } catch (error) {
+      if (signal.aborted) return;
+      throw error;
+    }
   }
 
-  /** Close the WebSocket. */
+  /** Close the WebSocket and abort any in-flight start. */
   stop(): void {
+    this.abortController?.abort();
+    this.abortController = null;
     this.ws?.close();
     this.ws = null;
   }
 
   /** Fetch the OS process table from GET /api/processes. */
   async fetchProcesses(): Promise<ProcessRow[]> {
-    const response = await fetch(`${this.httpUrl}/api/processes`);
+    const response = await fetch(`${this.httpUrl}/api/processes`, {
+      signal: this.abortController?.signal ?? null,
+    });
     if (!response.ok) {
       throw new Error(`processes failed: ${response.status}`);
     }
@@ -100,8 +114,8 @@ export class SupervisorClient {
     }
   }
 
-  private async fetchSnapshot(): Promise<WireSnapshot> {
-    const response = await fetch(`${this.httpUrl}/api/state`);
+  private async fetchSnapshot(signal?: AbortSignal): Promise<WireSnapshot> {
+    const response = await fetch(`${this.httpUrl}/api/state`, { signal: signal ?? null });
     if (!response.ok) {
       throw new Error(`snapshot failed: ${response.status}`);
     }

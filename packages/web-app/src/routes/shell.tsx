@@ -234,18 +234,23 @@ export function Shell(): ReactElement {
     client.setOnSnapshot((snapshot) => { syncSnapshot(snapshot); });
     client.setOnEvent((event) => { applyEvent(event); });
 
+    let cancelled = false;
     void (async () => {
       try {
         await client.start();
+        if (cancelled) return;
         const processes = await client.fetchProcesses();
+        if (cancelled) return;
         setProcesses(processes);
       } catch (err) {
+        if (cancelled) return;
         console.error('Failed to initialize supervisor client:', err);
         setConnection('error');
       }
     })();
 
     return () => {
+      cancelled = true;
       client.stop();
     };
   }, [setConnection, syncSnapshot, applyEvent, setProcesses]);

@@ -47,6 +47,7 @@ function ProjectsPage() {
             <Link
               key={project.id}
               to="/agents"
+              search={{ project: project.id }}
               className="grid grid-cols-[1fr_repeat(6,minmax(0,90px))] items-center gap-2 px-4 py-3 hover:bg-muted/30"
             >
               <div className="min-w-0">

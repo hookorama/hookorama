@@ -13,6 +13,18 @@ describe('buildCommonHookRequest', () => {
     expect(() => buildCommonHookRequest('claude', 'nope', [])).toThrow('invalid status');
   });
 
+  it('throws for invalid metric values', () => {
+    expect(() =>
+      buildCommonHookRequest('devin', 'running-tool', ['--metrics-tasks', 'not-a-number']),
+    ).toThrow('invalid metrics-tasks');
+  });
+
+  it('throws for non-positive or non-integer pid', () => {
+    expect(() => buildCommonHookRequest('devin', 'running-tool', ['--pid', '0'])).toThrow('invalid pid');
+    expect(() => buildCommonHookRequest('devin', 'running-tool', ['--pid', '-5'])).toThrow('invalid pid');
+    expect(() => buildCommonHookRequest('devin', 'running-tool', ['--pid', '3.14'])).toThrow('invalid pid');
+  });
+
   it('parses metadata flags', () => {
     const request = buildCommonHookRequest('devin', 'running-tool', [
       '--model',
