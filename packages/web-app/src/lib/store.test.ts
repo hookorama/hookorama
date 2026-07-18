@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import type { HookEvent as WireHookEvent, ProcessEntry, WireSnapshot } from '@hookorama/client';
 import { selectAgentTree, selectProcessTree, useHookoramaStore } from './store.js';
 import type { Agent, Process } from './types.js';
@@ -15,6 +15,23 @@ function makeEntry(partial: Partial<ProcessEntry> & Pick<ProcessEntry, 'key' | '
 }
 
 describe('useHookoramaStore', () => {
+  beforeEach(() => {
+    useHookoramaStore.setState({
+      projects: [],
+      agents: [],
+      processes: [],
+      events: [],
+      notifications: [],
+      notificationAcks: new Set<string>(),
+      scanlines: false,
+      buckets: [],
+      agentTotals: {},
+      skillHistory: {},
+      modelHistory: {},
+      connection: 'disconnected',
+    });
+  });
+
   it('maps a live snapshot to agents, projects and notifications', () => {
     const snapshot: WireSnapshot = {
       at: new Date().toISOString(),

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { WireSnapshot, HookEvent as WireHookEvent, ProcessEntry } from '@hookorama/client';
-import type { Agent, EventType, HookEvent, Notification, NotificationKind, Origin, Process, Project } from './types.js';
+import type { Agent, EventType, HookEvent, Metrics, Notification, NotificationKind, Origin, Process, Project } from './types.js';
 
 const PROJECT_COLORS = ['#39ff14', '#ffb000', '#22d3ee', '#ff5c8a', '#a78bfa'];
 
@@ -12,6 +12,11 @@ interface ProjectMetrics {
   cost: number;
   active: number;
   errors: number;
+}
+
+interface AgentTotal {
+  projectId: string;
+  metrics: Metrics;
 }
 
 interface Bucket {
@@ -32,26 +37,40 @@ function emptyProjectMetrics(): ProjectMetrics {
   return { tasks: 0, toolCalls: 0, cost: 0, active: 0, errors: 0 };
 }
 
-function updateBuckets(buckets: Bucket[], agents: Agent[]): Bucket[] {
+function updateBuckets(
+  buckets: Bucket[],
+  agents: Agent[],
+  agentTotals: Record<string, AgentTotal>,
+): Bucket[] {
   const byProject = new Map<string, ProjectMetrics>();
   const totals = emptyProjectMetrics();
-  for (const a of agents) {
-    let pm = byProject.get(a.projectId);
+
+  // Cumulative totals are built from every agent we have ever seen so that
+  // completed agents still contribute to range-based KPIs.
+  for (const { projectId, metrics } of Object.values(agentTotals)) {
+    let pm = byProject.get(projectId);
     if (!pm) {
       pm = emptyProjectMetrics();
-      byProject.set(a.projectId, pm);
+      byProject.set(projectId, pm);
     }
-    pm.tasks += a.metrics.tasks;
-    pm.toolCalls += a.metrics.toolCalls;
-    pm.cost += a.metrics.cost;
-    pm.errors += a.metrics.errors;
-    if (a.status === 'running-tool' || a.status === 'thinking') pm.active += 1;
+    pm.tasks += metrics.tasks;
+    pm.toolCalls += metrics.toolCalls;
+    pm.cost += metrics.cost;
+    pm.errors += metrics.errors;
 
-    totals.tasks += a.metrics.tasks;
-    totals.toolCalls += a.metrics.toolCalls;
-    totals.cost += a.metrics.cost;
-    totals.errors += a.metrics.errors;
-    if (a.status === 'running-tool' || a.status === 'thinking') totals.active += 1;
+    totals.tasks += metrics.tasks;
+    totals.toolCalls += metrics.toolCalls;
+    totals.cost += metrics.cost;
+    totals.errors += metrics.errors;
+  }
+
+  // Active counts reflect the currently running/thinking agents only.
+  for (const a of agents) {
+    if (a.status === 'running-tool' || a.status === 'thinking') {
+      const pm = byProject.get(a.projectId);
+      if (pm) pm.active += 1;
+      totals.active += 1;
+    }
   }
 
   const bucket: Bucket = {
@@ -99,6 +118,7 @@ interface Store {
   notificationAcks: Set<string>;
   scanlines: boolean;
   buckets: Bucket[];
+  agentTotals: Record<string, AgentTotal>;
   skillHistory: Record<string, number>;
   modelHistory: Record<string, { calls: number; cost: number }>;
   connection: Connection;
@@ -282,6 +302,7 @@ export const useHookoramaStore = create<Store>((set) => ({
   notificationAcks: new Set<string>(),
   scanlines: false,
   buckets: [],
+  agentTotals: {},
   skillHistory: {},
   modelHistory: {},
   connection: 'disconnected',
@@ -299,12 +320,17 @@ export const useHookoramaStore = create<Store>((set) => ({
         notifications: state.notifications,
         notificationAcks: state.notificationAcks,
       });
+      const agentTotals: Record<string, AgentTotal> = { ...state.agentTotals };
+      for (const a of agents) {
+        agentTotals[a.id] = { projectId: a.projectId, metrics: a.metrics };
+      }
       return {
         connection: 'connected',
         agents,
         projects,
         notifications,
-        buckets: updateBuckets(state.buckets, agents),
+        buckets: updateBuckets(state.buckets, agents, agentTotals),
+        agentTotals,
         skillHistory: updateSkillHistory(agents),
         modelHistory: updateModelHistory(agents),
       };
