@@ -34,9 +34,7 @@ function childExitPromise(child: ChildProcess): Promise<'exit'> {
 export async function startSupervisor(): Promise<void> {
   const pidFile = pidFilePath({ product: 'hookorama-supervisor' });
   const { runtime, script } = getSelfCommand();
-  if (runtime.length === 0) {
-    throw new Error('cannot determine CLI runtime');
-  }
+  if (!runtime.length) throw new Error('cannot determine CLI runtime');
   const args = script.length > 0 ? [script, 'supervisor', 'start'] : ['supervisor', 'start'];
 
   const MAX_RETRIES = 3;
@@ -98,17 +96,16 @@ export async function startSupervisor(): Promise<void> {
   throw new Error('supervisor failed to start after retries');
 }
 
-async function readCurrentPid(pidFile: ReturnType<typeof pidFilePath>): Promise<number | null> {
-  try {
-    // NOSONAR: pidFilePath returns a deterministic, platform-specific path for the
-    // supervisor PID file; it is not derived from user input.
-    // eslint-disable-next-line security/detect-non-literal-fs-filename
-    const raw = await readFile(pidFile.path, 'utf8');
-    const pid = Number(raw.trim());
-    return Number.isFinite(pid) && pid > 0 ? pid : null;
-  } catch {
-    return null;
-  }
+function readCurrentPid(pidFile: ReturnType<typeof pidFilePath>): Promise<number | null> {
+  // NOSONAR: pidFilePath returns a deterministic, platform-specific path for the
+  // supervisor PID file; it is not derived from user input.
+  // eslint-disable-next-line security/detect-non-literal-fs-filename
+  return readFile(pidFile.path, 'utf8')
+    .then((raw) => {
+      const pid = Number(raw.trim());
+      return Number.isFinite(pid) && pid > 0 ? pid : null;
+    })
+    .catch(() => null);
 }
 
 /** Start the supervisor if it is not already running. */
