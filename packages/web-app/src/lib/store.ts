@@ -34,6 +34,7 @@ function emptyProjectMetrics(): ProjectMetrics {
 
 function updateBuckets(buckets: Bucket[], agents: Agent[]): Bucket[] {
   const byProject = new Map<string, ProjectMetrics>();
+  const totals = emptyProjectMetrics();
   for (const a of agents) {
     let pm = byProject.get(a.projectId);
     if (!pm) {
@@ -43,18 +44,24 @@ function updateBuckets(buckets: Bucket[], agents: Agent[]): Bucket[] {
     pm.tasks += a.metrics.tasks;
     pm.toolCalls += a.metrics.toolCalls;
     pm.cost += a.metrics.cost;
+    pm.errors += a.metrics.errors;
     if (a.status === 'running-tool' || a.status === 'thinking') pm.active += 1;
-    if (a.status === 'error') pm.errors += 1;
+
+    totals.tasks += a.metrics.tasks;
+    totals.toolCalls += a.metrics.toolCalls;
+    totals.cost += a.metrics.cost;
+    totals.errors += a.metrics.errors;
+    if (a.status === 'running-tool' || a.status === 'thinking') totals.active += 1;
   }
 
   const bucket: Bucket = {
     id: nextBucketId++,
     ts: Date.now(),
-    tasks: agents.reduce((s, a) => s + a.metrics.tasks, 0),
-    toolCalls: agents.reduce((s, a) => s + a.metrics.toolCalls, 0),
-    cost: agents.reduce((s, a) => s + a.metrics.cost, 0),
-    active: agents.filter((a) => a.status === 'running-tool' || a.status === 'thinking').length,
-    errors: agents.filter((a) => a.status === 'error').length,
+    tasks: totals.tasks,
+    toolCalls: totals.toolCalls,
+    cost: totals.cost,
+    active: totals.active,
+    errors: totals.errors,
     byProject,
   };
   return [...buckets, bucket].slice(-MAX_BUCKETS);
@@ -140,8 +147,11 @@ function parseOrigin(raw: string | undefined): Origin {
 function sameProcessSession(entry: ProcessEntry, previous: Agent): boolean {
   // Only carry error timestamps forward when the snapshot row is confirmed
   // to belong to the same process/session, otherwise a reused PID can hide
-  // a new failure behind an already-acknowledged notification.
+  // a new failure behind an already-acknowledged notification. The 'unknown'
+  // sentinel means the previous row had no sessionId, so we cannot confirm
+  // a match and must treat the current row as a new process/session.
   if (entry.sessionId === undefined) return false;
+  if (previous.sessionId === 'unknown') return false;
   return entry.sessionId === previous.sessionId;
 }
 

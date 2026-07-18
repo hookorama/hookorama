@@ -241,7 +241,7 @@ function AnalyticsPage() {
         t: formatBucketTime(b.ts),
         tasks: b.tasks,
         tools: b.toolCalls,
-        cost: Number(b.cost.toFixed(4)),
+        cost: b.cost,
         errors: b.errors,
         active: b.active,
       })),
@@ -269,7 +269,7 @@ function AnalyticsPage() {
               t: formatBucketTime(b.ts),
               tasks: p.tasks,
               tools: p.toolCalls,
-              cost: Number(p.cost.toFixed(4)),
+              cost: p.cost,
               errors: p.errors,
               active: p.active,
             };
@@ -292,16 +292,22 @@ function AnalyticsPage() {
       rollupProjects
         .map((p) => {
           const own = agents.filter((a) => a.projectId === p.id);
-          const firstPm = slicedBuckets[0]?.byProject.get(p.id) ?? emptyProjectMetrics();
           const lastPm = slicedBuckets.at(-1)?.byProject.get(p.id) ?? emptyProjectMetrics();
+          const pm = emptyProjectMetrics();
+          for (const a of own) {
+            pm.tasks += a.metrics.tasks;
+            pm.toolCalls += a.metrics.toolCalls;
+            pm.cost += a.metrics.cost;
+            pm.errors += a.metrics.errors;
+          }
           return {
             project: p,
             agents: own.length,
             running: lastPm.active,
-            errors: lastPm.errors,
-            tasks: lastPm.tasks - firstPm.tasks,
-            tools: lastPm.toolCalls - firstPm.toolCalls,
-            cost: lastPm.cost - firstPm.cost,
+            errors: pm.errors,
+            tasks: pm.tasks,
+            tools: pm.toolCalls,
+            cost: pm.cost,
           };
         })
         .sort((a, b) => b.cost - a.cost),
