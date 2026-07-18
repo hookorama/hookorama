@@ -29,6 +29,13 @@ const EVENT_TO_STATUS: ReadonlyMap<ClaudeHookEvent, string> = new Map([
 
 const STATUSES = new Set(EVENT_TO_STATUS.values());
 
+const WAITING_INPUT_NOTIFICATIONS = [
+  'permission_prompt',
+  'idle_prompt',
+  'elicitation_dialog',
+  'agent_needs_input',
+] as const;
+
 const settingsPath = join(process.cwd(), '.claude', 'settings.json');
 
 interface ClaudeHookCommand {
@@ -63,6 +70,9 @@ function buildHooks(): ClaudeHooks {
       const status = EVENT_TO_STATUS.get(event);
       if (status === undefined) {
         throw new Error(`unknown hook event: ${event}`);
+      }
+      if (event === 'Notification') {
+        return [event, [{ matcher: WAITING_INPUT_NOTIFICATIONS.join('|'), hooks: [buildHookCommand(status)] }]] as const;
       }
       return [event, [{ matcher: '', hooks: [buildHookCommand(status)] }]] as const;
     }),
