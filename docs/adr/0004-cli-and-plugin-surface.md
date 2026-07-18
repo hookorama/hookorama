@@ -38,6 +38,7 @@ configuration.
 - `hookorama setup <agent> --update` — refresh the agent's hook config.
 - `hookorama setup <agent> --remove` — remove the agent's hook config.
 - `hookorama plugin list` — list built-in plugins.
+- `hookorama dashboard` — start the web dashboard (runs the Vite dev server from `packages/web-app`).
 
 Key contracts:
 
@@ -71,6 +72,7 @@ Key contracts:
 - [ ] `hookorama hook <agent> <status>` dispatches a valid `HookRequest`.
 - [ ] `hookorama setup <agent>` installs the agent hook config without overwriting unrelated settings.
 - [ ] `hookorama plugin list` shows the built-in plugins.
+- [ ] `hookorama dashboard` starts the Vite dev server for `packages/web-app` and inherits stdio.
 - [ ] `bun run ci` passes before the PR is merged.
 
 ## Consequences
@@ -110,8 +112,7 @@ removing the command would break those agents.
 - What is the exact schema for `.claude/settings.json` and
   `.devin/config.json`? The plugins will start with the most common
   conventions and adjust once the first real agent environments are tested.
-- Should `hookorama dev` be a future command? Not in this PR; `packages/web-app`
-  keeps its own `dev` script.
+- Should `hookorama dev` be a future command? Implemented as `hookorama dashboard`, which runs `bun run dev` in `packages/web-app` from the CLI package directory.
 - Should external plugins be loaded via `bun install -g` or discovered by name?
   Defer until the first third-party plugin appears.
 
@@ -123,7 +124,7 @@ removing the command would break those agents.
   - `docs/adr/0004-cli-and-plugin-surface.md` (this file)
   - `packages/cli/src/main.ts`, `packages/cli/src/index.ts`
   - `packages/cli/src/plugin.ts`, `packages/cli/src/plugin-registry.ts`
-  - `packages/cli/src/commands/{supervisor,hook,setup,status}.ts`
+  - `packages/cli/src/commands/{supervisor,hook,setup,status,dashboard}.ts`
   - `packages/cli/src/plugins/{claude,devin}.ts`
   - `packages/cli/src/util/supervisor.ts`
   - `packages/cli/package.json`, `packages/cli/tsdown.config.ts`

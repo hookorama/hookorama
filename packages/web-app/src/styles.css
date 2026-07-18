@@ -1,0 +1,106 @@
+@import "tailwindcss" source(none);
+@import "tw-animate-css";
+@source "../src";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
+  --font-mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, monospace;
+  --font-sans: "IBM Plex Mono", ui-monospace, monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-panel: var(--panel);
+  --color-card: var(--panel);
+  --color-card-foreground: var(--foreground);
+  --color-popover: var(--panel);
+  --color-popover-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--muted);
+  --color-secondary-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--background);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--foreground);
+  --color-border: var(--border);
+  --color-input: var(--border);
+  --color-ring: var(--primary);
+  --color-info: var(--info);
+  --color-dim: var(--dim);
+}
+
+:root {
+  --radius: 0px;
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.93 0 0);
+  --panel: oklch(0.18 0 0);
+  --muted: oklch(0.22 0 0);
+  --muted-foreground: oklch(0.62 0 0);
+  --dim: oklch(0.45 0 0);
+  --border: oklch(0.28 0 0);
+  --primary: oklch(0.88 0.28 140);
+  --primary-foreground: oklch(0.145 0 0);
+  --accent: oklch(0.82 0.18 80);
+  --destructive: oklch(0.68 0.24 25);
+  --info: oklch(0.82 0.14 230);
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html,
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-mono);
+  }
+
+  body {
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  ::selection {
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+  }
+}
+
+/* Optional CRT scanlines */
+.scanlines::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 2px,
+    rgba(0, 0, 0, 0.15) 3px,
+    rgba(0, 0, 0, 0.15) 3px
+  );
+  mix-blend-mode: multiply;
+}
