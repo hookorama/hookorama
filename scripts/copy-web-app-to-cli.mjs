@@ -5,14 +5,17 @@
  * source workspace.
  */
 
-import { cp, rm } from 'node:fs/promises';
+import { cp, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
 
 const root = import.meta.dir ? path.resolve(import.meta.dir, '..') : process.cwd();
 const src = path.resolve(root, 'packages/web-app/dist');
 const dst = path.resolve(root, 'packages/cli/dist/web-app');
+const indexHtml = path.resolve(src, 'index.html');
 
-if (!(await Bun.file(path.resolve(src, 'index.html')).exists())) {
+try {
+  await stat(indexHtml);
+} catch {
   console.error('built web-app not found at %s; run `bun run --cwd packages/web-app build` first', src);
   process.exit(1);
 }
