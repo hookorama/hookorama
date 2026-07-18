@@ -58,14 +58,9 @@ async function findBuiltWebApp(cliDir: string): Promise<string | undefined> {
 }
 
 async function findSourceWebApp(cliDir: string): Promise<string | undefined> {
-  const candidates = [
-    path.resolve(cliDir, '..', 'web-app'),
-    path.resolve(cliDir, '..', '..', 'packages', 'web-app'),
-  ];
-  for (const dir of candidates) {
-    const pkg = Bun.file(path.resolve(dir, 'package.json'));
-    if (await pkg.exists()) return dir;
-  }
+  const dir = path.resolve(cliDir, '..', 'web-app');
+  const pkg = Bun.file(path.resolve(dir, 'package.json'));
+  if (await pkg.exists()) return dir;
   return undefined;
 }
 
@@ -100,7 +95,10 @@ function serveStatic(webAppDir: string, port = 3000): void {
       const relative = url.pathname === '/' ? 'index.html' : url.pathname;
       const resolved = path.join(webAppDir, relative);
       const relativeToRoot = path.relative(path.resolve(webAppDir), resolved);
-      const forbidden = relativeToRoot.startsWith('..') || path.isAbsolute(relativeToRoot);
+      const forbidden =
+        relativeToRoot === '..' ||
+        relativeToRoot.startsWith(`..${path.sep}`) ||
+        path.isAbsolute(relativeToRoot);
       if (forbidden) {
         return new Response('Forbidden', { status: 403 });
       }

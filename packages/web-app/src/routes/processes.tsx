@@ -18,6 +18,10 @@ function hasMatchingDescendant(node: Process, tree: Map<number, Process[]>, q: s
   return false;
 }
 
+function isNodeVisible(node: Process, tree: Map<number, Process[]>, q: string, tf: string): boolean {
+  return nodeMatches(node, q, tf) || hasMatchingDescendant(node, tree, q, tf);
+}
+
 const TYPE_COLOR: Record<Process['type'], string> = {
   agent: 'text-primary',
   tool: 'text-info',
@@ -45,11 +49,11 @@ function PNode({
   readonly tf: string;
 }) {
   const kids = tree.get(node.pid) ?? [];
+  const visibleKids = kids.filter((c) => isNodeVisible(c, tree, q, tf));
   const branch = isLast ? '└─ ' : '├─ ';
   const childPrefix = prefix + (isLast ? '   ' : '│  ');
   const matches = nodeMatches(node, q, tf);
-  const childrenMatch = matches || hasMatchingDescendant(node, tree, q, tf);
-  if (!matches && !childrenMatch) return null;
+  if (!matches && visibleKids.length === 0) return null;
   return (
     <>
       <div
@@ -81,13 +85,13 @@ function PNode({
         <span className="text-dim">{node.tty ?? '-'}</span>
         <span className={TYPE_COLOR[node.type]}>{node.type}</span>
       </div>
-      {kids.map((c, i) => (
+      {visibleKids.map((c, i) => (
         <PNode
           key={c.pid}
           node={c}
           tree={tree}
           prefix={childPrefix}
-          isLast={i === kids.length - 1}
+          isLast={i === visibleKids.length - 1}
           onSelect={onSelect}
           selectedPid={selectedPid}
           q={q}

@@ -165,7 +165,7 @@ function ModelTable({ models }: { readonly models: Record<string, { calls: numbe
   );
 }
 
-function UsageTable({ series }: { readonly series: { t: string; tasks: number; tools: number; cost: number; errors: number; active: number }[] }) {
+function UsageTable({ series }: { readonly series: { ts: number; t: string; tasks: number; tools: number; cost: number; errors: number; active: number }[] }) {
   return (
     <Panel title={`usage over time · ${series.length}`}>
       <div className="max-h-64 overflow-auto p-2 text-xs">
@@ -177,8 +177,8 @@ function UsageTable({ series }: { readonly series: { t: string; tasks: number; t
           <span className="text-right">err</span>
           <span className="text-right">act</span>
         </div>
-        {series.map((b, i) => (
-          <div key={`${b.t}:${i}`} className="grid grid-cols-[100px_50px_50px_60px_40px_40px] gap-2 py-0.5">
+        {series.map((b) => (
+          <div key={b.ts} className="grid grid-cols-[100px_50px_50px_60px_40px_40px] gap-2 py-0.5">
             <span className="text-dim">{b.t}</span>
             <span className="text-right">{b.tasks}</span>
             <span className="text-right text-info">{b.tools}</span>
@@ -215,6 +215,7 @@ function AnalyticsPage() {
   const series = useMemo(
     () =>
       buckets.slice(-nBuckets).map((b) => ({
+        ts: b.ts,
         t: new Date(b.ts).toISOString().slice(5, 16).replace('T', ' '),
         tasks: b.tasks,
         tools: b.toolCalls,

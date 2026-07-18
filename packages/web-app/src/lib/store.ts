@@ -106,7 +106,7 @@ function parseOrigin(raw: string | undefined): Origin {
   return raw !== undefined && ORIGINS.has(raw) ? (raw as Origin) : 'terminal';
 }
 
-function toAgentOptions(entry: ProcessEntry): Partial<Agent> {
+function toAgentOptions(entry: ProcessEntry, updatedAt: number, previous?: Agent): Partial<Agent> {
   const options: Partial<Agent> = {};
   if (entry.metadata?.model !== undefined) options.model = entry.metadata.model;
   if (entry.metadata?.skill !== undefined) options.skill = entry.metadata.skill;
@@ -115,11 +115,13 @@ function toAgentOptions(entry: ProcessEntry): Partial<Agent> {
   if (entry.metadata?.lastErrorAt !== undefined) {
     const ts = Date.parse(entry.metadata.lastErrorAt);
     if (!Number.isNaN(ts)) options.lastErrorAt = ts;
+  } else if (entry.status === 'error') {
+    options.lastErrorAt = previous?.status === 'error' ? previous.lastErrorAt ?? updatedAt : updatedAt;
   }
   return options;
 }
 
-function toAgent(entry: ProcessEntry): Agent {
+function toAgent(entry: ProcessEntry, previous?: Agent): Agent {
   const ts = Date.parse(entry.at);
   const updatedAt = Number.isNaN(ts) ? Date.now() : ts;
 
@@ -132,7 +134,7 @@ function toAgent(entry: ProcessEntry): Agent {
     origin: parseOrigin(entry.metadata?.origin),
     sessionId: entry.sessionId ?? 'unknown',
     projectId: entry.metadata?.projectId ?? entry.cwd,
-    ...toAgentOptions(entry),
+    ...toAgentOptions(entry, updatedAt, previous),
     createdAt: updatedAt,
     updatedAt,
     metrics: entry.metadata?.metrics ?? { tasks: 0, toolCalls: 0, cost: 0, errors: 0 },
@@ -228,7 +230,8 @@ export const useHookoramaStore = create<Store>((set) => ({
 
   syncSnapshot: (snapshot) => {
     set((state) => {
-      const agents = snapshot.entries.map(toAgent);
+      const previousById = new Map(state.agents.map((a) => [a.id, a]));
+      const agents = snapshot.entries.map((entry) => toAgent(entry, previousById.get(entry.key)));
       const projects = buildProjects(snapshot.entries);
       const notifications = deriveNotifications(agents, {
         notifications: state.notifications,
