@@ -74,7 +74,7 @@ interface Store {
 }
 
 function basename(path: string): string {
-  const normalized = path.replace(/\\/g, '/');
+  const normalized = path.replaceAll('\\', '/');
   const idx = normalized.lastIndexOf('/');
   return idx >= 0 ? normalized.slice(idx + 1) : normalized;
 }
@@ -82,7 +82,7 @@ function basename(path: string): string {
 function hashString(value: string): number {
   let h = 5381;
   for (let i = 0; i < value.length; i += 1) {
-    h = (h * 33 + value.codePointAt(i)!) % 2147483647;
+    h = (h * 33 + (value.codePointAt(i) ?? 0)) % 2147483647;
   }
   return h;
 }
@@ -181,12 +181,12 @@ function deriveNotifications(agents: readonly Agent[], existing: readonly Notifi
 
 function mapEvent(event: WireHookEvent): HookEvent {
   const payload = event.payload ?? {};
-  const projectId =
-    typeof event.projectId === 'string'
-      ? event.projectId
-      : typeof payload['projectId'] === 'string'
-        ? payload['projectId']
-        : undefined;
+  let projectId: string | undefined;
+  if (typeof event.projectId === 'string') {
+    projectId = event.projectId;
+  } else if (typeof payload['projectId'] === 'string') {
+    projectId = payload['projectId'];
+  }
 
   return {
     id: event.id,

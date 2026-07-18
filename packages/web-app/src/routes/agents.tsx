@@ -30,6 +30,12 @@ const ALL_STATUS: Status[] = ['thinking', 'running-tool', 'waiting-input', 'done
 const ALL_TYPES: NodeType[] = ['agent', 'subagent', 'tool'];
 const ALL_ORIGINS: Origin[] = ['terminal', 'vscode', 'jetbrains', 'ci'];
 
+function agentTypeColor(t: NodeType): string {
+  if (t === 'agent') return 'text-primary';
+  if (t === 'subagent') return 'text-accent';
+  return 'text-info';
+}
+
 type Group = { key: string; label: string; color?: string; roots: Agent[] };
 
 function filterAgent(
@@ -225,13 +231,13 @@ function AgentsPage() {
               </select>
             </Chip>
             <Divider />
-            <button onClick={expandAll} className="border border-border px-1.5 py-0.5 hover:bg-muted">
+            <button type="button" onClick={expandAll} className="border border-border px-1.5 py-0.5 hover:bg-muted">
               expand all
             </button>
-            <button onClick={collapseAll} className="border border-border px-1.5 py-0.5 hover:bg-muted">
+            <button type="button" onClick={collapseAll} className="border border-border px-1.5 py-0.5 hover:bg-muted">
               collapse all
             </button>
-            <button
+            <button type="button"
               onClick={() => {
                 setShowTools((v) => !v);
               }}
@@ -273,7 +279,7 @@ function AgentsPage() {
             {projects.map((p) => {
               const on = projectFilter.has(p.id);
               return (
-                <button
+                <button type="button"
                   key={p.id}
                   onClick={() => {
                     setProjectFilter((s) => {
@@ -304,7 +310,7 @@ function AgentsPage() {
             return (
               <div key={g.key} className="mb-2">
                 {groupBy !== 'none' && (
-                  <button
+                  <button type="button"
                     onClick={() => {
                       toggleGroup(g.key);
                     }}
@@ -358,9 +364,9 @@ function AgentInspector({
   events,
   projMap,
 }: {
-  selected: Agent | undefined;
-  events: import('@/lib/types.js').HookEvent[];
-  projMap: Map<string, Project>;
+  readonly selected: Agent | undefined;
+  readonly events: import('@/lib/types.js').HookEvent[];
+  readonly projMap: Map<string, Project>;
 }) {
   const selectedProject = selected ? projMap.get(selected.projectId) : undefined;
   const selectedEvents = useMemo(
@@ -413,7 +419,7 @@ function AgentInspector({
           </div>
           <div className="flex flex-wrap gap-2 pt-1">
             {selected.status === 'waiting-input' && (
-              <button
+              <button type="button"
                 onClick={() => toast.success(`approved · ${selected.name}`)}
                 className="border border-accent px-2 py-1 text-accent hover:bg-accent hover:text-background"
               >
@@ -421,7 +427,7 @@ function AgentInspector({
               </button>
             )}
             {selected.origin === 'vscode' && (
-              <button
+              <button type="button"
                 onClick={() => toast('→ VS Code', { description: `focus terminal for ${selected.name}` })}
                 className="border border-border px-2 py-1 hover:bg-muted"
               >
@@ -452,7 +458,7 @@ function AgentInspector({
   );
 }
 
-function M({ l, v }: { l: string; v: ReactNode }): ReactElement {
+function M({ l, v }: { readonly l: string; readonly v: ReactNode }): ReactElement {
   return (
     <div>
       <div className="text-[10px] uppercase text-muted-foreground">{l}</div>
@@ -470,9 +476,9 @@ function Chip({
   label,
   children,
 }: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  children: ReactNode;
+  readonly icon: React.ComponentType<{ className?: string }>;
+  readonly label: string;
+  readonly children: ReactNode;
 }) {
   return (
     <span className="flex items-center gap-1 border border-border px-1.5 py-0.5">
@@ -490,11 +496,11 @@ function FilterRow<T extends string>({
   setSel,
   render,
 }: {
-  label: string;
-  all: T[];
-  sel: Set<T>;
-  setSel: (fn: (s: Set<T>) => Set<T>) => void;
-  render: (v: T) => ReactNode;
+  readonly label: string;
+  readonly all: T[];
+  readonly sel: Set<T>;
+  readonly setSel: (fn: (s: Set<T>) => Set<T>) => void;
+  readonly render: (v: T) => ReactNode;
 }) {
   return (
     <div className="flex items-center gap-1">
@@ -502,7 +508,7 @@ function FilterRow<T extends string>({
       {all.map((v) => {
         const on = sel.has(v);
         return (
-          <button
+          <button type="button"
             key={v}
             onClick={() => {
               setSel((s) => {
@@ -553,24 +559,24 @@ function TreeNode({
   projMap,
   showProject,
 }: {
-  node: Agent;
-  tree: Map<string | undefined, Agent[]>;
-  prefix: string;
-  isLast: boolean;
-  onSelect: (id: string) => void;
-  selectedId: string | null;
-  matches: (a: Agent) => boolean;
-  collapsed: Set<string>;
-  toggle: (id: string) => void;
-  sortBy: SortBy;
-  projMap: Map<string, Project>;
-  showProject: boolean;
+  readonly node: Agent;
+  readonly tree: Map<string | undefined, Agent[]>;
+  readonly prefix: string;
+  readonly isLast: boolean;
+  readonly onSelect: (id: string) => void;
+  readonly selectedId: string | null;
+  readonly matches: (a: Agent) => boolean;
+  readonly collapsed: Set<string>;
+  readonly toggle: (id: string) => void;
+  readonly sortBy: SortBy;
+  readonly projMap: Map<string, Project>;
+  readonly showProject: boolean;
 }) {
   const children = (tree.get(node.id) ?? []).slice().sort(sorter(sortBy));
   const isCollapsed = collapsed.has(node.id);
   const branch = isLast ? '└─ ' : '├─ ';
   const childPrefix = prefix + (isLast ? '   ' : '│  ');
-  const typeColor = node.type === 'agent' ? 'text-primary' : node.type === 'subagent' ? 'text-accent' : 'text-info';
+  const typeColorClass = agentTypeColor(node.type);
   const project = projMap.get(node.projectId);
   const hasChildren = children.length > 0;
   const nodeMatches = matches(node);
@@ -579,8 +585,16 @@ function TreeNode({
   return (
     <>
       <div
+        role="button"
+        tabIndex={0}
         onClick={() => {
           onSelect(node.id);
+        }}
+        onKeyDown={(keyEvent) => {
+          if (keyEvent.key === 'Enter' || keyEvent.key === ' ') {
+            keyEvent.preventDefault();
+            onSelect(node.id);
+          }
         }}
         className={
           'flex cursor-pointer items-center gap-2 px-1 py-0.5 hover:bg-muted/40 ' +
@@ -592,7 +606,7 @@ function TreeNode({
           {branch}
         </Ascii>
         {hasChildren ? (
-          <button
+          <button type="button"
             onClick={(e) => {
               e.stopPropagation();
               toggle(node.id);
@@ -605,7 +619,7 @@ function TreeNode({
           <span className="w-3" />
         )}
         <StatusDot status={node.status} />
-        <span className={typeColor}>{node.name}</span>
+        <span className={typeColorClass}>{node.name}</span>
         <span className="text-dim">[{node.type}]</span>
         {node.pid && <span className="text-dim">pid:{node.pid}</span>}
         {showProject && project && <ProjectTag project={project} size="xs" />}

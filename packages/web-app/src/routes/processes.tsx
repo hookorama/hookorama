@@ -21,14 +21,14 @@ function PNode({
   q,
   tf,
 }: {
-  node: Process;
-  tree: Map<number, Process[]>;
-  prefix: string;
-  isLast: boolean;
-  onSelect: (pid: number) => void;
-  selectedPid: number | null;
-  q: string;
-  tf: string;
+  readonly node: Process;
+  readonly tree: Map<number, Process[]>;
+  readonly prefix: string;
+  readonly isLast: boolean;
+  readonly onSelect: (pid: number) => void;
+  readonly selectedPid: number | null;
+  readonly q: string;
+  readonly tf: string;
 }) {
   const kids = tree.get(node.pid) ?? [];
   const branch = isLast ? '└─ ' : '├─ ';
@@ -38,8 +38,16 @@ function PNode({
   return (
     <>
       <div
+        role="button"
+        tabIndex={0}
         onClick={() => {
           onSelect(node.pid);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onSelect(node.pid);
+          }
         }}
         className={
           'grid grid-cols-[1fr_60px_60px_60px_60px] gap-2 cursor-pointer hover:bg-muted/40 ' +
@@ -169,7 +177,7 @@ function ProcessesPage() {
             </div>
             <div className="flex gap-2 pt-1">
               {selected.type === 'ide' && (
-                <button
+                <button type="button"
                   onClick={() => toast('→ focus VS Code')}
                   className="border border-border px-2 py-1 hover:bg-muted"
                 >

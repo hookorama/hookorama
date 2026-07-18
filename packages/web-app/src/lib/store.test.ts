@@ -180,7 +180,7 @@ describe('useHookoramaStore', () => {
     useHookoramaStore.getState().syncSnapshot(snapshot);
 
     const { buckets, skillHistory, modelHistory } = useHookoramaStore.getState();
-    expect(buckets.length).toBe(before + 1);
+    expect(buckets).toHaveLength(before + 1);
     expect(buckets.at(-1)?.tasks).toBe(3);
     expect(buckets.at(-1)?.toolCalls).toBe(5);
     expect(skillHistory['refactor']).toBe(3);

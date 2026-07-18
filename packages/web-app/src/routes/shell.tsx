@@ -38,6 +38,12 @@ const kindIcon: Record<NotificationKind, ComponentType<{ className?: string }>> 
   approval: MessageSquareWarning,
 };
 
+function severityTone(s: 'info' | 'warn' | 'critical'): string {
+  if (s === 'critical') return 'text-destructive';
+  if (s === 'warn') return 'text-accent';
+  return 'text-muted-foreground';
+}
+
 function NotificationPopover() {
   const notifications = useHookoramaStore((state) => state.notifications);
   const agents = useHookoramaStore((state) => state.agents);
@@ -48,18 +54,15 @@ function NotificationPopover() {
   const pending = notifications.filter((n) => !n.ack).toReversed();
   const criticalCount = pending.filter((n) => n.severity === 'critical').length;
 
+  let buttonClass = 'border-border text-muted-foreground hover:text-foreground';
+  if (criticalCount > 0) buttonClass = 'animate-pulse border-destructive text-destructive';
+  else if (pending.length > 0) buttonClass = 'border-accent text-accent';
+
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button
-          className={
-            'relative flex items-center gap-1.5 border px-2 py-0.5 ' +
-            (criticalCount > 0
-              ? 'animate-pulse border-destructive text-destructive'
-              : pending.length > 0
-                ? 'border-accent text-accent'
-                : 'border-border text-muted-foreground hover:text-foreground')
-          }
+        <button type="button"
+          className={'relative flex items-center gap-1.5 border px-2 py-0.5 ' + buttonClass}
         >
           <Bell className="h-3.5 w-3.5" />
           <Volatile fallback="0">{pending.length}</Volatile>
@@ -71,7 +74,7 @@ function NotificationPopover() {
       <PopoverContent align="end" className="w-96 border-border bg-panel p-0">
         <div className="flex items-center justify-between border-b border-border px-3 py-2 text-xs uppercase tracking-widest">
           <span className="text-primary">▚ notifications</span>
-          <button onClick={clearAcked} className="text-[10px] text-dim hover:text-foreground">
+          <button type="button" onClick={clearAcked} className="text-[10px] text-dim hover:text-foreground">
             clear acked
           </button>
         </div>
@@ -81,16 +84,11 @@ function NotificationPopover() {
             const Icon = kindIcon[n.kind];
             const agent = agents.find((a) => a.id === n.agentId);
             const project = projects.find((p) => p.id === n.projectId);
-            const tone =
-              n.severity === 'critical'
-                ? 'text-destructive'
-                : n.severity === 'warn'
-                  ? 'text-accent'
-                  : 'text-muted-foreground';
+            const tone = severityTone(n.severity);
             return (
               <div key={n.id} className="flex items-start gap-2 p-2 text-xs hover:bg-muted/30">
                 <Icon className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${tone}`} />
-                <button
+                <button type="button"
                   onClick={() => ackNotification(n.id)}
                   className="min-w-0 flex-1 text-left"
                 >
@@ -106,7 +104,7 @@ function NotificationPopover() {
                     · {n.kind}
                   </div>
                 </button>
-                <button onClick={() => ackNotification(n.id)} className="p-0.5 text-dim hover:text-foreground">
+                <button type="button" onClick={() => ackNotification(n.id)} className="p-0.5 text-dim hover:text-foreground">
                   <X className="h-3 w-3" />
                 </button>
               </div>
@@ -133,7 +131,7 @@ function StatusControls() {
       <span className="text-muted-foreground">
         cost <span className="text-accent"><Volatile fallback="$0.0000">{`$${totalCost.toFixed(4)}`}</Volatile></span>
       </span>
-      <button onClick={toggleScanlines} className="hover:text-primary">
+      <button type="button" onClick={toggleScanlines} className="hover:text-primary">
         crt
       </button>
     </>

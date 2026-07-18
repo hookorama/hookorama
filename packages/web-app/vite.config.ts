@@ -25,7 +25,7 @@ function supervisorPlugin(): Plugin {
         // not running yet, start it
       }
 
-      child = spawn('bun', ['src/main.ts'], { cwd: supervisorDir });
+      child = spawn(process.execPath, ['src/main.ts'], { cwd: supervisorDir });
 
       let childExited = false;
       let childExitCode: number | null = null;
@@ -61,7 +61,11 @@ function supervisorPlugin(): Plugin {
       const originalClose = server.close.bind(server);
       server.close = async () => {
         if (child !== null) {
-          child.kill();
+          try {
+            child.kill();
+          } catch (err) {
+            console.warn('failed to kill supervisor:', err);
+          }
           child = null;
         }
         await originalClose();

@@ -5,6 +5,12 @@ import { Panel, Kpi, ProjectTag } from '@/components/hk/primitives.js';
 
 type Range = '24h' | '7d' | '30d';
 
+function bucketCount(r: Range): number {
+  if (r === '24h') return 60;
+  if (r === '7d') return 60 * 7;
+  return 60 * 30;
+}
+
 interface Rollup {
   project: Project;
   agents: number;
@@ -20,9 +26,9 @@ function ProjectRollup({
   filter,
   setFilter,
 }: {
-  rows: Rollup[];
-  filter: Set<string>;
-  setFilter: (fn: (prev: Set<string>) => Set<string>) => void;
+  readonly rows: Rollup[];
+  readonly filter: Set<string>;
+  readonly setFilter: (fn: (prev: Set<string>) => Set<string>) => void;
 }) {
   const maxCost = Math.max(...rows.map((r) => r.cost), 0.0001);
   return (
@@ -40,7 +46,7 @@ function ProjectRollup({
         {rows.map((r) => {
           const on = filter.size === 0 || filter.has(r.project.id);
           return (
-            <button
+            <button type="button"
               key={r.project.id}
               onClick={() => {
                 setFilter((prev) => {
@@ -78,7 +84,7 @@ function ProjectRollup({
   );
 }
 
-function TopAgents({ agents }: { agents: Agent[] }) {
+function TopAgents({ agents }: { readonly agents: Agent[] }) {
   const top = [...agents]
     .sort((a, b) => b.metrics.toolCalls - a.metrics.toolCalls)
     .slice(0, 8)
@@ -113,7 +119,7 @@ function TopAgents({ agents }: { agents: Agent[] }) {
   );
 }
 
-function SkillTable({ skills }: { skills: Record<string, number> }) {
+function SkillTable({ skills }: { readonly skills: Record<string, number> }) {
   const arr = Object.entries(skills)
     .map(([name, usage]) => ({ name, usage }))
     .sort((a, b) => b.usage - a.usage);
@@ -135,7 +141,7 @@ function SkillTable({ skills }: { skills: Record<string, number> }) {
   );
 }
 
-function ModelTable({ models }: { models: Record<string, { calls: number; cost: number }> }) {
+function ModelTable({ models }: { readonly models: Record<string, { calls: number; cost: number }> }) {
   const arr = Object.entries(models)
     .map(([name, { calls, cost }]) => ({ name, calls, cost }))
     .sort((a, b) => b.calls - a.calls);
@@ -159,7 +165,7 @@ function ModelTable({ models }: { models: Record<string, { calls: number; cost: 
   );
 }
 
-function UsageTable({ series }: { series: { t: string; tasks: number; tools: number; cost: number; errors: number; active: number }[] }) {
+function UsageTable({ series }: { readonly series: { t: string; tasks: number; tools: number; cost: number; errors: number; active: number }[] }) {
   return (
     <Panel title={`usage over time · ${series.length}`}>
       <div className="max-h-64 overflow-auto p-2 text-xs">
@@ -171,8 +177,8 @@ function UsageTable({ series }: { series: { t: string; tasks: number; tools: num
           <span className="text-right">err</span>
           <span className="text-right">act</span>
         </div>
-        {series.map((b, i) => (
-          <div key={i} className="grid grid-cols-[80px_50px_50px_60px_40px_40px] gap-2 py-0.5">
+        {series.map((b) => (
+          <div key={b.t} className="grid grid-cols-[80px_50px_50px_60px_40px_40px] gap-2 py-0.5">
             <span className="text-dim">{b.t}</span>
             <span className="text-right">{b.tasks}</span>
             <span className="text-right text-info">{b.tools}</span>
@@ -205,7 +211,7 @@ function AnalyticsPage() {
     [allAgents, projectFilter],
   );
 
-  const nBuckets = useMemo(() => (range === '24h' ? 60 : range === '7d' ? 60 * 7 : 60 * 30), [range]);
+  const nBuckets = useMemo(() => bucketCount(range), [range]);
   const series = useMemo(
     () =>
       buckets.slice(-nBuckets).map((b) => ({
@@ -256,7 +262,7 @@ function AnalyticsPage() {
       <div className="flex flex-wrap items-center gap-3">
         <div className="text-xs uppercase tracking-widest text-muted-foreground">range:</div>
         {(['24h', '7d', '30d'] as const).map((r) => (
-          <button
+          <button type="button"
             key={r}
             onClick={() => {
               setRange(r);
@@ -271,7 +277,7 @@ function AnalyticsPage() {
         ))}
         <div className="mx-2 h-4 w-px bg-border" />
         <div className="text-xs uppercase tracking-widest text-muted-foreground">project:</div>
-        <button
+        <button type="button"
           onClick={() => {
             setProjectFilter(new Set());
           }}
@@ -287,7 +293,7 @@ function AnalyticsPage() {
         {projects.map((p) => {
           const on = projectFilter.has(p.id);
           return (
-            <button
+            <button type="button"
               key={p.id}
               onClick={() => {
                 setProjectFilter((prev) => {

@@ -4,16 +4,22 @@ import { cn } from '@/lib/utils.js';
 import type { Project } from '@/lib/types.js';
 import type { Status } from '@hookorama/client';
 
+function kpiTone(tone?: 'primary' | 'accent' | 'destructive'): string {
+  if (tone === 'accent') return 'text-accent';
+  if (tone === 'destructive') return 'text-destructive';
+  return 'text-primary';
+}
+
 export function Panel({
   title,
   right,
   children,
   className,
 }: {
-  title?: string;
-  right?: ReactNode;
-  children: ReactNode;
-  className?: string;
+  readonly title?: string;
+  readonly right?: ReactNode;
+  readonly children: ReactNode;
+  readonly className?: string;
 }): ReactElement {
   return (
     <div className={cn('border border-border bg-panel', className)}>
@@ -29,7 +35,7 @@ export function Panel({
   );
 }
 
-export function StatusDot({ status }: { status: Status }): ReactElement {
+export function StatusDot({ status }: { readonly status: Status }): ReactElement {
   let color: string;
   switch (status) {
     case 'idle':
@@ -60,13 +66,12 @@ export function Kpi({
   sub,
   tone = 'primary',
 }: {
-  label: string;
-  value: ReactNode;
-  sub?: ReactNode;
-  tone?: 'primary' | 'accent' | 'destructive';
+  readonly label: string;
+  readonly value: ReactNode;
+  readonly sub?: ReactNode;
+  readonly tone?: 'primary' | 'accent' | 'destructive';
 }): ReactElement {
-  const color =
-    tone === 'accent' ? 'text-accent' : tone === 'destructive' ? 'text-destructive' : 'text-primary';
+  const color = kpiTone(tone);
   return (
     <div className="border border-border bg-panel p-3">
       <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</div>
@@ -76,11 +81,11 @@ export function Kpi({
   );
 }
 
-export function Ascii({ children }: { children: ReactNode }): ReactElement {
+export function Ascii({ children }: { readonly children: ReactNode }): ReactElement {
   return <span className="select-none text-dim">{children}</span>;
 }
 
-export function ProjectTag({ project, size = 'sm' }: { project?: Project | undefined; size?: 'sm' | 'xs' }): ReactElement {
+export function ProjectTag({ project, size = 'sm' }: { readonly project?: Project | undefined; readonly size?: 'sm' | 'xs' }): ReactElement {
   if (!project) return <span className="text-xs text-dim">—</span>;
   const pad = size === 'xs' ? 'px-1 text-[10px]' : 'px-1.5 py-0.5 text-[10px]';
   return (
@@ -104,7 +109,7 @@ export function useHydrated(): boolean {
   return hydrated;
 }
 
-export function Volatile({ children, fallback = '—' }: { children: ReactNode; fallback?: ReactNode }): ReactNode {
+export function Volatile({ children, fallback = '—' }: { readonly children: ReactNode; readonly fallback?: ReactNode }): ReactNode {
   const hydrated = useHydrated();
   return <>{hydrated ? children : fallback}</>;
 }
@@ -115,10 +120,10 @@ export function ShortcutTile({
   title,
   desc,
 }: {
-  to: string;
-  icon: ComponentType<{ className?: string }>;
-  title: string;
-  desc: string;
+  readonly to: string;
+  readonly icon: ComponentType<{ className?: string }>;
+  readonly title: string;
+  readonly desc: string;
 }): ReactElement {
   return (
     <Link
@@ -143,16 +148,15 @@ export function KpiTile({
   hint,
   icon: Icon,
 }: {
-  to: string;
-  label: string;
-  value: ReactNode;
-  sub?: ReactNode;
-  tone?: 'accent' | 'destructive';
-  hint?: string;
-  icon?: ComponentType<{ className?: string }>;
+  readonly to: string;
+  readonly label: string;
+  readonly value: ReactNode;
+  readonly sub?: ReactNode;
+  readonly tone?: 'accent' | 'destructive';
+  readonly hint?: string;
+  readonly icon?: ComponentType<{ className?: string }>;
 }): ReactElement {
-  const color =
-    tone === 'accent' ? 'text-accent' : tone === 'destructive' ? 'text-destructive' : 'text-primary';
+  const color = kpiTone(tone);
   return (
     <Link to={to} className="group block border border-border bg-panel p-3 hover:border-primary">
       <div className="flex items-center gap-1 text-[10px] uppercase tracking-widest text-muted-foreground">

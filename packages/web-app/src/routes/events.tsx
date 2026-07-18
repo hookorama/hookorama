@@ -18,6 +18,13 @@ const TYPES = [
   'error',
 ];
 
+function eventColor(type: string): string {
+  if (type === 'error') return 'text-destructive';
+  if (type.startsWith('cost')) return 'text-accent';
+  if (type === 'tool.call') return 'text-info';
+  return 'text-foreground';
+}
+
 export function Events(): ReactElement {
   return <EventsPage />;
 }
@@ -89,19 +96,20 @@ function EventsPage() {
           <div className="space-y-0.5">
             {filtered.map((e) => {
               const a = agents.find((x) => x.id === e.agentId);
-              const cls =
-                e.type === 'error'
-                  ? 'text-destructive'
-                  : e.type.startsWith('cost')
-                    ? 'text-accent'
-                    : e.type === 'tool.call'
-                      ? 'text-info'
-                      : 'text-foreground';
+              const cls = eventColor(e.type);
               return (
                 <div
                   key={e.id}
+                  role="button"
+                  tabIndex={0}
                   onClick={() => {
                     setSelected(e);
+                  }}
+                  onKeyDown={(keyEvent) => {
+                    if (keyEvent.key === 'Enter' || keyEvent.key === ' ') {
+                      keyEvent.preventDefault();
+                      setSelected(e);
+                    }
                   }}
                   className="grid cursor-pointer grid-cols-[100px_140px_120px_60px_1fr] gap-2 px-2 hover:bg-muted/40"
                 >

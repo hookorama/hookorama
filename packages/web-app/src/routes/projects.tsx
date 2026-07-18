@@ -4,7 +4,7 @@ import { Folder, GitBranch } from 'lucide-react';
 import { useHookoramaStore } from '@/lib/store.js';
 import { Panel, Volatile } from '@/components/hk/primitives.js';
 
-function Stat({ l, v, tone }: { l: string; v: ReactNode; tone?: string | undefined }) {
+function Stat({ l, v, tone }: { readonly l: string; readonly v: ReactNode; readonly tone?: string | undefined }) {
   return (
     <div className="text-center">
       <div className="text-[10px] uppercase text-muted-foreground">{l}</div>

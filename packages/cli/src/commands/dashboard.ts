@@ -10,15 +10,17 @@ async function findPackageRoot(): Promise<string> {
   let dir = path.dirname(fileURLToPath(import.meta.url));
   for (;;) {
     const pkgPath = path.resolve(dir, 'package.json');
-    try {
-      const pkg = (await import(pkgPath, { with: { type: 'json' } })) as {
-        default?: { name?: string };
-      };
-      if (pkg.default?.name === 'hookorama') {
-        return dir;
+    const file = Bun.file(pkgPath);
+    if (await file.exists()) {
+      try {
+        const raw = await file.text();
+        const pkg = JSON.parse(raw) as { name?: string };
+        if (pkg.name === 'hookorama') {
+          return dir;
+        }
+      } catch {
+        // not a package root or not valid JSON
       }
-    } catch {
-      // not a package root or not JSON
     }
     const parent = path.dirname(dir);
     if (parent === dir) {
@@ -32,15 +34,14 @@ export async function dashboard(): Promise<void> {
   const cliRoot = await findPackageRoot();
   const webAppDir = path.resolve(cliRoot, '..', 'web-app');
 
-  try {
-    await import(path.resolve(webAppDir, 'package.json'), { with: { type: 'json' } });
-  } catch {
+  const webAppPkg = Bun.file(path.resolve(webAppDir, 'package.json'));
+  if (!(await webAppPkg.exists())) {
     console.error('Hookorama dashboard not found at %s', webAppDir);
     process.exitCode = 1;
     return;
   }
 
-  const child = spawn('bun', ['run', 'dev'], {
+  const child = spawn(process.execPath, ['run', 'dev'], {
     cwd: webAppDir,
     stdio: 'inherit',
     windowsHide: true,
