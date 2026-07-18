@@ -420,7 +420,7 @@ function AgentInspector({
           <div className="flex flex-wrap gap-2 pt-1">
             {selected.status === 'waiting-input' && (
               <button type="button"
-                onClick={() => toast.success(`approved · ${selected.name}`)}
+                onClick={() => { toast.success(`approved · ${selected.name}`); }}
                 className="border border-accent px-2 py-1 text-accent hover:bg-accent hover:text-background"
               >
                 &gt; approve
@@ -428,7 +428,7 @@ function AgentInspector({
             )}
             {selected.origin === 'vscode' && (
               <button type="button"
-                onClick={() => toast('→ VS Code', { description: `focus terminal for ${selected.name}` })}
+                onClick={() => { toast('→ VS Code', { description: `focus terminal for ${selected.name}` }); }}
                 className="border border-border px-2 py-1 hover:bg-muted"
               >
                 &gt; in vscode

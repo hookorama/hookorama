@@ -110,13 +110,17 @@ function ProcessesPage() {
           <div className="flex gap-2 text-xs">
             <input
               value={q}
-              onChange={(e) => setQ(e.target.value)}
+              onChange={(e) => {
+                setQ(e.target.value);
+              }}
               placeholder="&gt; search pid/cmd"
               className="w-40 border border-border bg-background px-2 py-0.5 text-xs"
             />
             <select
               value={tf}
-              onChange={(e) => setTf(e.target.value)}
+              onChange={(e) => {
+                setTf(e.target.value);
+              }}
               className="border border-border bg-background px-1 text-xs"
             >
               <option value="all">all</option>
@@ -178,7 +182,7 @@ function ProcessesPage() {
             <div className="flex gap-2 pt-1">
               {selected.type === 'ide' && (
                 <button type="button"
-                  onClick={() => toast('→ focus VS Code')}
+                  onClick={() => { toast('→ focus VS Code'); }}
                   className="border border-border px-2 py-1 hover:bg-muted"
                 >
                   &gt; focus vscode

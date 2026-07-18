@@ -89,7 +89,7 @@ function NotificationPopover() {
               <div key={n.id} className="flex items-start gap-2 p-2 text-xs hover:bg-muted/30">
                 <Icon className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${tone}`} />
                 <button type="button"
-                  onClick={() => ackNotification(n.id)}
+                  onClick={() => { ackNotification(n.id); }}
                   className="min-w-0 flex-1 text-left"
                 >
                   <div className="flex items-center gap-1.5">
@@ -104,7 +104,7 @@ function NotificationPopover() {
                     · {n.kind}
                   </div>
                 </button>
-                <button type="button" onClick={() => ackNotification(n.id)} className="p-0.5 text-dim hover:text-foreground">
+                <button type="button" onClick={() => { ackNotification(n.id); }} className="p-0.5 text-dim hover:text-foreground">
                   <X className="h-3 w-3" />
                 </button>
               </div>
@@ -138,22 +138,35 @@ function StatusControls() {
   );
 }
 
-const CONNECTION_LABELS: Record<Connection, string> = {
-  connected: 'live',
-  disconnected: 'offline',
-  error: 'error',
-};
+function connectionLabel(c: Connection): string {
+  switch (c) {
+    case 'connected':
+      return 'live';
+    case 'disconnected':
+      return 'offline';
+    case 'error':
+      return 'error';
+    default:
+      return 'error';
+  }
+}
 
-const CONNECTION_COLORS: Record<Connection, string> = {
-  connected: 'text-accent',
-  disconnected: 'text-destructive',
-  error: 'text-destructive',
-};
+function connectionColor(c: Connection): string {
+  switch (c) {
+    case 'connected':
+      return 'text-accent';
+    case 'disconnected':
+    case 'error':
+      return 'text-destructive';
+    default:
+      return 'text-destructive';
+  }
+}
 
 function ConnectionBadge() {
   const connection = useHookoramaStore((state) => state.connection);
-  const label = CONNECTION_LABELS[connection];
-  const color = CONNECTION_COLORS[connection];
+  const label = connectionLabel(connection);
+  const color = connectionColor(connection);
 
   return <span className={color}>● {label}</span>;
 }
@@ -215,11 +228,11 @@ export function Shell(): ReactElement {
     const wsUrl = dev ? `ws://${window.location.host}/ws` : 'ws://127.0.0.1:7354/ws';
     const client = new SupervisorClient({ httpUrl, wsUrl });
 
-    client.setOnOpen(() => setConnection('connected'));
-    client.setOnClose(() => setConnection('disconnected'));
-    client.setOnError(() => setConnection('error'));
-    client.setOnSnapshot((snapshot) => syncSnapshot(snapshot));
-    client.setOnEvent((event) => applyEvent(event));
+    client.setOnOpen(() => { setConnection('connected'); });
+    client.setOnClose(() => { setConnection('disconnected'); });
+    client.setOnError(() => { setConnection('error'); });
+    client.setOnSnapshot((snapshot) => { syncSnapshot(snapshot); });
+    client.setOnEvent((event) => { applyEvent(event); });
 
     void (async () => {
       try {

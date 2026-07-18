@@ -213,9 +213,11 @@ export const useHookoramaStore = create<Store>((set) => ({
   modelHistory: {},
   connection: 'disconnected',
 
-  setConnection: (connection) => set({ connection }),
+  setConnection: (connection) => {
+    set({ connection });
+  },
 
-  syncSnapshot: (snapshot) =>
+  syncSnapshot: (snapshot) => {
     set((state) => {
       const agents = snapshot.entries.map(toAgent);
       const projects = buildProjects(snapshot.entries);
@@ -229,26 +231,34 @@ export const useHookoramaStore = create<Store>((set) => ({
         skillHistory: updateSkillHistory(agents),
         modelHistory: updateModelHistory(agents),
       };
-    }),
+    });
+  },
 
-  applyEvent: (event) =>
+  applyEvent: (event) => {
     set((state) => ({
       events: [...state.events, mapEvent(event)].slice(-100),
-    })),
+    }));
+  },
 
-  toggleScanlines: () => set((state) => ({ scanlines: !state.scanlines })),
+  toggleScanlines: () => {
+    set((state) => ({ scanlines: !state.scanlines }));
+  },
 
-  ackNotification: (id) =>
+  ackNotification: (id) => {
     set((state) => ({
       notifications: state.notifications.map((n) => (n.id === id ? { ...n, ack: true } : n)),
-    })),
+    }));
+  },
 
-  clearAcked: () =>
+  clearAcked: () => {
     set((state) => ({
       notifications: state.notifications.filter((n) => !n.ack),
-    })),
+    }));
+  },
 
-  setProcesses: (processes: Process[]) => set({ processes }),
+  setProcesses: (processes: Process[]) => {
+    set({ processes });
+  },
 }));
 
 export function selectAgentTree(state: { agents: Agent[] }): Map<string | undefined, Agent[]> {

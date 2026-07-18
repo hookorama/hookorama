@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { createConnection } from 'node:net';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { defineConfig, type Plugin } from 'vite';
@@ -8,6 +9,21 @@ import tsconfigPaths from 'vite-tsconfig-paths';
 
 const projectDir = path.dirname(fileURLToPath(import.meta.url));
 const supervisorDir = path.resolve(projectDir, '../supervisor');
+const supervisorHost = '127.0.0.1';
+const supervisorPort = 7354;
+
+function isPortReachable(): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = createConnection(supervisorPort, supervisorHost);
+    socket.once('connect', () => {
+      socket.destroy();
+      resolve(true);
+    });
+    socket.once('error', () => {
+      resolve(false);
+    });
+  });
+}
 
 function supervisorPlugin(): Plugin {
   let child: ReturnType<typeof spawn> | null = null;
@@ -15,24 +31,12 @@ function supervisorPlugin(): Plugin {
     name: 'hookorama:supervisor',
     apply: 'serve',
     async configureServer(server) {
-      try {
-        const response = await fetch('http://127.0.0.1:7354/api/state');
-        if (response.ok) {
-          console.warn('supervisor already running on http://127.0.0.1:7354/');
-          return;
-        }
-      } catch {
-        // not running yet, start it
+      if (await isPortReachable()) {
+        console.warn(`supervisor already running on ${supervisorHost}:${supervisorPort}/`);
+        return;
       }
 
       child = spawn(process.execPath, ['src/main.ts'], { cwd: supervisorDir });
-
-      let childExited = false;
-      let childExitCode: number | null = null;
-      child.on('exit', (code) => {
-        childExited = true;
-        childExitCode = code;
-      });
 
       child.stderr?.on('data', (data: Buffer) => {
         console.warn(data.toString().trim());
@@ -42,20 +46,15 @@ function supervisorPlugin(): Plugin {
       });
 
       for (let i = 0; i < 50; i++) {
-        if (childExited) {
-          throw new Error(`supervisor exited with code ${childExitCode ?? 'unknown'}`);
+        if (child.exitCode !== null) {
+          throw new Error(`supervisor exited with code ${child.exitCode ?? 'unknown'}`);
         }
-        try {
-          const response = await fetch('http://127.0.0.1:7354/api/state');
-          if (response.ok) break;
-        } catch {
-          // not ready yet
-        }
+        if (await isPortReachable()) break;
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
 
-      if (childExited) {
-        throw new Error(`supervisor exited with code ${childExitCode ?? 'unknown'}`);
+      if (child.exitCode !== null) {
+        throw new Error(`supervisor exited with code ${child.exitCode ?? 'unknown'}`);
       }
 
       const originalClose = server.close.bind(server);
