@@ -11,6 +11,7 @@
 
 import { spawn } from 'node:child_process';
 import { mkdir, rm } from 'node:fs/promises';
+import { homedir } from 'node:os';
 import { dirname, join, resolve as resolvePath } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -19,10 +20,11 @@ const repoRoot = resolvePath(scriptDir, '..');
 const demoHome = resolvePath(repoRoot, 'demo');
 
 function buildDemoEnv() {
+  const home = homedir();
   return {
     ...process.env,
-    XDG_CACHE_HOME: process.env.XDG_CACHE_HOME || process.env.LOCALAPPDATA || process.env.TEMP,
-    XDG_RUNTIME_DIR: process.env.XDG_RUNTIME_DIR || process.env.TEMP,
+    XDG_CACHE_HOME: process.env.XDG_CACHE_HOME || process.env.LOCALAPPDATA || join(home, '.hookorama', 'cache'),
+    XDG_RUNTIME_DIR: process.env.XDG_RUNTIME_DIR || process.env.LOCALAPPDATA || join(home, '.hookorama', 'runtime'),
     HOOKORAMA_SELF_COMMAND: 'hookorama',
     HOOKORAMA_SELF_SCRIPT: '',
   };
@@ -121,7 +123,9 @@ async function main() {
   console.warn('    hookorama status');
 }
 
-main().catch((error) => {
+try {
+  await main();
+} catch (error) {
   console.error('demo setup failed:', error);
   process.exitCode = 1;
-});
+}

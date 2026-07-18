@@ -3,7 +3,7 @@
  */
 
 import type { Status } from '@hookorama/client';
-import { Command } from 'commander';
+import { Command, Argument } from 'commander';
 import { hook } from './commands/hook.js';
 import { setup } from './commands/setup.js';
 import { status as statusCommand } from './commands/status.js';
@@ -38,8 +38,8 @@ program
 
 program
   .command('hook')
-  .argument('<agent>')
-  .argument('<status>')
+  .addArgument(new Argument('agent').argRequired())
+  .addArgument(new Argument('status').argRequired())
   .description('dispatch a hook event to the supervisor')
   .allowUnknownOption()
   .action(async (agent: string, statusValue: string, _command: Command) => {

@@ -18,13 +18,13 @@ const HOOK_EVENTS = ['SessionStart', 'PreToolUse', 'PostToolUse', 'Notification'
 
 type ClaudeHookEvent = (typeof HOOK_EVENTS)[number];
 
-const EVENT_TO_STATUS: Record<ClaudeHookEvent, string> = {
-  SessionStart: 'thinking',
-  PreToolUse: 'running-tool',
-  PostToolUse: 'thinking',
-  Notification: 'waiting-input',
-  Stop: 'done',
-};
+const EVENT_TO_STATUS: ReadonlyMap<ClaudeHookEvent, string> = new Map([
+  ['SessionStart', 'thinking'],
+  ['PreToolUse', 'running-tool'],
+  ['PostToolUse', 'thinking'],
+  ['Notification', 'waiting-input'],
+  ['Stop', 'done'],
+] as const);
 
 const settingsPath = join(process.cwd(), '.claude', 'settings.json');
 
@@ -57,7 +57,10 @@ function buildHookCommand(status: string): ClaudeHookCommand {
 function buildHooks(): ClaudeHooks {
   return Object.fromEntries(
     HOOK_EVENTS.map((event) => {
-      const status = EVENT_TO_STATUS[event];
+      const status = EVENT_TO_STATUS.get(event);
+      if (status === undefined) {
+        throw new Error(`unknown hook event: ${event}`);
+      }
       return [event, [{ matcher: '', hooks: [buildHookCommand(status)] }]] as const;
     }),
   ) as ClaudeHooks;

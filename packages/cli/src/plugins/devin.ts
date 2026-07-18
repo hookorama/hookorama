@@ -25,15 +25,15 @@ const HOOK_EVENTS = [
 
 type DevinHookEvent = (typeof HOOK_EVENTS)[number];
 
-const EVENT_TO_STATUS: Record<DevinHookEvent, string> = {
-  SessionStart: 'thinking',
-  UserPromptSubmit: 'thinking',
-  PreToolUse: 'running-tool',
-  PostToolUse: 'thinking',
-  PermissionRequest: 'waiting-input',
-  Stop: 'done',
-  SessionEnd: 'done',
-};
+const EVENT_TO_STATUS: ReadonlyMap<DevinHookEvent, string> = new Map([
+  ['SessionStart', 'thinking'],
+  ['UserPromptSubmit', 'thinking'],
+  ['PreToolUse', 'running-tool'],
+  ['PostToolUse', 'thinking'],
+  ['PermissionRequest', 'waiting-input'],
+  ['Stop', 'done'],
+  ['SessionEnd', 'done'],
+] as const);
 
 // Devin project config is .devin/config.json in the current project root.
 const configPath = join(process.cwd(), '.devin', 'config.json');
@@ -63,7 +63,10 @@ function buildCommand(status: string): string {
 function buildHooks(): DevinHooks {
   return Object.fromEntries(
     HOOK_EVENTS.map((event) => {
-      const status = EVENT_TO_STATUS[event];
+      const status = EVENT_TO_STATUS.get(event);
+      if (status === undefined) {
+        throw new Error(`unknown hook event: ${event}`);
+      }
       return [event, [{ matcher: '', hooks: [{ type: 'command', command: buildCommand(status) }] }]] as const;
     }),
   ) as DevinHooks;

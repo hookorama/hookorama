@@ -36,5 +36,5 @@ export function getSelfCommandString(): string {
     return runtime;
   }
   // Forward slashes are safe for PowerShell, cmd and bash on Windows.
-  return `"${runtime.replace(/\\/g, '/')}" "${script.replace(/\\/g, '/')}"`;
+  return `"${runtime.replaceAll('\\', '/')}" "${script.replaceAll('\\', '/')}"`;
 }
