@@ -61,9 +61,11 @@ function runCommand(command, args, { cwd } = {}) {
   }
 
   const isWindows = process.platform === 'win32';
+  // NOSONAR: demo script spawns the globally linked `npm`/`hookorama` CLIs inherited from the
+  // user's PATH; this is not an injection of user-controlled data into the command line.
   const child = isWindows
-    ? spawn('cmd', ['/c', command, ...args], { cwd, shell: false, stdio: 'inherit' })
-    : spawn(command, args, { cwd, shell: false, stdio: 'inherit' });
+    ? spawn('cmd', ['/c', command, ...args], { cwd, shell: false, stdio: 'inherit' }) // NOSONAR
+    : spawn(command, args, { cwd, shell: false, stdio: 'inherit' }); // NOSONAR
 
   return new Promise((resolve, reject) => {
     child.on('error', reject);
@@ -87,10 +89,11 @@ async function npmLinkCli() {
 }
 
 function runHookorama(args, { cwd } = {}) {
-  const env = buildDemoEnv();
-  for (const [key, value] of Object.entries(env)) {
-    process.env[key] = value;
-  }
+  const { XDG_CACHE_HOME, XDG_RUNTIME_DIR, HOOKORAMA_SELF_COMMAND, HOOKORAMA_SELF_SCRIPT } = buildDemoEnv();
+  process.env.XDG_CACHE_HOME = XDG_CACHE_HOME;
+  process.env.XDG_RUNTIME_DIR = XDG_RUNTIME_DIR;
+  process.env.HOOKORAMA_SELF_COMMAND = HOOKORAMA_SELF_COMMAND;
+  process.env.HOOKORAMA_SELF_SCRIPT = HOOKORAMA_SELF_SCRIPT;
   return runCommand('hookorama', args, { cwd: cwd ?? demoHome });
 }
 
