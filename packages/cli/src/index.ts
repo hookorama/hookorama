@@ -4,6 +4,7 @@
 
 import type { Status } from '@hookorama/client';
 import { Command } from 'commander';
+import { dashboard } from './commands/dashboard.js';
 import { hook } from './commands/hook.js';
 import { setup } from './commands/setup.js';
 import { status as statusCommand } from './commands/status.js';
@@ -73,6 +74,11 @@ const pluginCommand = new Command('plugin')
   );
 
 program.addCommand(pluginCommand);
+
+program
+  .command('dashboard')
+  .description('start the Hookorama web dashboard')
+  .action(dashboard);
 
 export async function main(argv?: string[]): Promise<void> {
   await program.parseAsync(argv ?? process.argv);

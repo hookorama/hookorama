@@ -23,6 +23,7 @@ await main(process.argv.slice(2));
 - `hookorama setup <agent> --update` — refresh the agent hook config.
 - `hookorama setup <agent> --remove` — remove the agent hook config.
 - `hookorama plugin list` — list built-in agent plugins.
+- `hookorama dashboard` — start the web dashboard (runs the Vite dev server).
 
 ## Pinned by
 
