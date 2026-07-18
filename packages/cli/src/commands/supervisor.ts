@@ -5,6 +5,7 @@
 import { readFile } from 'node:fs/promises';
 import { setTimeout } from 'node:timers/promises';
 import { pidFilePath, isProcessRunning, releasePidSlot, runSupervisorDaemon } from '@hookorama/supervisor';
+import { isSupervisorRunning } from '../util/supervisor.js';
 
 const STOP_ATTEMPTS = 25;
 const STOP_POLL_MS = 200;
@@ -49,6 +50,12 @@ export async function supervisorStop(): Promise<void> {
 
   if (!(await isProcessRunning(pid))) {
     console.warn('supervisor PID file points to a dead process, cleaning up');
+    await releasePidSlot(pidFile);
+    return;
+  }
+
+  if (!(await isSupervisorRunning())) {
+    console.warn('supervisor is not listening on its HTTP port, cleaning up stale PID file');
     await releasePidSlot(pidFile);
     return;
   }
