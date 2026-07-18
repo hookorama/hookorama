@@ -38,8 +38,9 @@ try {
 
 try {
   await rm(tmp, { recursive: true, force: true });
-} catch {
-  // Best-effort cleanup; the destination is already in place.
+} catch (err) {
+  console.error('failed to clean up staging directory %s:', tmp, err);
+  process.exit(1);
 }
 
 console.log('copied %s -> %s', src, dst);
