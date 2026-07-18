@@ -12,7 +12,7 @@ const supervisor = new Supervisor();
 const acquired = await supervisor.start();
 if (!acquired) {
   console.error('another supervisor is already running');
-  // eslint-disable-next-line unicorn/no-process-exit
+  // oxlint-disable-next-line unicorn/no-process-exit
   process.exit(1);
 }
 
@@ -29,24 +29,24 @@ const shutdown = async (): Promise<void> => {
     await supervisor.stop();
   } catch (err) {
     console.error('shutdown failed:', err);
-    // eslint-disable-next-line unicorn/no-process-exit
+    // oxlint-disable-next-line unicorn/no-process-exit
     process.exit(1);
   }
-  // eslint-disable-next-line unicorn/no-process-exit
+  // oxlint-disable-next-line unicorn/no-process-exit
   process.exit(0);
 };
 
 process.on('SIGINT', () => {
   shutdown().catch((err) => {
     console.error('shutdown failed:', err);
-    // eslint-disable-next-line unicorn/no-process-exit
+    // oxlint-disable-next-line unicorn/no-process-exit
     process.exit(1);
   });
 });
 process.on('SIGTERM', () => {
   shutdown().catch((err) => {
     console.error('shutdown failed:', err);
-    // eslint-disable-next-line unicorn/no-process-exit
+    // oxlint-disable-next-line unicorn/no-process-exit
     process.exit(1);
   });
 });
