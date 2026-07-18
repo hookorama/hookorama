@@ -1,12 +1,12 @@
 {
-  "name": "hookorama",
+  "name": "@hookorama/cli",
   "version": "0.1.0",
   "private": false,
   "type": "module",
   "description": "Hookorama CLI — install, lifecycle, and hook dispatch for the local supervisor.",
   "license": "MIT",
   "bin": {
-    "hookorama": "./dist/main.mjs"
+    "cli": "./dist/main.mjs"
   },
   "types": "./dist/index.d.mts",
   "exports": {
@@ -25,8 +25,8 @@
     "demo:setup": "bun run --cwd ../.. demo:setup"
   },
   "dependencies": {
-    "@hookorama/client": "workspace:*",
-    "@hookorama/supervisor": "workspace:*",
+    "@hookorama/client": "workspace:^0.1.0",
+    "@hookorama/supervisor": "workspace:^0.1.0",
     "commander": "12.1.0"
   }
 }
