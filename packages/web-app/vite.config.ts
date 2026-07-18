@@ -51,20 +51,20 @@ function supervisorPlugin(): Plugin {
 
       for (let i = 0; i < 50; i++) {
         if (spawnErr !== undefined) {
-          throw new Error(`supervisor failed to start: ${spawnErr.message}`);
+          return Promise.reject(new Error(`supervisor failed to start: ${spawnErr.message}`));
         }
         if (child.exitCode !== null) {
-          throw new Error(`supervisor exited with code ${child.exitCode ?? 'unknown'}`);
+          return Promise.reject(new Error(`supervisor exited with code ${child.exitCode}`));
         }
         if (await isPortReachable()) break;
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
 
       if (spawnErr !== undefined) {
-        throw new Error(`supervisor failed to start: ${spawnErr.message}`);
+        return Promise.reject(new Error(`supervisor failed to start: ${spawnErr.message}`));
       }
       if (child.exitCode !== null) {
-        throw new Error(`supervisor exited with code ${child.exitCode ?? 'unknown'}`);
+        return Promise.reject(new Error(`supervisor exited with code ${child.exitCode}`));
       }
 
       const originalClose = server.close.bind(server);

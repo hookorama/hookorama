@@ -39,7 +39,7 @@ async function findPackageRoot(): Promise<string> {
     if (parent === dir) break;
     dir = parent;
   }
-  throw new Error('cannot find hookorama package root');
+  return Promise.reject(new Error('cannot find hookorama package root'));
 }
 
 export async function dashboard(): Promise<void> {
