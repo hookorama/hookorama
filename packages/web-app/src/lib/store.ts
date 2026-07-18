@@ -324,7 +324,10 @@ export const useHookoramaStore = create<Store>((set) => ({
       });
       const agentTotals: Record<string, AgentTotal> = { ...state.agentTotals };
       for (const a of agents) {
-        agentTotals[a.id] = { projectId: a.projectId, metrics: a.metrics };
+        // Key by id + sessionId so a reused PID with a new session does not
+        // overwrite the previous session's cumulative totals.
+        const key = `${a.id}:${a.sessionId}`;
+        agentTotals[key] = { projectId: a.projectId, metrics: a.metrics };
       }
       const nextBucketId = state.nextBucketId + 1;
       return {
