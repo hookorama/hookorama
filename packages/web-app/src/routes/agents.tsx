@@ -122,7 +122,7 @@ function AgentsPage() {
 
   useEffect(() => {
     const first = agents[0];
-    if (selectedId === null && first) {
+    if (first && (selectedId === null || !agents.some((a) => a.id === selectedId))) {
       setSelectedId(first.id);
     }
   }, [selectedId, agents]);

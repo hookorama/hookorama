@@ -177,8 +177,8 @@ function UsageTable({ series }: { readonly series: { t: string; tasks: number; t
           <span className="text-right">err</span>
           <span className="text-right">act</span>
         </div>
-        {series.map((b) => (
-          <div key={b.t} className="grid grid-cols-[100px_50px_50px_60px_40px_40px] gap-2 py-0.5">
+        {series.map((b, i) => (
+          <div key={`${b.t}:${i}`} className="grid grid-cols-[100px_50px_50px_60px_40px_40px] gap-2 py-0.5">
             <span className="text-dim">{b.t}</span>
             <span className="text-right">{b.tasks}</span>
             <span className="text-right text-info">{b.tools}</span>
@@ -245,10 +245,12 @@ function AnalyticsPage() {
     [rollupProjects, agents],
   );
 
-  const totalTasks = series.reduce((n, b) => n + b.tasks, 0);
-  const totalCost = series.reduce((n, b) => n + b.cost, 0);
-  const totalCalls = series.reduce((n, b) => n + b.tools, 0);
-  const activeAgents = series.at(-1)?.active ?? 0;
+  const firstBucket = series[0];
+  const lastBucket = series.at(-1);
+  const totalTasks = firstBucket && lastBucket ? lastBucket.tasks - firstBucket.tasks : 0;
+  const totalCost = firstBucket && lastBucket ? lastBucket.cost - firstBucket.cost : 0;
+  const totalCalls = firstBucket && lastBucket ? lastBucket.tools - firstBucket.tools : 0;
+  const activeAgents = agents.filter((a) => a.status === 'running-tool' || a.status === 'thinking').length;
 
   const freq = Math.min(100, totalCalls * 2);
   const depth = Math.min(100, agents.reduce((n, a) => n + a.metrics.tasks, 0) * 3);

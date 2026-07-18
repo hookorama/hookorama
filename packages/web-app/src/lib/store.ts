@@ -167,7 +167,8 @@ function deriveNotifications(
     if (agent.status !== 'waiting-input' && agent.status !== 'error') continue;
 
     const kind: NotificationKind = agent.status === 'error' ? 'error' : 'waiting-input';
-    const id = `${agent.id}:${kind}:${agent.updatedAt}`;
+    const occurrence = kind === 'error' ? agent.lastErrorAt : undefined;
+    const id = occurrence !== undefined ? `${agent.id}:${kind}:${occurrence}` : `${agent.id}:${kind}`;
     const message =
       agent.status === 'error' ? (agent.currentTask ?? 'task failed') : (agent.waitingReason ?? 'input required');
 

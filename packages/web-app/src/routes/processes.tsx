@@ -48,7 +48,7 @@ function PNode({
   const branch = isLast ? '└─ ' : '├─ ';
   const childPrefix = prefix + (isLast ? '   ' : '│  ');
   const matches = nodeMatches(node, q, tf);
-  const childrenMatch = hasMatchingDescendant(node, tree, q, tf);
+  const childrenMatch = matches || hasMatchingDescendant(node, tree, q, tf);
   if (!matches && !childrenMatch) return null;
   return (
     <>
@@ -112,7 +112,7 @@ function ProcessesPage() {
 
   useEffect(() => {
     const first = processes[0];
-    if (selPid === null && first) {
+    if (first && (selPid === null || !processes.some((p) => p.pid === selPid))) {
       setSelPid(first.pid);
     }
   }, [selPid, processes]);

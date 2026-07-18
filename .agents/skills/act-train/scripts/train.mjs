@@ -140,9 +140,9 @@ function mergePr(owner, repo, prNumber, headSha) {
   return result;
 }
 
-function deleteHeadBranch(owner, repo, headRefName) {
+function deleteHeadBranch(headRepo, headRefName) {
   const encoded = headRefName.split('/').map(encodeURIComponent).join('/');
-  gh(['api', `repos/${owner}/${repo}/git/refs/heads/${encoded}`, '-X', 'DELETE']);
+  gh(['api', `repos/${headRepo}/git/refs/heads/${encoded}`, '-X', 'DELETE']);
 }
 
 function log(message) {
@@ -199,6 +199,8 @@ function summarizeDirty(pr, blockingThreads) {
 function run() {
   const { owner, repo } = getRepo();
   const processedInDryRun = new Set();
+  const initialOpenBranches = getStack().branches.filter((b) => b.pr?.state === 'OPEN');
+  const maxIterations = initialOpenBranches.length * 2 + 5;
 
   let iteration = 0;
 
@@ -208,7 +210,7 @@ function run() {
     const stack = getStack();
     const openBranches = stack.branches.filter((b) => b.pr?.state === 'OPEN');
 
-    if (iteration > openBranches.length + 5) {
+    if (iteration > maxIterations) {
       throw new Error('too many iterations; bailing out');
     }
 
@@ -233,6 +235,8 @@ function run() {
       'headRefOid',
       'url',
       'state',
+      'headRepository',
+      'headRepositoryOwner',
     ]);
 
     if (pr.state !== 'OPEN') {
@@ -257,7 +261,8 @@ function run() {
         const result = mergePr(owner, repo, prNumber, pr.headRefOid);
         log(`  merged: ${result.sha}`);
         try {
-          deleteHeadBranch(owner, repo, pr.headRefName);
+          const headRepo = pr.headRepository?.nameWithOwner ?? `${owner}/${repo}`;
+          deleteHeadBranch(headRepo, pr.headRefName);
           log(`  deleted branch: ${pr.headRefName}`);
         } catch (err) {
           log(

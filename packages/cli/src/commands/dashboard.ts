@@ -47,8 +47,8 @@ async function findCliPackageDir(): Promise<string> {
 
 async function findBuiltWebApp(cliDir: string): Promise<string | undefined> {
   const candidates = [
-    path.resolve(cliDir, 'web-app'),
-    path.resolve(cliDir, '..', '..', 'web-app', 'dist'),
+    path.resolve(cliDir, 'dist', 'web-app'),
+    path.resolve(cliDir, '..', 'web-app', 'dist'),
   ];
   for (const dir of candidates) {
     const index = Bun.file(path.resolve(dir, 'index.html'));
@@ -59,8 +59,8 @@ async function findBuiltWebApp(cliDir: string): Promise<string | undefined> {
 
 async function findSourceWebApp(cliDir: string): Promise<string | undefined> {
   const candidates = [
-    path.resolve(cliDir, '..', '..', 'web-app'),
-    path.resolve(cliDir, '..', '..', '..', 'packages', 'web-app'),
+    path.resolve(cliDir, '..', 'web-app'),
+    path.resolve(cliDir, '..', '..', 'packages', 'web-app'),
   ];
   for (const dir of candidates) {
     const pkg = Bun.file(path.resolve(dir, 'package.json'));
@@ -99,7 +99,8 @@ function serveStatic(webAppDir: string, port = 3000): void {
       const url = new URL(req.url);
       const relative = url.pathname === '/' ? 'index.html' : url.pathname;
       const resolved = path.join(webAppDir, relative);
-      const forbidden = !resolved.startsWith(path.resolve(webAppDir));
+      const relativeToRoot = path.relative(path.resolve(webAppDir), resolved);
+      const forbidden = relativeToRoot.startsWith('..') || path.isAbsolute(relativeToRoot);
       if (forbidden) {
         return new Response('Forbidden', { status: 403 });
       }
@@ -161,7 +162,7 @@ export async function dashboard(): Promise<void> {
 
   console.error(
     'Hookorama dashboard not found. Expected a built web-app at %s, or a source workspace nearby. Run `bun run build` to bundle it.',
-    path.resolve(cliDir, 'web-app'),
+    path.resolve(cliDir, 'dist', 'web-app'),
   );
   process.exitCode = 1;
 }
