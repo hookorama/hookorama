@@ -1,8 +1,22 @@
-import { useMemo, useState, type ReactElement } from 'react';
+import { useEffect, useMemo, useState, type ReactElement } from 'react';
 import { toast } from 'sonner';
 import { useHookoramaStore, selectProcessTree } from '@/lib/store.js';
 import type { Process } from '@/lib/types.js';
 import { Panel, Ascii } from '@/components/hk/primitives.js';
+
+function nodeMatches(node: Process, q: string, tf: string): boolean {
+  return (
+    (!q || String(node.pid).includes(q) || node.cmd.includes(q)) && (tf === 'all' || node.type === tf)
+  );
+}
+
+function hasMatchingDescendant(node: Process, tree: Map<number, Process[]>, q: string, tf: string): boolean {
+  for (const child of tree.get(node.pid) ?? []) {
+    if (nodeMatches(child, q, tf)) return true;
+    if (hasMatchingDescendant(child, tree, q, tf)) return true;
+  }
+  return false;
+}
 
 const TYPE_COLOR: Record<Process['type'], string> = {
   agent: 'text-primary',
@@ -33,8 +47,9 @@ function PNode({
   const kids = tree.get(node.pid) ?? [];
   const branch = isLast ? '└─ ' : '├─ ';
   const childPrefix = prefix + (isLast ? '   ' : '│  ');
-  const matches = (!q || String(node.pid).includes(q) || node.cmd.includes(q)) && (tf === 'all' || node.type === tf);
-  if (!matches && kids.length === 0) return null;
+  const matches = nodeMatches(node, q, tf);
+  const childrenMatch = hasMatchingDescendant(node, tree, q, tf);
+  if (!matches && !childrenMatch) return null;
   return (
     <>
       <div
@@ -94,6 +109,13 @@ function ProcessesPage() {
   const [selPid, setSelPid] = useState<number | null>(processes[0]?.pid ?? null);
   const [q, setQ] = useState('');
   const [tf, setTf] = useState('all');
+
+  useEffect(() => {
+    const first = processes[0];
+    if (selPid === null && first) {
+      setSelPid(first.pid);
+    }
+  }, [selPid, processes]);
 
   const pidSet = new Set(processes.map((p) => p.pid));
   const roots = processes

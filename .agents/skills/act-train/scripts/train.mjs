@@ -4,7 +4,7 @@
  *
  * Walks the current gh-stack from the bottom. For each open PR:
  *   - If mergeStateStatus is CLEAN, reviewDecision is not CHANGES_REQUESTED,
- *     and there are no unresolved review threads, merge it with
+ *     and there are no unresolved non-AI review threads, merge it with
  *     merge_method=merge and delete the head branch.
  *   - Otherwise, print the first dirty PR and exit with code 2.
  *
@@ -60,38 +60,62 @@ function isAiReviewer(login) {
   );
 }
 
-function getUnresolvedThreadCount(owner, repo, prNumber) {
-  const query = `
-    query($owner: String!, $repo: String!, $pr: Int!) {
-      repository(owner: $owner, name: $repo) {
-        pullRequest(number: $pr) {
-          reviewThreads(first: 100) {
-            nodes {
-              isResolved
-              isOutdated
-              comments(first: 1) { nodes { author { login } } }
+function fetchAllReviewThreads(owner, repo, prNumber) {
+  const nodes = [];
+  let cursor = undefined;
+  let hasNext = true;
+  while (hasNext) {
+    const afterDecl = cursor ? '$after: String' : '';
+    const afterArg = cursor ? 'after: $after' : '';
+    const varDecls = `$owner: String!, $repo: String!, $pr: Int!, $n: Int!${afterDecl ? ', ' + afterDecl : ''}`;
+    const query = `
+      query(${varDecls}) {
+        repository(owner: $owner, name: $repo) {
+          pullRequest(number: $pr) {
+            reviewThreads(first: $n${afterArg ? ', ' + afterArg : ''}) {
+              pageInfo { hasNextPage endCursor }
+              nodes {
+                id
+                isResolved
+                isOutdated
+                comments(first: 1) { nodes { author { login } } }
+              }
             }
           }
         }
       }
+    `;
+    const args = [
+      'api',
+      'graphql',
+      '-f',
+      `query=${query}`,
+      '-f',
+      `owner=${owner}`,
+      '-f',
+      `repo=${repo}`,
+      '-F',
+      `pr=${prNumber}`,
+      '-F',
+      'n=100',
+    ];
+    if (cursor) {
+      args.push('-f', `after=${cursor}`);
     }
-  `;
-  const raw = gh([
-    'api',
-    'graphql',
-    '-f',
-    `query=${query}`,
-    '-f',
-    `owner=${owner}`,
-    '-f',
-    `repo=${repo}`,
-    '-F',
-    `pr=${prNumber}`,
-  ]);
-  const data = JSON.parse(raw);
-  const nodes = data?.data?.repository?.pullRequest?.reviewThreads?.nodes ?? [];
+    const raw = gh(args);
+    const data = JSON.parse(raw);
+    const page = data?.data?.repository?.pullRequest?.reviewThreads;
+    nodes.push(...(page?.nodes ?? []));
+    hasNext = page?.pageInfo?.hasNextPage ?? false;
+    cursor = page?.pageInfo?.endCursor ?? undefined;
+  }
+  return nodes;
+}
+
+function getBlockingThreadCount(owner, repo, prNumber) {
+  const nodes = fetchAllReviewThreads(owner, repo, prNumber);
   return nodes.filter((n) => {
-    if (n.isResolved || n.isOutdated) return false;
+    if (n.isResolved) return false;
     const author = n.comments?.nodes?.[0]?.author?.login ?? '';
     return !isAiReviewer(author);
   }).length;
@@ -106,8 +130,6 @@ function mergePr(owner, repo, prNumber, headSha) {
     '-f',
     'merge_method=merge',
     '-f',
-    'delete_branch=true',
-    '-f',
     `sha=${headSha}`,
   ];
   const raw = gh(args);
@@ -118,13 +140,17 @@ function mergePr(owner, repo, prNumber, headSha) {
   return result;
 }
 
+function deleteHeadBranch(owner, repo, headRefName) {
+  const encoded = headRefName.split('/').map(encodeURIComponent).join('/');
+  gh(['api', `repos/${owner}/${repo}/git/refs/heads/${encoded}`, '-X', 'DELETE']);
+}
+
 function log(message) {
   console.log(message);
 }
 
 function setBaseMain(owner, repo, prNumber) {
-  // idempotent; harmless if already based on main
-  sh('gh', ['pr', 'edit', String(prNumber), '--base', 'main', '--repo', `${owner}/${repo}`]);
+  gh(['pr', 'edit', String(prNumber), '--base', 'main', '--repo', `${owner}/${repo}`]);
 }
 
 function checkStatus(statusCheck) {
@@ -137,7 +163,7 @@ function checkStatus(statusCheck) {
   return { name: 'unknown', status: 'UNKNOWN' };
 }
 
-function summarizeDirty(pr, unresolvedThreads) {
+function summarizeDirty(pr, blockingThreads) {
   const lines = [
     `PR #${pr.number} (${pr.headRefName}) is not clean.`,
     `  mergeStateStatus: ${pr.mergeStateStatus}`,
@@ -145,8 +171,8 @@ function summarizeDirty(pr, unresolvedThreads) {
   if (pr.reviewDecision) {
     lines.push(`  reviewDecision: ${pr.reviewDecision}`);
   }
-  if (unresolvedThreads > 0) {
-    lines.push(`  unresolved review threads: ${unresolvedThreads}`);
+  if (blockingThreads > 0) {
+    lines.push(`  unresolved non-AI review threads: ${blockingThreads}`);
   }
 
   const dirty = (pr.statusCheckRollup ?? []).filter((c) => {
@@ -172,17 +198,23 @@ function summarizeDirty(pr, unresolvedThreads) {
 
 function run() {
   const { owner, repo } = getRepo();
+  const processedInDryRun = new Set();
+
   let iteration = 0;
 
   while (true) {
     iteration += 1;
-    if (iteration > 20) {
-      throw new Error('too many iterations; bailing out');
-    }
 
     const stack = getStack();
     const openBranches = stack.branches.filter((b) => b.pr?.state === 'OPEN');
-    const next = openBranches[0];
+
+    if (iteration > openBranches.length + 5) {
+      throw new Error('too many iterations; bailing out');
+    }
+
+    const next = DRY_RUN
+      ? openBranches.find((b) => !processedInDryRun.has(b.pr.number))
+      : openBranches[0];
 
     if (!next) {
       log('All stacked PRs are merged. Done.');
@@ -204,38 +236,48 @@ function run() {
     ]);
 
     if (pr.state !== 'OPEN') {
+      if (DRY_RUN) {
+        processedInDryRun.add(prNumber);
+      }
       log(`  state is ${pr.state}; skipping.`);
       continue;
     }
 
-    const unresolvedThreads = getUnresolvedThreadCount(owner, repo, prNumber);
+    const blockingThreads = getBlockingThreadCount(owner, repo, prNumber);
 
     if (
       pr.mergeStateStatus === 'CLEAN' &&
       pr.reviewDecision !== 'CHANGES_REQUESTED' &&
-      unresolvedThreads === 0
+      blockingThreads === 0
     ) {
-      log(`  CLEAN. ${DRY_RUN ? '[dry-run] would merge' : 'Merging'}...`);
-
       if (DRY_RUN) {
-        log(
-          `  [dry-run] would merge PR #${prNumber} and delete ${pr.headRefName}`,
-        );
+        processedInDryRun.add(prNumber);
+        log(`  [dry-run] would merge PR #${prNumber} and delete ${pr.headRefName}`);
       } else {
         const result = mergePr(owner, repo, prNumber, pr.headRefOid);
         log(`  merged: ${result.sha}`);
+        try {
+          deleteHeadBranch(owner, repo, pr.headRefName);
+          log(`  deleted branch: ${pr.headRefName}`);
+        } catch (err) {
+          log(
+            `  warning: failed to delete branch ${pr.headRefName}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
       }
 
-      // Ensure the following PR is targeted at main now that its base branch is gone.
-      const nextAfter = openBranches[1];
-      if (nextAfter?.pr?.number != null) {
-        setBaseMain(owner, repo, nextAfter.pr.number);
+      if (!DRY_RUN) {
+        const index = openBranches.indexOf(next);
+        const nextAfter = openBranches[index + 1];
+        if (nextAfter?.pr?.number != null) {
+          setBaseMain(owner, repo, nextAfter.pr.number);
+        }
       }
 
       continue;
     }
 
-    log(summarizeDirty(pr, unresolvedThreads));
+    log(summarizeDirty(pr, blockingThreads));
     return 2;
   }
 }

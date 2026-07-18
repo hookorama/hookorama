@@ -6,7 +6,7 @@
   "description": "Hookorama CLI — install, lifecycle, and hook dispatch for the local supervisor.",
   "license": "MIT",
   "bin": {
-    "cli": "./dist/main.mjs"
+    "hookorama": "./dist/main.mjs"
   },
   "types": "./dist/index.d.mts",
   "exports": {

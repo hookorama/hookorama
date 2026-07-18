@@ -64,6 +64,7 @@ function EventsPage() {
                 setQ(e.target.value);
               }}
               placeholder="&gt; filter"
+              aria-label="Filter events"
               className="w-40 border border-border bg-background px-2 py-0.5"
             />
             <select
@@ -71,6 +72,7 @@ function EventsPage() {
               onChange={(e) => {
                 setEventType(e.target.value);
               }}
+              aria-label="Event type"
               className="border border-border bg-background px-1"
             >
               {TYPES.map((t) => (

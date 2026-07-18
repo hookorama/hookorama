@@ -169,7 +169,7 @@ function UsageTable({ series }: { readonly series: { t: string; tasks: number; t
   return (
     <Panel title={`usage over time · ${series.length}`}>
       <div className="max-h-64 overflow-auto p-2 text-xs">
-        <div className="mb-1 grid grid-cols-[80px_50px_50px_60px_40px_40px] gap-2 border-b border-border pb-1 text-dim">
+        <div className="mb-1 grid grid-cols-[100px_50px_50px_60px_40px_40px] gap-2 border-b border-border pb-1 text-dim">
           <span>t</span>
           <span className="text-right">tasks</span>
           <span className="text-right">tools</span>
@@ -178,7 +178,7 @@ function UsageTable({ series }: { readonly series: { t: string; tasks: number; t
           <span className="text-right">act</span>
         </div>
         {series.map((b) => (
-          <div key={b.t} className="grid grid-cols-[80px_50px_50px_60px_40px_40px] gap-2 py-0.5">
+          <div key={b.t} className="grid grid-cols-[100px_50px_50px_60px_40px_40px] gap-2 py-0.5">
             <span className="text-dim">{b.t}</span>
             <span className="text-right">{b.tasks}</span>
             <span className="text-right text-info">{b.tools}</span>
@@ -215,7 +215,7 @@ function AnalyticsPage() {
   const series = useMemo(
     () =>
       buckets.slice(-nBuckets).map((b) => ({
-        t: new Date(b.ts).toISOString().slice(11, 16),
+        t: new Date(b.ts).toISOString().slice(5, 16).replace('T', ' '),
         tasks: b.tasks,
         tools: b.toolCalls,
         cost: Number(b.cost.toFixed(4)),
@@ -245,10 +245,10 @@ function AnalyticsPage() {
     [rollupProjects, agents],
   );
 
-  const totalTasks = agents.reduce((n, a) => n + a.metrics.tasks, 0);
-  const totalCost = agents.reduce((n, a) => n + a.metrics.cost, 0);
-  const totalCalls = agents.reduce((n, a) => n + a.metrics.toolCalls, 0);
-  const activeAgents = agents.filter((a) => a.status === 'running-tool' || a.status === 'thinking').length;
+  const totalTasks = series.reduce((n, b) => n + b.tasks, 0);
+  const totalCost = series.reduce((n, b) => n + b.cost, 0);
+  const totalCalls = series.reduce((n, b) => n + b.tools, 0);
+  const activeAgents = series.at(-1)?.active ?? 0;
 
   const freq = Math.min(100, totalCalls * 2);
   const depth = Math.min(100, agents.reduce((n, a) => n + a.metrics.tasks, 0) * 3);

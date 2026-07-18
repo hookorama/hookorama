@@ -228,9 +228,14 @@ export function Shell(): ReactElement {
     const wsUrl = dev ? `ws://${window.location.host}/ws` : 'ws://127.0.0.1:7354/ws';
     const client = new SupervisorClient({ httpUrl, wsUrl });
 
+    const store = useHookoramaStore;
     client.setOnOpen(() => { setConnection('connected'); });
     client.setOnClose(() => { setConnection('disconnected'); });
-    client.setOnError(() => { setConnection('error'); });
+    client.setOnError(() => {
+      if (store.getState().connection !== 'connected') {
+        setConnection('error');
+      }
+    });
     client.setOnSnapshot((snapshot) => { syncSnapshot(snapshot); });
     client.setOnEvent((event) => { applyEvent(event); });
 

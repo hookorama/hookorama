@@ -12,16 +12,20 @@ const supervisorDir = path.resolve(projectDir, '../supervisor');
 const supervisorHost = '127.0.0.1';
 const supervisorPort = 7354;
 
-function isPortReachable(): Promise<boolean> {
+function isPortReachable(timeoutMs = 500): Promise<boolean> {
   return new Promise((resolve) => {
     const socket = createConnection(supervisorPort, supervisorHost);
-    socket.once('connect', () => {
+    let settled = false;
+    const finish = (result: boolean) => {
+      if (settled) return;
+      settled = true;
       socket.destroy();
-      resolve(true);
-    });
-    socket.once('error', () => {
-      resolve(false);
-    });
+      resolve(result);
+    };
+    socket.setTimeout(timeoutMs);
+    socket.once('connect', () => finish(true));
+    socket.once('error', () => finish(false));
+    socket.once('timeout', () => finish(false));
   });
 }
 
@@ -38,6 +42,17 @@ function supervisorPlugin(): Plugin {
 
       child = spawn(process.execPath, ['src/main.ts'], { cwd: supervisorDir });
 
+      function killSupervisor() {
+        if (child !== null) {
+          try {
+            child.kill();
+          } catch (err) {
+            console.warn('failed to kill supervisor:', err);
+          }
+          child = null;
+        }
+      }
+
       let spawnErr: Error | undefined;
       child.on('error', (err) => {
         spawnErr = err;
@@ -52,6 +67,7 @@ function supervisorPlugin(): Plugin {
       let ready = false;
       for (let i = 0; i < 50; i++) {
         if (spawnErr !== undefined) {
+          killSupervisor();
           return Promise.reject(new Error(`supervisor failed to start: ${spawnErr.message}`));
         }
         if (child.exitCode !== null) {
@@ -65,24 +81,19 @@ function supervisorPlugin(): Plugin {
       }
 
       if (spawnErr !== undefined) {
+        killSupervisor();
         return Promise.reject(new Error(`supervisor failed to start: ${spawnErr.message}`));
       }
       if (child.exitCode !== null) {
         return Promise.reject(new Error(`supervisor exited with code ${child.exitCode}`));
       }
       if (!ready) {
+        killSupervisor();
         return Promise.reject(new Error('supervisor did not become ready'));
       }
 
       return () => {
-        if (child !== null) {
-          try {
-            child.kill();
-          } catch (err) {
-            console.warn('failed to kill supervisor:', err);
-          }
-          child = null;
-        }
+        killSupervisor();
       };
     },
   };
