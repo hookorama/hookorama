@@ -3,21 +3,22 @@
  */
 
 import { spawn } from 'node:child_process';
-import { existsSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 async function findPackageRoot(): Promise<string> {
   let dir = path.dirname(fileURLToPath(import.meta.url));
-  while (true) {
-    const pkgPath = path.join(dir, 'package.json');
-    if (existsSync(pkgPath)) {
-      const raw = await readFile(pkgPath, 'utf8');
-      const pkg = JSON.parse(raw) as { name?: string };
-      if (pkg.name === 'hookorama') {
+  for (;;) {
+    const pkgPath = path.resolve(dir, 'package.json');
+    try {
+      const pkg = (await import(pkgPath, { with: { type: 'json' } })) as {
+        default?: { name?: string };
+      };
+      if (pkg.default?.name === 'hookorama') {
         return dir;
       }
+    } catch {
+      // not a package root or not JSON
     }
     const parent = path.dirname(dir);
     if (parent === dir) {
@@ -31,7 +32,9 @@ export async function dashboard(): Promise<void> {
   const cliRoot = await findPackageRoot();
   const webAppDir = path.resolve(cliRoot, '..', 'web-app');
 
-  if (!existsSync(webAppDir)) {
+  try {
+    await import(path.resolve(webAppDir, 'package.json'), { with: { type: 'json' } });
+  } catch {
     console.error('Hookorama dashboard not found at %s', webAppDir);
     process.exitCode = 1;
     return;
