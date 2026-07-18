@@ -25,16 +25,18 @@ export async function startSupervisor(): Promise<void> {
     throw new Error('cannot determine CLI script path');
   }
 
-  let startupError = '';
+  let exitReason: string | undefined;
   const child = spawn(process.execPath, [scriptPath, 'supervisor', 'start'], {
     detached: true,
-    stdio: ['ignore', 'ignore', 'pipe'],
+    stdio: ['ignore', 'ignore', 'ignore'],
     windowsHide: true,
   });
   child.unref();
 
-  child.stderr?.on('data', (data) => {
-    startupError += data.toString();
+  child.on('exit', (code, signal) => {
+    if (code !== 0 || signal !== null) {
+      exitReason = signal !== null ? `signal ${signal}` : `exit code ${code}`;
+    }
   });
 
   if (await isSupervisorRunning()) {
@@ -46,8 +48,8 @@ export async function startSupervisor(): Promise<void> {
     if (await isSupervisorRunning()) {
       return;
     }
-    if (startupError.length > 0) {
-      throw new Error(`supervisor failed to start: ${startupError.trim()}`);
+    if (exitReason !== undefined) {
+      throw new Error(`supervisor failed to start (${exitReason})`);
     }
   }
 

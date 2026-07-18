@@ -3,7 +3,11 @@
  */
 
 import { readFile } from 'node:fs/promises';
+import { setTimeout } from 'node:timers/promises';
 import { pidFilePath, isProcessRunning, releasePidSlot, runSupervisorDaemon } from '@hookorama/supervisor';
+
+const STOP_ATTEMPTS = 25;
+const STOP_POLL_MS = 200;
 
 export async function supervisorStart(): Promise<void> {
   const acquired = await runSupervisorDaemon();
@@ -51,10 +55,19 @@ export async function supervisorStop(): Promise<void> {
 
   try {
     process.kill(pid, 'SIGTERM');
-    console.warn('supervisor stopped (pid %d)', pid);
   } catch (error) {
     console.warn('failed to stop supervisor:', error);
     await releasePidSlot(pidFile);
     process.exitCode = 1;
+    return;
   }
+
+  for (let attempt = 0; attempt < STOP_ATTEMPTS; attempt += 1) {
+    if (!(await isProcessRunning(pid))) {
+      break;
+    }
+    await setTimeout(STOP_POLL_MS);
+  }
+
+  console.warn('supervisor stopped (pid %d)', pid);
 }

@@ -5,10 +5,10 @@
  * dispatches `hookorama hook devin <status>` at Devin CLI lifecycle events.
  */
 
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import type { HookRequest } from '@hookorama/client';
+import type { HookRequest, Status } from '@hookorama/client';
 import type { AgentPlugin, AgentPluginOptions, AgentPluginStatus } from '../plugin.js';
 import { buildCommonHookRequest } from './shared/hook-args.js';
 import { getSelfCommandString } from '../util/self-command.js';
@@ -91,7 +91,21 @@ async function writeConfig(config: DevinConfig, dryRun?: boolean): Promise<void>
     return;
   }
   await mkdir(dirname(configPath), { recursive: true });
-  await writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf8');
+  const tempPath = `${configPath}.tmp`;
+  await writeFile(tempPath, `${JSON.stringify(config, null, 2)}\n`, 'utf8');
+  await rename(tempPath, configPath);
+}
+
+function mergeHooks(existing: DevinHooks | undefined, generated: DevinHooks): DevinHooks {
+  const merged: DevinHooks = { ...existing };
+  for (const [event, generatedEntries] of Object.entries(generated)) {
+    const existingEntries = merged[event] ?? [];
+    const cleaned = existingEntries
+      .map((entry) => Object.assign({}, entry, { hooks: entry.hooks.filter((h) => !isHookoramaCommand(h.command)) }))
+      .filter((entry) => entry.hooks.length > 0);
+    merged[event] = [...cleaned, ...generatedEntries];
+  }
+  return merged;
 }
 
 function isHookoramaCommand(command: string): boolean {
@@ -107,14 +121,14 @@ export const devinPlugin: AgentPlugin = {
   name: 'devin',
   description: 'Devin CLI — writes ~/.config/devin/config.json hooks',
 
-  buildHookRequest(agent: string, status: string, args: string[]): HookRequest {
-    return buildCommonHookRequest(agent, status, args);
+  buildHookRequest(agent: string, status: Status, args: readonly string[]): HookRequest {
+    return buildCommonHookRequest(agent, status, args, process.env['DEVIN_PROJECT_DIR']);
   },
 
   async install(opts: AgentPluginOptions = {}): Promise<void> {
     const config = await readConfig();
     const newHooks = buildHooks();
-    const hooks: DevinHooks = { ...config.hooks, ...newHooks };
+    const hooks = mergeHooks(config.hooks, newHooks);
 
     await writeConfig({ ...config, hooks }, opts.dryRun);
     console.warn('Devin hooks installed to %s', configPath);

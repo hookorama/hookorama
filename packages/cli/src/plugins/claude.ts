@@ -6,25 +6,28 @@
  * Code supports: SessionStart, PreToolUse, PostToolUse, Notification, and Stop.
  */
 
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import type { HookRequest } from '@hookorama/client';
+import type { HookRequest, Status } from '@hookorama/client';
 import type { AgentPlugin, AgentPluginOptions, AgentPluginStatus } from '../plugin.js';
 import { buildCommonHookRequest } from './shared/hook-args.js';
 import { getSelfCommand } from '../util/self-command.js';
 
-const HOOK_EVENTS = ['SessionStart', 'PreToolUse', 'PostToolUse', 'Notification', 'Stop'] as const;
+const HOOK_EVENTS = ['SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'Notification', 'Stop'] as const;
 
 type ClaudeHookEvent = (typeof HOOK_EVENTS)[number];
 
 const EVENT_TO_STATUS: ReadonlyMap<ClaudeHookEvent, string> = new Map([
   ['SessionStart', 'thinking'],
+  ['UserPromptSubmit', 'thinking'],
   ['PreToolUse', 'running-tool'],
   ['PostToolUse', 'thinking'],
   ['Notification', 'waiting-input'],
   ['Stop', 'done'],
 ] as const);
+
+const STATUSES = new Set(EVENT_TO_STATUS.values());
 
 const settingsPath = join(process.cwd(), '.claude', 'settings.json');
 
@@ -85,26 +88,49 @@ async function writeSettings(settings: ClaudeSettings, dryRun?: boolean): Promis
     return;
   }
   await mkdir(dirname(settingsPath), { recursive: true });
-  await writeFile(settingsPath, `${JSON.stringify(settings, null, 2)}\n`, 'utf8');
+  const tempPath = `${settingsPath}.tmp`;
+  await writeFile(tempPath, `${JSON.stringify(settings, null, 2)}\n`, 'utf8');
+  await rename(tempPath, settingsPath);
 }
 
 function isHookoramaCommand(hook: ClaudeHookCommand): boolean {
-  if (!Array.isArray(hook.args) || hook.args.length < 3) return false;
-  return hook.args[1] === 'hook' && hook.args[2] === 'claude';
+  const args = hook.args;
+  if (!Array.isArray(args)) return false;
+  const status = args[args.length - 1];
+  if (status === undefined) return false;
+  if (args.length === 3) {
+    return args[0] === 'hook' && args[1] === 'claude' && STATUSES.has(status);
+  }
+  if (args.length === 4) {
+    return args[1] === 'hook' && args[2] === 'claude' && STATUSES.has(status);
+  }
+  return false;
+}
+
+function mergeHooks(existing: ClaudeHooks | undefined, generated: ClaudeHooks): ClaudeHooks {
+  const merged: ClaudeHooks = { ...existing };
+  for (const [event, generatedEntries] of Object.entries(generated)) {
+    const existingEntries = merged[event] ?? [];
+    const cleaned = existingEntries
+      .map((entry) => Object.assign({}, entry, { hooks: entry.hooks.filter((h) => !isHookoramaCommand(h)) }))
+      .filter((entry) => entry.hooks.length > 0);
+    merged[event] = [...cleaned, ...generatedEntries];
+  }
+  return merged;
 }
 
 export const claudePlugin: AgentPlugin = {
   name: 'claude',
   description: 'Claude Code — writes ~/.claude/settings.json hooks',
 
-  buildHookRequest(agent: string, status: string, args: string[]): HookRequest {
+  buildHookRequest(agent: string, status: Status, args: readonly string[]): HookRequest {
     return buildCommonHookRequest(agent, status, args);
   },
 
   async install(opts: AgentPluginOptions = {}): Promise<void> {
     const settings = await readSettings();
     const newHooks = buildHooks();
-    const hooks: ClaudeHooks = { ...settings.hooks, ...newHooks };
+    const hooks = mergeHooks(settings.hooks, newHooks);
 
     await writeSettings({ ...settings, hooks }, opts.dryRun);
     console.warn('Claude Code hooks installed to %s', settingsPath);

@@ -11,7 +11,7 @@ import { supervisorStart, supervisorStop } from './commands/supervisor.js';
 import { listPlugins } from './plugin-registry.js';
 import { VALID_STATUSES } from './plugins/shared/hook-args.js';
 
-export type { AgentPlugin } from './plugin.js';
+export type { AgentPlugin, AgentPluginOptions, AgentPluginStatus } from './plugin.js';
 
 const program = new Command();
 
@@ -48,8 +48,9 @@ program
       process.exitCode = 1;
       return;
     }
-    const argv = process.argv.slice(5);
-    await hook(agent, statusValue, argv);
+    const hookIndex = program.args.indexOf('hook');
+    const argv = hookIndex >= 0 ? program.args.slice(hookIndex + 3) : [];
+    await hook(agent, statusValue as Status, argv);
   });
 
 program
