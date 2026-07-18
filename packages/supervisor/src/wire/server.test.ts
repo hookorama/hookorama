@@ -1,5 +1,4 @@
-import { randomUUID } from 'node:crypto';
-import { mkdir, rm } from 'node:fs/promises';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it, afterEach } from 'vitest';
@@ -9,7 +8,7 @@ import { Supervisor } from '../supervisor.js';
 import { WireServer } from './server.js';
 
 interface TestHarness {
-  pidPath: string;
+  tmpDir: string;
   supervisor: Supervisor;
   server: WireServer;
   client: SupervisorClient;
@@ -17,8 +16,8 @@ interface TestHarness {
 }
 
 async function setup(): Promise<TestHarness> {
-  const pidPath = join(tmpdir(), 'hookorama-supervisor-test', `${randomUUID()}.pid`);
-  await mkdir(join(pidPath, '..'), { recursive: true });
+  const tmpDir = await mkdtemp(join(tmpdir(), 'hookorama-supervisor-test-'));
+  const pidPath = join(tmpDir, 'supervisor.pid');
 
   const supervisor = new Supervisor({ discovery: null, lifecycle: { customPidPath: pidPath } });
   const started = await supervisor.start();
@@ -33,7 +32,7 @@ async function setup(): Promise<TestHarness> {
   const client = new SupervisorClient({ httpUrl: baseUrl, wsUrl });
 
   return {
-    pidPath,
+    tmpDir,
     supervisor,
     server,
     client,
@@ -41,7 +40,7 @@ async function setup(): Promise<TestHarness> {
       client.stop();
       await server.stop();
       await supervisor.stop();
-      await rm(pidPath, { force: true });
+      await rm(tmpDir, { force: true, recursive: true });
     },
   };
 }
