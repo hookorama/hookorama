@@ -54,10 +54,10 @@ describe('Supervisor bug fixes', () => {
     await fresh.stop();
   });
 
-  test('two subagents opened at the same timestamp do not collide', () => {
+  test('two subagents opened at the same timestamp do not collide', async () => {
     const sup = new Supervisor({ lifecycle: { customPidPath: pidPath }, discovery: null });
     sup.setOpenTerminals([{ pid: 7, cwd: '/p' }]);
-    const identity = sup.applyHook({ pidChain: [7], cwd: '/p', status: 'thinking' });
+    const identity = await sup.applyHook({ pidChain: [7], cwd: '/p', status: 'thinking' });
     expect(identity).not.toBeNull();
     if (identity === null) throw new Error('identity should resolve');
     const ts = '2026-07-10T00:00:01.000Z';
@@ -78,10 +78,10 @@ describe('Supervisor bug fixes', () => {
     expect(remaining).toHaveLength(0);
   });
 
-  test('two subagents with the same toolUseId remint and can each be closed', () => {
+  test('two subagents with the same toolUseId remint and can each be closed', async () => {
     const sup = new Supervisor({ lifecycle: { customPidPath: pidPath }, discovery: null });
     sup.setOpenTerminals([{ pid: 7, cwd: '/p' }]);
-    const identity = sup.applyHook({ pidChain: [7], cwd: '/p', status: 'thinking' });
+    const identity = await sup.applyHook({ pidChain: [7], cwd: '/p', status: 'thinking' });
     expect(identity).not.toBeNull();
     if (identity === null) throw new Error('identity should resolve');
     const first = sup.startSubagent(identity, '2026-07-10T00:00:01.000Z', 'tool-1');
@@ -134,13 +134,13 @@ describe('discovery is observable in the supervisor', () => {
 });
 
 describe('three or more concurrent subagents sharing a toolUseId', () => {
-  test('each can be closed independently', () => {
+  test('each can be closed independently', async () => {
     const workDir = mkdtempSync(join(tmpdir(), 'hookorama-subagents-multi-'));
     const pidPath = join(workDir, 'supervisor.pid');
     try {
       const sup = new Supervisor({ lifecycle: { customPidPath: pidPath }, discovery: null });
       sup.setOpenTerminals([{ pid: 7, cwd: '/p' }]);
-      const identity = sup.applyHook({ pidChain: [7], cwd: '/p', status: 'thinking' });
+      const identity = await sup.applyHook({ pidChain: [7], cwd: '/p', status: 'thinking' });
       expect(identity).not.toBeNull();
       if (identity === null) throw new Error('identity should resolve');
       const k1 = sup.startSubagent(identity, '2026-07-10T00:00:01.000Z', 'tool-shared');
@@ -184,13 +184,13 @@ describe('acquirePidSlot EEXIST race', () => {
 });
 
 describe('closeSubagentByKey idempotency', () => {
-  test('returns false when called on an already-terminal subagent', () => {
+  test('returns false when called on an already-terminal subagent', async () => {
     const workDir = mkdtempSync(join(tmpdir(), 'hookorama-subagent-idemp-'));
     const pidPath = join(workDir, 'supervisor.pid');
     try {
       const sup = new Supervisor({ lifecycle: { customPidPath: pidPath }, discovery: null });
       sup.setOpenTerminals([{ pid: 7, cwd: '/p' }]);
-      const identity = sup.applyHook({ pidChain: [7], cwd: '/p', status: 'thinking' });
+      const identity = await sup.applyHook({ pidChain: [7], cwd: '/p', status: 'thinking' });
       expect(identity).not.toBeNull();
       if (identity === null) throw new Error('identity should resolve');
       const childKey = sup.startSubagent(identity, '2026-07-10T00:00:01.000Z', 'tool-1');

@@ -1,31 +1,34 @@
 # `@hookorama/supervisor`
 
-The Hookorama supervisor: one process per machine, installed as a
-user-mode local service. Owns the live in-memory state and (in a
-later PR) the append-only SQLite history. The only writer in the
-system.
-
-PR 2 ships the supervisor _skeleton_: the public `Supervisor`
-class, identity resolution, the live state store with virtual
-subagent nesting, cross-platform process discovery, and the
-PID-file slot lifecycle with stale-PID reclaim. The wire
-protocol (NDJSON socket + HTTP) and the Drizzle persistence
-layer ship in later PRs; both will be pinned by future ADRs in
-Phase 2 (see `ROADMAP.md`).
+The Hookorama daemon: one process per machine, installed as a user-mode
+local service. Owns the live in-memory state and is the only writer in the
+system. Exposes an HTTP/JSON and WebSocket surface on `127.0.0.1:7354`.
 
 ## Public API
 
 ```ts
 import { Supervisor } from '@hookorama/supervisor';
+
+const supervisor = new Supervisor({
+  lifecycle: { customPidPath: '/tmp/hookorama.pid' },
+});
+
+await supervisor.start(); // returns false if another supervisor is running
+supervisor.setOpenTerminals([{ pid: 1234, cwd: '/home/user' }]);
+await supervisor.applyHook({ status: 'thinking', pidChain: [1234], cwd: '/home/user' });
+console.warn(supervisor.snapshot());
+await supervisor.stop();
 ```
 
-The full public surface is re-exported from
-[`packages/supervisor/src/index.ts`](./src/index.ts).
+The wire protocol server is implemented in `src/main.ts`:
+
+```bash
+bun packages/supervisor/src/main.ts
+```
 
 ## Pinned by
 
-- ADR(s): [`docs/adr/0001-supervisor-shape.md`](../../docs/adr/0001-supervisor-shape.md),
-  [`docs/adr/0002-v1-postmortem.md`](../../docs/adr/0002-v1-postmortem.md)
+- ADR(s): [`0001`](../../docs/adr/0001-supervisor-shape.md), [`0003`](../../docs/adr/0003-wire-protocol-and-web-dashboard.md)
 - Rules: `.agents/rules/package-readme.md.rule`
 - Skills: none
 - Memory: `.agents/memory/facts/pid-chain-beats-session-id.md`

@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Supervisor } from './supervisor.js';
+import type { ProcessDiscovery } from './process-discovery/index.js';
 
 describe('Supervisor', () => {
   let workDir: string;
@@ -31,10 +32,10 @@ describe('Supervisor', () => {
     await alpha.stop();
   });
 
-  test('applyHook upserts a known process and remembers it', () => {
+  test('applyHook upserts a known process and remembers it', async () => {
     const sup = new Supervisor({ lifecycle: { customPidPath: pidPath }, discovery: null });
     sup.setOpenTerminals([{ pid: 7, cwd: '/p' }]);
-    const identity = sup.applyHook({
+    const identity = await sup.applyHook({
       pidChain: [7],
       cwd: '/p',
       status: 'thinking',
@@ -45,15 +46,26 @@ describe('Supervisor', () => {
     expect(sup.snapshot()[0]?.agent).toBe('claude');
   });
 
-  test('applyHook returns null when identity is unresolvable', () => {
+  test('applyHook returns null when identity is unresolvable', async () => {
     const sup = new Supervisor({ lifecycle: { customPidPath: pidPath }, discovery: null });
-    expect(sup.applyHook({ status: 'idle' })).toBeNull();
+    expect(await sup.applyHook({ status: 'idle' })).toBeNull();
   });
 
-  test('subagent lifecycle: start, exact end', () => {
+  test('applyHook falls back to the OS process table when open terminals are empty', async () => {
+    const mockDiscovery: ProcessDiscovery = {
+      list: async () => [{ pid: 42, ppid: 1, command: 'bash' }],
+    };
+    const sup = new Supervisor({ lifecycle: { customPidPath: pidPath }, discovery: mockDiscovery });
+    const identity = await sup.applyHook({ pidChain: [42], cwd: '/p', status: 'thinking', agent: 'claude' });
+    expect(identity?.pid).toBe(42);
+    expect(sup.snapshot()).toHaveLength(1);
+    expect(sup.snapshot()[0]?.agent).toBe('claude');
+  });
+
+  test('subagent lifecycle: start, exact end', async () => {
     const sup = new Supervisor({ lifecycle: { customPidPath: pidPath }, discovery: null });
     sup.setOpenTerminals([{ pid: 7, cwd: '/p' }]);
-    const identity = sup.applyHook({ pidChain: [7], cwd: '/p', status: 'thinking' });
+    const identity = await sup.applyHook({ pidChain: [7], cwd: '/p', status: 'thinking' });
     if (identity === null) throw new Error('identity should resolve');
     const childKey = sup.startSubagent(identity, '2026-07-10T00:00:01.000Z', 'tool-1');
     expect(sup.snapshot()).toHaveLength(2);
@@ -89,6 +101,36 @@ describe('Supervisor', () => {
     const sup = new Supervisor({ lifecycle: { customPidPath: pidPath }, discovery: null });
     const results = await Promise.all([sup.start(), sup.start()]);
     expect(results).toEqual([true, true]);
+    await sup.stop();
+  });
+
+  test('processes annotates the OS tree with agent ids', async () => {
+    const mockDiscovery: ProcessDiscovery = {
+      list: async () => [
+        { pid: 7, ppid: 0, command: 'bash', user: 'u', startedAt: 1 },
+        { pid: 123, ppid: 7, command: 'worker', user: 'u', startedAt: 2 },
+        { pid: 456, ppid: 0, command: 'Code', user: 'u', startedAt: 3 },
+      ],
+    };
+    const sup = new Supervisor({ lifecycle: { customPidPath: pidPath }, discovery: mockDiscovery });
+    await sup.start();
+    sup.setOpenTerminals([{ pid: 7, cwd: '/p' }]);
+    await sup.applyHook({ pidChain: [7], cwd: '/p', status: 'thinking', agent: 'claude' });
+
+    const rows = await sup.processes();
+    expect(rows).toHaveLength(3);
+
+    const bash = rows.find((r) => r.pid === 7);
+    const worker = rows.find((r) => r.pid === 123);
+    const code = rows.find((r) => r.pid === 456);
+
+    expect(bash?.type).toBe('agent');
+    expect(bash?.agentId).toBe('pid:7');
+    expect(worker?.type).toBe('agent');
+    expect(worker?.agentId).toBe('pid:7');
+    expect(code?.type).toBe('ide');
+    expect(code?.agentId).toBeUndefined();
+
     await sup.stop();
   });
 });

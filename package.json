@@ -15,9 +15,9 @@
   "scripts": {
     "dev": "tsdown --watch",
     "build": "tsdown",
-    "typecheck": "tsc -b packages/client packages/supervisor packages/cli packages/extension packages/web-app",
+    "typecheck": "tsdown && tsc -b --noEmit packages/client packages/supervisor packages/cli packages/extension packages/web-app",
     "lint": "oxlint .",
-    "test": "vitest run --passWithNoTests",
+    "test": "bun --bun vitest run --passWithNoTests",
     "check:md": "bun run scripts/check-md.ts",
     "check:files": "bun run scripts/check-files.ts",
     "check": "bun run check:md && bun run check:files",

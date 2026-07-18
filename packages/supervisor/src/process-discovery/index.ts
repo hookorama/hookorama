@@ -17,6 +17,9 @@ export interface ProcessRow {
   readonly pid: number;
   readonly ppid: number;
   readonly command: string;
+  readonly user?: string;
+  readonly startedAt?: number;
+  readonly tty?: string;
 }
 
 export interface ProcessDiscovery {
@@ -29,7 +32,7 @@ function spawnLines(cmd: readonly string[]): Promise<readonly string[]> {
     return Promise.reject(new Error('spawnLines: empty command'));
   }
   return new Promise<readonly string[]>((resolve, reject) => {
-    const child = spawn(head, cmd.slice(1), { stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn(head, cmd.slice(1), { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
     const out: Buffer[] = [];
     const err: Buffer[] = [];
     child.stdout.on('data', (chunk: Buffer) => {
@@ -143,18 +146,19 @@ export class MacPsDiscovery implements ProcessDiscovery {
 }
 
 /**
- * Windows walker: shells out to `wmic process get
- * ProcessId,ParentProcessId,Name /FORMAT:CSV`. The CSV always
- * prepends a leading `Node` column (the hostname), so the
- * header is `Node,Name,ParentProcessId,ProcessId`. We map by
- * header name rather than position so column reordering does
- * not silently corrupt the output. `wmic` is deprecated on
- * recent Windows; if it fails the caller sees an empty list and
- * the supervisor falls back to extension‑reported terminal
- * identity.
+ * Windows walker: tries `wmic` first, then falls back to
+ * PowerShell `Get-CimInstance Win32_Process` because `wmic` is
+ * removed on recent Windows. CSV output is parsed defensively
+ * by header name so column reordering does not corrupt results.
  */
 export class WindowsWmicDiscovery implements ProcessDiscovery {
   async list(): Promise<readonly ProcessRow[]> {
+    const wmicRows = await this.tryWmic();
+    if (wmicRows !== null && wmicRows.length > 0) return wmicRows;
+    return this.tryPowerShell();
+  }
+
+  private async tryWmic(): Promise<readonly ProcessRow[] | null> {
     let lines: readonly string[];
     try {
       lines = await spawnLines([
@@ -165,6 +169,20 @@ export class WindowsWmicDiscovery implements ProcessDiscovery {
         '/FORMAT:CSV',
       ]);
     } catch {
+      return null;
+    }
+    return parseWmicCsv(lines);
+  }
+
+  private async tryPowerShell(): Promise<readonly ProcessRow[]> {
+    let lines: readonly string[];
+    try {
+      lines = await spawnLines([
+        'powershell',
+        '-Command',
+        'Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,Name | ConvertTo-Csv -NoTypeInformation',
+      ]);
+    } catch {
       return [];
     }
     return parseWmicCsv(lines);
@@ -172,26 +190,25 @@ export class WindowsWmicDiscovery implements ProcessDiscovery {
 }
 
 /**
- * Parse the CSV output of `wmic process get ... /FORMAT:CSV`.
+ * Parse the CSV output of `wmic process get ... /FORMAT:CSV`
+ * or PowerShell `ConvertTo-Csv`.
  *
- * The header always starts with `Node` (the hostname) followed
- * by the requested columns in the order the operator typed them.
- * Parsing by header name keeps us correct regardless of column
- * order, so future query reordering does not silently corrupt
- * the output.
+ * Both may prepend a leading `Node` column (`wmic` does; PowerShell
+ * does not). We map by header name and strip surrounding quotes so
+ * PowerShell output is handled correctly.
  *
  * Exported for unit testing.
  */
 export function parseWmicCsv(lines: readonly string[]): readonly ProcessRow[] {
   if (lines.length < 2) return [];
-  const header = lines[0]?.split(',') ?? [];
+  const header = lines[0]?.split(',').map((h) => h.trim().replace(/^"|"$/g, '')) ?? [];
   const idxName = header.indexOf('Name');
   const idxPpid = header.indexOf('ParentProcessId');
   const idxPid = header.indexOf('ProcessId');
   if (idxName < 0 || idxPpid < 0 || idxPid < 0) return [];
   const rows: ProcessRow[] = [];
   for (const line of lines.slice(1)) {
-    const cols = line.split(',');
+    const cols = line.split(',').map((c) => c.trim().replace(/^"|"$/g, ''));
     const name = cols[idxName] ?? '';
     const ppid = Number(cols[idxPpid]);
     const pid = Number(cols[idxPid]);

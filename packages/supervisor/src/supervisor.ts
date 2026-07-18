@@ -1,17 +1,16 @@
 /**
  * Daemon entry. Wires together identity, state, process
- * discovery, and lifecycle. The full NDJSON socket and HTTP/WS
- * servers ship in PR 3 (wire protocol); PR 2 ships the daemon
- * skeleton so the lifecycle and PID‑file behaviour are
- * exercised by CI.
+ * discovery, and lifecycle. The HTTP/WebSocket wire server ships
+ * alongside the daemon skeleton so surfaces can read live state.
  */
 
 import { acquirePidSlot, pidFilePath, releasePidSlot } from './lifecycle/pid-file.js';
+import type { AgentMetadata, ProcessRow, ProcessType } from '@hookorama/client';
 import { StateStore, type ProcessEntry, type Status } from './state/store.js';
 import {
   pickDiscovery,
   type ProcessDiscovery,
-  type ProcessRow,
+  type ProcessRow as RawProcessRow,
 } from './process-discovery/index.js';
 import {
   normaliseCwd,
@@ -51,6 +50,8 @@ export class Supervisor {
     return Array.from(this.openTerminalsByPid.values());
   }
   private readonly openTerminalsByPid = new Map<number, OpenTerminal>();
+  private processRowsCache: { readonly rows: readonly RawProcessRow[]; readonly at: number } | null = null;
+  private readonly processRowsTtlMs = 1000;
 
   setOpenTerminals(terminals: readonly OpenTerminal[]): void {
     this.openTerminalsByPid.clear();
@@ -135,21 +136,48 @@ export class Supervisor {
    * Apply a hook event. Returns the resolved identity if the
    * event could be mapped to a known process.
    */
-  applyHook(input: {
+  async applyHook(input: {
     readonly pidChain?: readonly number[];
     readonly cwd?: string;
     readonly sessionId?: string;
     readonly agent?: string;
     readonly status: Status;
-  }): ResolvedIdentity | null {
-    const identity = resolveIdentity(input.pidChain, input.cwd, this.openTerminals());
+    readonly at?: string;
+    readonly metadata?: AgentMetadata;
+  }): Promise<ResolvedIdentity | null> {
+    const knownPids = await this.knownPidsFromDiscovery();
+    const identity = resolveIdentity(input.pidChain, input.cwd, this.openTerminals(), knownPids);
     if (identity === null) return null;
-    this.store.applyEvent(identity, input.status, this.now().toISOString(), {
+    this.store.applyEvent(identity, input.status, input.at ?? this.now().toISOString(), {
       ...(input.sessionId !== undefined ? { sessionId: input.sessionId } : {}),
       ...(input.agent !== undefined ? { agent: input.agent } : {}),
       ...(input.pidChain !== undefined ? { pidChain: input.pidChain } : {}),
+      ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
     });
     return identity;
+  }
+
+  private async fetchProcessRows(): Promise<readonly RawProcessRow[] | null> {
+    if (this.discovery === null) return null;
+
+    const now = this.now().getTime();
+    if (this.processRowsCache !== null && now - this.processRowsCache.at < this.processRowsTtlMs) {
+      return this.processRowsCache.rows;
+    }
+
+    try {
+      const rows = await this.discovery.list();
+      this.processRowsCache = { rows, at: now };
+      return rows;
+    } catch {
+      return null;
+    }
+  }
+
+  private async knownPidsFromDiscovery(): Promise<ReadonlySet<number>> {
+    const rows = await this.fetchProcessRows();
+    if (rows === null) return new Set();
+    return new Set(rows.map((row) => row.pid));
   }
 
   /**
@@ -216,7 +244,66 @@ export class Supervisor {
     return this.store.snapshot();
   }
 
-  private ingestProcessTable(rows: readonly ProcessRow[]): void {
+  /** OS process tree annotated with the agents that own each process. */
+  async processes(): Promise<ProcessRow[]> {
+    const rows = await this.fetchProcessRows();
+    if (rows === null) return [];
+    const entries = this.store.snapshot();
+
+    const pidToAgent = new Map<number, { agentId: string; projectId?: string | undefined }>();
+    for (const entry of entries) {
+      if (entry.pid !== undefined) {
+        const projectId = entry.metadata?.projectId;
+        pidToAgent.set(
+          entry.pid,
+          projectId === undefined ? { agentId: entry.key } : { agentId: entry.key, projectId },
+        );
+      }
+    }
+
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const row of rows) {
+        if (pidToAgent.has(row.pid)) continue;
+        const parent = pidToAgent.get(row.ppid);
+        if (parent !== undefined) {
+          pidToAgent.set(row.pid, parent);
+          changed = true;
+        }
+      }
+    }
+
+    return rows.map((row) => {
+      const mapped = pidToAgent.get(row.pid);
+      const cmdLower = row.command.toLowerCase();
+      const type: ProcessType = mapped
+        ? 'agent'
+        : cmdLower.includes('code') || cmdLower.includes('cursor')
+          ? 'ide'
+          : 'system';
+      const result: Record<string, unknown> = {
+        pid: row.pid,
+        ppid: row.ppid,
+        cmd: row.command,
+        user: row.user ?? '?',
+        startedAt: row.startedAt ?? 0,
+        type,
+      };
+      if (row.tty !== undefined) {
+        result['tty'] = row.tty;
+      }
+      if (mapped !== undefined) {
+        result['agentId'] = mapped.agentId;
+        if (mapped.projectId !== undefined) {
+          result['projectId'] = mapped.projectId;
+        }
+      }
+      return result as unknown as ProcessRow;
+    });
+  }
+
+  private ingestProcessTable(rows: readonly RawProcessRow[]): void {
     // Process discovery does not contribute to live status; it
     // only feeds a future cwd-only fallback when the extension
     // is unavailable. The supervisor relies on the extension for

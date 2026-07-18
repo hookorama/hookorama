@@ -40,9 +40,14 @@ const pidPrefix = 'pid:';
 const cwdPrefix = 'cwd:';
 
 /**
- * Resolve identity, preferring PID. Returns the first pid in
- * `pidChain` that is in `openTerminals`, falling back to `cwd`
- * when no pid matches. `session_id` is ignored.
+ * Resolve identity, preferring PID.
+ *
+ * 1. Returns the first pid in `pidChain` that is in `openTerminals`.
+ * 2. If no open terminal matches but a pid in `pidChain` exists in the
+ *    OS process table (`knownPids`), use that pid with the cwd from the
+ *    hook event. This lets hooks resolve to real processes even when no
+ *    extension is running to report open terminals.
+ * 3. Falls back to `cwd` when no pid resolves. `session_id` is ignored.
  *
  * Returns `null` only when `pidChain` is empty AND `cwd` is
  * empty — a degenerate payload that the caller should treat as
@@ -52,6 +57,7 @@ export function resolveIdentity(
   pidChain: readonly number[] | undefined,
   cwd: string | undefined,
   openTerminals: readonly OpenTerminal[],
+  knownPids: ReadonlySet<number> = new Set(),
 ): ResolvedIdentity | null {
   const safeCwd = (cwd ?? '').trim();
   const safeChain = pidChain ?? [];
@@ -64,6 +70,15 @@ export function resolveIdentity(
         key: `${pidPrefix}${pid}`,
         pid,
         cwd: normaliseCwd(match.cwd),
+        kind: 'pid',
+      };
+    }
+
+    if (knownPids.has(pid) && safeCwd.length > 0) {
+      return {
+        key: `${pidPrefix}${pid}`,
+        pid,
+        cwd: normaliseCwd(safeCwd),
         kind: 'pid',
       };
     }

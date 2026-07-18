@@ -35,6 +35,9 @@
     "packages/supervisor": {
       "name": "@hookorama/supervisor",
       "version": "0.0.0",
+      "dependencies": {
+        "@hookorama/client": "workspace:*",
+      },
     },
     "packages/web-app": {
       "name": "@hookorama/web-app",

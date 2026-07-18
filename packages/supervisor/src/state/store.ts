@@ -8,34 +8,18 @@
  * the wire protocol.
  */
 
+import type { AgentMetadata, ProcessEntry, Status } from '@hookorama/client';
 import type { ResolvedIdentity } from '../identity/resolve.js';
 
-/** Six discrete states, lifted from the v1 predecessor. */
-export type Status = 'idle' | 'thinking' | 'running-tool' | 'waiting-input' | 'done' | 'error';
-
-/**
- * A row in the live state map. `parentKey` is set only for
- * virtual subagent nodes (ADR 0001 §"Subagent handling"); a
- * subagent shares its parent's `pid`, so pid‑chain nesting
- * cannot distinguish them.
- */
-export interface ProcessEntry {
-  readonly key: string;
-  readonly status: Status;
-  readonly at: string;
-  readonly cwd: string;
-  readonly sessionId?: string;
-  readonly agent?: string;
-  readonly pid?: number;
-  readonly pidChain?: readonly number[];
-  readonly parentKey?: string;
-  readonly terminalName?: string;
-}
+export type { ProcessEntry, Status };
 
 export class StateStore {
   private readonly entries = new Map<string, ProcessEntry>();
   private readonly subagentCounters = new Map<string, number>();
-  private readonly discovered = new Map<number, { pid: number; ppid: number; command: string }>();
+  private readonly discovered = new Map<
+    number,
+    { pid: number; ppid: number; command: string; user?: string; startedAt?: number; tty?: string }
+  >();
 
   /** Total entry count, including virtual subagent nodes. */
   size(): number {
@@ -64,7 +48,16 @@ export class StateStore {
    * future fallback (cwd-only when the extension is unavailable)
    * has the rows on hand. Replaces any previous snapshot.
    */
-  seedFromDiscovery(rows: readonly { pid: number; ppid: number; command: string }[]): void {
+  seedFromDiscovery(
+    rows: readonly {
+      pid: number;
+      ppid: number;
+      command: string;
+      user?: string;
+      startedAt?: number;
+      tty?: string;
+    }[],
+  ): void {
     this.discovered.clear();
     for (const row of rows) {
       this.discovered.set(row.pid, row);
@@ -72,7 +65,14 @@ export class StateStore {
   }
 
   /** Read-only view of the discovered-process snapshot. */
-  discoveredSnapshot(): readonly { pid: number; ppid: number; command: string }[] {
+  discoveredSnapshot(): readonly {
+    pid: number;
+    ppid: number;
+    command: string;
+    user?: string;
+    startedAt?: number;
+    tty?: string;
+  }[] {
     return Array.from(this.discovered.values());
   }
 
@@ -119,6 +119,8 @@ export class StateStore {
       ...(parent.agent !== undefined ? { agent: parent.agent } : {}),
       ...(parent.pid !== undefined ? { pid: parent.pid } : {}),
       ...(parent.pidChain !== undefined ? { pidChain: parent.pidChain } : {}),
+      ...(parent.metadata !== undefined ? { metadata: parent.metadata } : {}),
+      ...(parent.terminalName !== undefined ? { terminalName: parent.terminalName } : {}),
     };
     this.entries.set(finalKey, child);
     return finalKey;
@@ -175,6 +177,7 @@ export class StateStore {
       readonly agent?: string;
       readonly pidChain?: readonly number[];
       readonly terminalName?: string;
+      readonly metadata?: AgentMetadata;
     },
   ): ProcessEntry | undefined {
     if (identity === null) return undefined;
@@ -204,6 +207,11 @@ export class StateStore {
         ? { terminalName: enrich.terminalName }
         : prev?.terminalName !== undefined
           ? { terminalName: prev.terminalName }
+          : {}),
+      ...(enrich.metadata !== undefined
+        ? { metadata: enrich.metadata }
+        : prev?.metadata !== undefined
+          ? { metadata: prev.metadata }
           : {}),
     };
     this.entries.set(identity.key, next);

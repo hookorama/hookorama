@@ -6,6 +6,8 @@
  */
 
 export { Supervisor, SupervisorProcess } from './supervisor.js';
+export { WireServer } from './wire/server.js';
+export type { WireServerOptions } from './wire/server.js';
 export type { ProcessDiscovery, ProcessRow } from './process-discovery/index.js';
 export type { OpenTerminal, ResolvedIdentity } from './identity/resolve.js';
 export type { ProcessEntry, Status } from './state/store.js';
