@@ -225,11 +225,12 @@ function AnalyticsPage() {
     [buckets, nBuckets],
   );
 
+  const rollupProjects = projectFilter.size === 0 ? projects : projects.filter((p) => projectFilter.has(p.id));
   const projRollup = useMemo(
     () =>
-      projects
+      rollupProjects
         .map((p) => {
-          const own = allAgents.filter((a) => a.projectId === p.id);
+          const own = agents.filter((a) => a.projectId === p.id);
           return {
             project: p,
             agents: own.length,
@@ -241,7 +242,7 @@ function AnalyticsPage() {
           };
         })
         .sort((a, b) => b.cost - a.cost),
-    [projects, allAgents],
+    [rollupProjects, agents],
   );
 
   const totalTasks = agents.reduce((n, a) => n + a.metrics.tasks, 0);
@@ -319,9 +320,9 @@ function AnalyticsPage() {
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Kpi label={projectFilter.size ? `tasks · ${projectFilter.size} proj` : 'total tasks'} value={totalTasks} />
-        <Kpi label="total cost" value={`$${totalCost.toFixed(3)}`} />
-        <Kpi label="tool calls" value={totalCalls} />
-        <Kpi label="active agents" value={activeAgents} />
+        <Kpi label={projectFilter.size ? `cost · ${projectFilter.size} proj` : 'total cost'} value={`$${totalCost.toFixed(3)}`} />
+        <Kpi label={projectFilter.size ? `calls · ${projectFilter.size} proj` : 'tool calls'} value={totalCalls} />
+        <Kpi label={projectFilter.size ? `active · ${projectFilter.size} proj` : 'active agents'} value={activeAgents} />
       </div>
 
       <ProjectRollup rows={projRollup} filter={projectFilter} setFilter={setProjectFilter} />

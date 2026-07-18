@@ -234,18 +234,23 @@ export function Shell(): ReactElement {
     client.setOnSnapshot((snapshot) => { syncSnapshot(snapshot); });
     client.setOnEvent((event) => { applyEvent(event); });
 
+    const controller = new AbortController();
     void (async () => {
       try {
-        await client.start();
-        const processes = await client.fetchProcesses();
+        await client.start(controller.signal);
+        controller.signal.throwIfAborted();
+        const processes = await client.fetchProcesses(controller.signal);
+        controller.signal.throwIfAborted();
         setProcesses(processes);
       } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') return;
         console.error('Failed to initialize supervisor client:', err);
         setConnection('error');
       }
     })();
 
     return () => {
+      controller.abort();
       client.stop();
     };
   }, [setConnection, syncSnapshot, applyEvent, setProcesses]);

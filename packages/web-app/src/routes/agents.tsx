@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactElement, type ReactNode } from 'react';
+import { useSearch } from '@tanstack/react-router';
 import { toast } from 'sonner';
 import {
   ChevronRight,
@@ -110,6 +111,7 @@ function collapseAllAgents(agents: Agent[]): Set<string> {
 }
 
 function AgentsPage() {
+  const search = useSearch({ from: '/_shell/agents' });
   const agents = useHookoramaStore((state) => state.agents);
   const projects = useHookoramaStore((state) => state.projects);
   const events = useHookoramaStore((state) => state.events);
@@ -144,6 +146,12 @@ function AgentsPage() {
       return changed ? next : prev;
     });
   }, [projects]);
+
+  useEffect(() => {
+    if (search.project && projects.some((p) => p.id === search.project)) {
+      setProjectFilter(new Set([search.project]));
+    }
+  }, [search.project, projects]);
 
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());

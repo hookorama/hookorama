@@ -30,7 +30,7 @@ function supervisorPlugin(): Plugin {
   return {
     name: 'hookorama:supervisor',
     apply: 'serve',
-    async configureServer(server) {
+    async configureServer(_server) {
       if (await isPortReachable()) {
         console.warn(`supervisor already running on ${supervisorHost}:${supervisorPort}/`);
         return;
@@ -49,6 +49,7 @@ function supervisorPlugin(): Plugin {
         console.warn(data.toString().trim());
       });
 
+      let ready = false;
       for (let i = 0; i < 50; i++) {
         if (spawnErr !== undefined) {
           return Promise.reject(new Error(`supervisor failed to start: ${spawnErr.message}`));
@@ -56,7 +57,10 @@ function supervisorPlugin(): Plugin {
         if (child.exitCode !== null) {
           return Promise.reject(new Error(`supervisor exited with code ${child.exitCode}`));
         }
-        if (await isPortReachable()) break;
+        if (await isPortReachable()) {
+          ready = true;
+          break;
+        }
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
 
@@ -66,9 +70,11 @@ function supervisorPlugin(): Plugin {
       if (child.exitCode !== null) {
         return Promise.reject(new Error(`supervisor exited with code ${child.exitCode}`));
       }
+      if (!ready) {
+        return Promise.reject(new Error('supervisor did not become ready'));
+      }
 
-      const originalClose = server.close.bind(server);
-      server.close = async () => {
+      return () => {
         if (child !== null) {
           try {
             child.kill();
@@ -77,7 +83,6 @@ function supervisorPlugin(): Plugin {
           }
           child = null;
         }
-        await originalClose();
       };
     },
   };
