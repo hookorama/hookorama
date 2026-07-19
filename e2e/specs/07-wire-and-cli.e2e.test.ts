@@ -66,11 +66,12 @@ test.describe('wire protocol and CLI', () => {
   });
 
   test('CLI setup writes an agent hook config', async () => {
-    const tmpDir = path.join('/tmp', `hookorama-setup-${process.pid}`);
+    const tmpDir = '/tmp/hookorama-setup';
+    const configPath = '/tmp/hookorama-setup/.claude/settings.json';
+    fs.rmSync(tmpDir, { recursive: true, force: true });
     fs.mkdirSync(tmpDir, { recursive: true });
     try {
       await execFileAsync(CLI, [CLI_SCRIPT, 'setup', 'claude'], { cwd: tmpDir });
-      const configPath = path.join(tmpDir, '.claude', 'settings.json');
       expect(fs.existsSync(configPath)).toBe(true);
       const content = fs.readFileSync(configPath, 'utf8');
       expect(content).toContain('"hook"');

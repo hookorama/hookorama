@@ -22,7 +22,6 @@ function resolveMockFlag(mock?: boolean): string {
 export async function startAgent(opts: AgentOptions): Promise<string> {
   const sessionName = `e2e-agent-${++counter}`;
   const env: NodeJS.ProcessEnv = {
-    ...process.env,
     E2E_AGENT_NAME: opts.name,
     E2E_SESSION_ID: opts.sessionId,
     E2E_PROJECT_DIR: opts.projectDir,

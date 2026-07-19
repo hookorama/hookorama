@@ -27,19 +27,30 @@ test.describe('connection and navigation', () => {
       'analytics',
     ];
 
-    type Route = 'overview' | 'projects' | 'agents' | 'processes' | 'events' | 'analytics';
-    const patterns: Record<Route, RegExp> = {
-      overview: /\/$/,
-      projects: /\/projects/,
-      agents: /\/agents/,
-      processes: /\/processes/,
-      events: /\/events/,
-      analytics: /\/analytics/,
-    };
-
     for (const label of routes) {
       await dashboard.navigateTo(label);
-      await expect(page).toHaveURL(patterns[label]);
+      switch (label) {
+        case 'overview':
+          await expect(page).toHaveURL(/\/$/);
+          break;
+        case 'projects':
+          await expect(page).toHaveURL(/\/projects/);
+          break;
+        case 'agents':
+          await expect(page).toHaveURL(/\/agents/);
+          break;
+        case 'processes':
+          await expect(page).toHaveURL(/\/processes/);
+          break;
+        case 'events':
+          await expect(page).toHaveURL(/\/events/);
+          break;
+        case 'analytics':
+          await expect(page).toHaveURL(/\/analytics/);
+          break;
+        default:
+          break;
+      }
     }
   });
 });

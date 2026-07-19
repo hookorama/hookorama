@@ -5,12 +5,12 @@
 
 import { spawn } from 'node:child_process';
 
-const SAFE_PATH = '/root/.bun/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin';
+const SAFE_PATH = '/usr/local/bun/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin';
+const SAFE_ENV = Object.freeze({ PATH: SAFE_PATH });
 
-function runTmux(args: readonly string[], env?: NodeJS.ProcessEnv): Promise<void> {
+function runTmux(args: readonly string[]): Promise<void> {
   return new Promise((resolve, reject) => {
-    const safeEnv = env === undefined ? { ...process.env, PATH: SAFE_PATH } : { ...env, PATH: SAFE_PATH };
-    const child = spawn('tmux', args, { stdio: 'ignore', env: safeEnv });
+    const child = spawn('tmux', args, { stdio: 'ignore', env: SAFE_ENV });
     child.on('error', reject);
     child.on('close', (code) => {
       if (code === 0) {
@@ -22,19 +22,24 @@ function runTmux(args: readonly string[], env?: NodeJS.ProcessEnv): Promise<void
   });
 }
 
+function envArgs(env: NodeJS.ProcessEnv): string[] {
+  const args: string[] = [];
+  for (const [key, value] of Object.entries(env)) {
+    if (typeof value === 'string') {
+      args.push('-e', `${key}=${value}`);
+    }
+  }
+  return args;
+}
+
 export async function spawnSession(
   name: string,
   cwd: string,
   command: readonly string[],
   env?: NodeJS.ProcessEnv,
 ): Promise<void> {
-  const envArgs: string[] = [];
-  if (env) {
-    for (const [key, value] of Object.entries(env)) {
-      if (typeof value === 'string') envArgs.push(`${key}=${value}`);
-    }
-  }
-  await runTmux(['new-session', '-d', '-s', name, '-c', cwd, 'env', ...envArgs, ...command]);
+  const sessionArgs = env ? envArgs(env) : [];
+  await runTmux(['new-session', '-d', '-s', name, '-c', cwd, '-e', `PATH=${SAFE_PATH}`, ...sessionArgs, ...command]);
 }
 
 export async function sendKeys(name: string, text: string): Promise<void> {

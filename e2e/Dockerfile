@@ -4,13 +4,17 @@
 FROM mcr.microsoft.com/playwright:v1.61.1-jammy
 
 ENV DEBIAN_FRONTEND=noninteractive
-ENV BUN_INSTALL=/root/.bun
+ENV BUN_INSTALL=/usr/local/bun
 ENV PATH="${BUN_INSTALL}/bin:${PATH}"
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends curl ca-certificates unzip zstd tmux \
   && rm -rf /var/lib/apt/lists/* \
+  && mkdir -p ${BUN_INSTALL} \
   && curl -fsSL https://bun.sh/install | bash
+
+# Create a non-root user for the E2E runtime.
+RUN groupadd -r e2e && useradd -r -m -d /home/e2e -g e2e -s /bin/bash e2e
 
 ARG E2E_MOCK_OLLAMA=0
 # Install Ollama unless mock mode is requested.
@@ -26,14 +30,14 @@ COPY .agents .agents
 COPY docs docs
 COPY README.md LICENSE CHANGELOG.md ./
 
-RUN bun install && bun run build
+RUN bun install && bun run build && chown -R e2e:e2e /workspace
 
 ARG E2E_OLLAMA_MODEL=qwen2.5:0.5b
 ENV E2E_OLLAMA_MODEL=${E2E_OLLAMA_MODEL}
 ENV E2E_MOCK_OLLAMA=${E2E_MOCK_OLLAMA}
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+ENV HOME=/home/e2e
 
-# The container needs root to spawn tmux sessions and optionally the Ollama service.
-USER root
+USER e2e
 
 ENTRYPOINT ["bash", "e2e/docker-entrypoint.sh"]
