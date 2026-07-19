@@ -7,18 +7,16 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV BUN_INSTALL=/usr/local/bun
 ENV PATH="${BUN_INSTALL}/bin:${PATH}"
 
+ARG E2E_MOCK_OLLAMA=0
+
 RUN apt-get update \
   && apt-get install -y --no-install-recommends curl ca-certificates unzip zstd tmux \
   && rm -rf /var/lib/apt/lists/* \
   && mkdir -p ${BUN_INSTALL} \
-  && curl -fsSL https://bun.sh/install | bash
-
-# Create a non-root user for the E2E runtime.
-RUN groupadd -r e2e && useradd -r -m -d /home/e2e -g e2e -s /bin/bash e2e
-
-ARG E2E_MOCK_OLLAMA=0
-# Install Ollama unless mock mode is requested.
-RUN if [ "$E2E_MOCK_OLLAMA" != "1" ]; then curl -fsSL https://ollama.com/install.sh | sh; fi
+  && curl -fsSL https://bun.sh/install | bash \
+  && groupadd -r e2e \
+  && useradd -r -m -d /home/e2e -g e2e -s /bin/bash e2e \
+  && if [ "$E2E_MOCK_OLLAMA" != "1" ]; then curl -fsSL https://ollama.com/install.sh | sh; fi
 
 WORKDIR /workspace
 
