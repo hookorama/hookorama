@@ -22,12 +22,14 @@ test('real Ollama agent goes idle -> thinking -> running-tool -> done', async ()
     skill: 'e2e',
   });
 
-  await sendPrompt(sessionName, 'What is 2+2? Answer with a single digit.');
+  try {
+    await sendPrompt(sessionName, 'What is 2+2? Answer with a single digit.');
 
-  const agent = await waitForAgent(SESSION, 'done', 120000);
-  expect(agent.status).toBe('done');
-  expect(agent.metadata?.metrics?.tasks).toBe(1);
-  expect(agent.metadata?.metrics?.toolCalls).toBe(1);
-
-  await stopAgent(sessionName);
+    const agent = await waitForAgent(SESSION, 'done', 120000);
+    expect(agent.status).toBe('done');
+    expect(agent.metadata?.metrics?.tasks).toBe(1);
+    expect(agent.metadata?.metrics?.toolCalls).toBe(1);
+  } finally {
+    await stopAgent(sessionName);
+  }
 });

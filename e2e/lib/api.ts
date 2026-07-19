@@ -4,8 +4,8 @@ const baseUrl = process.env['E2E_SUPERVISOR_URL'] ?? 'http://127.0.0.1:7354';
 
 export async function resetState(): Promise<void> {
   const response = await fetch(`${baseUrl}/api/reset`, { method: 'POST' });
-  if (!response.ok && response.status !== 404) {
-    throw new Error(`POST /api/reset failed: ${response.status}`);
+  if (!response.ok) {
+    throw new Error(`POST /api/reset failed: ${response.status}. Ensure the supervisor is started with E2E_ALLOW_RESET=1.`);
   }
 }
 

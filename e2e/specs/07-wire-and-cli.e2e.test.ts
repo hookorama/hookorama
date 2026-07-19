@@ -17,7 +17,7 @@ const PROJECT_DIR = '/workspace/wire-demo';
 const AGENT = 'cli-test';
 
 test.describe('wire protocol and CLI', () => {
-  test.beforeAll(async () => {
+  test.beforeEach(async () => {
     await resetState();
   });
 
@@ -36,6 +36,16 @@ test.describe('wire protocol and CLI', () => {
   });
 
   test('GET /api/state returns the created agent', async () => {
+    await sendHook({
+      status: 'thinking',
+      cwd: PROJECT_DIR,
+      agent: AGENT,
+      sessionId: SESSION,
+      pidChain: [process.pid],
+      metadata: { projectId: PROJECT, model: 'gpt-4', skill: 'wire' },
+    });
+    await waitForAgent(SESSION, 'thinking', 10000);
+
     const snapshot = await getSnapshot();
     const agent = snapshot.entries.find((e: ProcessEntry) => e.sessionId === SESSION);
     expect(agent).toBeDefined();

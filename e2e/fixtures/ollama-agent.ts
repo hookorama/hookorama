@@ -143,21 +143,13 @@ async function main(): Promise<void> {
 
   const rl = createInterface({ input: process.stdin, output: process.stdout });
 
-  let running = true;
-  while (running) {
-    const line = await new Promise<string | null>((resolve) => {
-      rl.once('line', resolve);
-    });
-
-    if (line === null) {
-      await dispatch('done');
-      break;
+  try {
+    for await (const line of rl) {
+      if (!(await handlePrompt(line))) break;
     }
-
-    running = await handlePrompt(line);
+  } finally {
+    rl.close();
   }
-
-  rl.close();
 }
 
 try {

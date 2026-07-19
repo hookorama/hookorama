@@ -29,6 +29,10 @@ if [[ "${E2E_MOCK_OLLAMA:-0}" != "1" ]]; then
     fi
     sleep 1
   done
+  if ! curl -s http://127.0.0.1:11434 >/dev/null 2>&1; then
+    echo "ERROR: Ollama failed to start within timeout" >&2
+    exit 1
+  fi
 
   echo "==> pulling Ollama model ${E2E_OLLAMA_MODEL:-qwen2.5:0.5b}"
   ollama pull "${E2E_OLLAMA_MODEL:-qwen2.5:0.5b}" || true
@@ -46,6 +50,10 @@ for _ in $(seq 1 30); do
   fi
   sleep 0.5
 done
+if ! curl -s http://127.0.0.1:7354/api/state >/dev/null 2>&1; then
+  echo "ERROR: supervisor failed to start within timeout" >&2
+  exit 1
+fi
 
 if [[ ! -f packages/cli/dist/web-app/index.html ]]; then
   echo "==> building dashboard bundle"
@@ -62,6 +70,10 @@ for _ in $(seq 1 30); do
   fi
   sleep 0.5
 done
+if ! curl -s http://127.0.0.1:3000 >/dev/null 2>&1; then
+  echo "ERROR: dashboard failed to start within timeout" >&2
+  exit 1
+fi
 
 echo "==> running E2E tests"
 npx playwright test --config e2e/playwright.config.ts || TEST_EXIT=$?

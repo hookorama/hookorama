@@ -59,14 +59,16 @@ test.describe('overview lifecycle', () => {
       mock: true,
     });
 
-    await sendPrompt(waitSession, '!wait approve deployment');
-    await expect(overview.kpiValue('attention')).toHaveText('1', { timeout: 15000 });
-    await expect(overview.attentionItems()).toHaveCount(1);
+    try {
+      await sendPrompt(waitSession, '!wait approve deployment');
+      await expect(overview.kpiValue('attention')).toHaveText('1', { timeout: 15000 });
+      await expect(overview.attentionItems()).toHaveCount(1);
 
-    await sendPrompt(waitSession, '!error something broke');
-    await expect(overview.kpiValue('attention')).toHaveText('1', { timeout: 15000 });
-
-    await stopAgent(waitSession);
+      await sendPrompt(waitSession, '!error something broke');
+      await expect(overview.kpiValue('attention')).toHaveText('1', { timeout: 15000 });
+    } finally {
+      await stopAgent(waitSession);
+    }
   });
 
   test('shortcuts route to agents, projects and processes', async ({ page }) => {
