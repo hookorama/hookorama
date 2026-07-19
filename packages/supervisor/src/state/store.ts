@@ -167,6 +167,12 @@ export class StateStore {
     return dropped;
   }
 
+  /** Clear all live entries and subagent counters. Used for E2E reset. */
+  clear(): void {
+    this.entries.clear();
+    this.subagentCounters.clear();
+  }
+
   /** Resolve identity for an incoming event and upsert the entry. */
   applyEvent(
     identity: ResolvedIdentity | null,

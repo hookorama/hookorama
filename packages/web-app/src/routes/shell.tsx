@@ -63,6 +63,7 @@ function NotificationPopover() {
       <PopoverTrigger asChild>
         <button type="button"
           className={'relative flex items-center gap-1.5 border px-2 py-0.5 ' + buttonClass}
+          data-testid="notifications-button"
         >
           <Bell className="h-3.5 w-3.5" />
           <Volatile fallback="0">{pending.length}</Volatile>
@@ -86,7 +87,7 @@ function NotificationPopover() {
             const project = projects.find((p) => p.id === n.projectId);
             const tone = severityTone(n.severity);
             return (
-              <div key={n.id} className="flex items-start gap-2 p-2 text-xs hover:bg-muted/30">
+              <div key={n.id} className="flex items-start gap-2 p-2 text-xs hover:bg-muted/30" data-testid="notification-item">
                 <Icon className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${tone}`} />
                 <button type="button"
                   onClick={() => { ackNotification(n.id); }}
@@ -125,13 +126,13 @@ function StatusControls() {
 
   return (
     <>
-      <span className="text-muted-foreground">
+      <span className="text-muted-foreground" data-testid="header-agents">
         agents <span className="text-primary">{activeAgents}</span>/{agents.length}
       </span>
-      <span className="text-muted-foreground">
+      <span className="text-muted-foreground" data-testid="header-cost">
         cost <span className="text-accent"><Volatile fallback="$0.0000">{`$${totalCost.toFixed(4)}`}</Volatile></span>
       </span>
-      <button type="button" onClick={toggleScanlines} className="hover:text-primary">
+      <button type="button" onClick={toggleScanlines} className="hover:text-primary" data-testid="crt-toggle">
         crt
       </button>
     </>
@@ -168,7 +169,7 @@ function ConnectionBadge() {
   const label = connectionLabel(connection);
   const color = connectionColor(connection);
 
-  return <span className={color}>● {label}</span>;
+  return <span className={color} data-testid="connection-badge">● {label}</span>;
 }
 
 function Header() {
@@ -201,6 +202,7 @@ function Sidebar() {
                 ? 'border-primary bg-primary/5 text-primary'
                 : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground')
             }
+            data-testid={`nav-${label}`}
           >
             <Icon className="h-3.5 w-3.5" />
             {label}

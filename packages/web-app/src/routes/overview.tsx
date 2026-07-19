@@ -78,6 +78,7 @@ export function Overview(): ReactElement {
               <div
                 key={a.id}
                 className="group flex w-full items-start gap-3 p-3 hover:bg-muted/30"
+                data-testid="attention-item"
               >
                 <StatusDot status={a.status} />
                 <div className="min-w-0 flex-1">

@@ -60,6 +60,7 @@ function ProjectRollup({
                 'grid w-full grid-cols-[1fr_repeat(6,minmax(0,70px))] items-center gap-2 px-1 py-1 text-left hover:bg-muted/30 ' +
                 (on ? '' : 'opacity-40')
               }
+              data-testid="project-rollup-row"
             >
               <div className="flex min-w-0 items-center gap-2">
                 <ProjectTag project={r.project} />
@@ -106,7 +107,7 @@ function TopAgents({ agents }: { readonly agents: Agent[] }) {
           <span className="text-right">err</span>
         </div>
         {top.map((a, i) => (
-          <div key={`${a.name}-${i}`} className="grid grid-cols-[1fr_60px_60px_60px_60px] gap-2 py-1">
+          <div key={`${a.name}-${i}`} className="grid grid-cols-[1fr_60px_60px_60px_60px] gap-2 py-1" data-testid="top-agent-row">
             <span className="truncate text-primary">{a.name}</span>
             <span className="text-right">{a.tasks}</span>
             <span className="text-right text-info">{a.calls}</span>
@@ -131,7 +132,7 @@ function SkillTable({ skills }: { readonly skills: Record<string, number> }) {
           <span className="text-right">tasks</span>
         </div>
         {arr.map((s) => (
-          <div key={s.name} className="grid grid-cols-[1fr_80px] gap-2 py-1">
+          <div key={s.name} className="grid grid-cols-[1fr_80px] gap-2 py-1" data-testid="skill-row">
             <span className="text-primary">{s.name}</span>
             <span className="text-right">{s.usage}</span>
           </div>
@@ -154,7 +155,7 @@ function ModelTable({ models }: { readonly models: Record<string, { calls: numbe
           <span className="text-right">cost</span>
         </div>
         {arr.map((m) => (
-          <div key={m.name} className="grid grid-cols-[1fr_80px_80px] gap-2 py-1">
+          <div key={m.name} className="grid grid-cols-[1fr_80px_80px] gap-2 py-1" data-testid="model-row">
             <span className="text-primary">{m.name}</span>
             <span className="text-right text-info">{m.calls}</span>
             <span className="text-right text-accent">${m.cost.toFixed(3)}</span>
@@ -189,7 +190,7 @@ function UsageTable({ series }: { readonly series: UsageRow[] }) {
           <span className="text-right">act</span>
         </div>
         {series.map((b) => (
-          <div key={b.id} className="grid grid-cols-[100px_50px_50px_60px_40px_40px] gap-2 py-0.5">
+          <div key={b.id} className="grid grid-cols-[100px_50px_50px_60px_40px_40px] gap-2 py-0.5" data-testid="usage-row">
             <span className="text-dim">{b.t}</span>
             <span className="text-right">{b.tasks}</span>
             <span className="text-right text-info">{b.tools}</span>
@@ -338,6 +339,7 @@ function AnalyticsPage() {
               'border px-2 py-0.5 text-xs ' +
               (range === r ? 'border-primary text-primary' : 'border-border text-muted-foreground hover:text-foreground')
             }
+            data-testid={`range-${r}`}
           >
             {r}
           </button>
@@ -354,6 +356,7 @@ function AnalyticsPage() {
               ? 'border-primary text-primary'
               : 'border-border text-muted-foreground hover:text-foreground')
           }
+          data-testid="project-filter-all"
         >
           all
         </button>
@@ -376,6 +379,7 @@ function AnalyticsPage() {
                 color: on ? p.color : undefined,
                 opacity: on ? 1 : 0.6,
               }}
+              data-testid="project-filter-button"
             >
               <span className="mr-1 inline-block h-1.5 w-1.5 align-middle" style={{ background: p.color }} />
               {p.name}
@@ -405,7 +409,7 @@ function AnalyticsPage() {
 
       <Panel title="adoption score">
         <div className="flex items-center gap-4 p-3 text-xs">
-          <div className="text-2xl font-mono text-primary">{adoption}</div>
+          <div className="text-2xl font-mono text-primary" data-testid="adoption-score">{adoption}</div>
           <div className="h-2 flex-1 bg-muted">
             <div className="h-full bg-primary" style={{ width: `${adoption}%` }} />
           </div>

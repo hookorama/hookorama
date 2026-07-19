@@ -8,7 +8,7 @@ function Stat({ l, v, tone }: { readonly l: string; readonly v: ReactNode; reado
   return (
     <div className="text-center">
       <div className="text-[10px] uppercase text-muted-foreground">{l}</div>
-      <div className={'font-mono text-sm ' + (tone ?? 'text-foreground')}>{v}</div>
+      <div className={'font-mono text-sm ' + (tone ?? 'text-foreground')} data-testid={`stat-${l}`}>{v}</div>
     </div>
   );
 }
@@ -49,6 +49,7 @@ function ProjectsPage() {
               to="/agents"
               search={{ project: project.id }}
               className="grid grid-cols-[1fr_repeat(6,minmax(0,90px))] items-center gap-2 px-4 py-3 hover:bg-muted/30"
+              data-testid={`project-row-${project.id}`}
             >
               <div className="min-w-0">
                 <div className="flex items-center gap-2">

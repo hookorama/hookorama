@@ -132,6 +132,10 @@ export class WireServer {
       return this.handleHook(request);
     }
 
+    if (url.pathname === '/api/reset' && request.method === 'POST' && process.env['E2E_ALLOW_RESET'] === '1') {
+      return this.handleReset();
+    }
+
     if (url.pathname === '/api/terminals' && request.method === 'POST') {
       return this.handleTerminals(request);
     }
@@ -155,6 +159,12 @@ export class WireServer {
 
   private handleState(): Response {
     return Response.json(this.buildSnapshot(), { headers: CORS_HEADERS });
+  }
+
+  private handleReset(): Response {
+    this.supervisor.reset();
+    this.broadcastSnapshot();
+    return new Response(null, { status: 204, headers: CORS_HEADERS });
   }
 
   private async handleProcesses(): Promise<Response> {

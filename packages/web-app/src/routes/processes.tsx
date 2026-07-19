@@ -73,6 +73,7 @@ function PNode({
           'grid grid-cols-[1fr_60px_60px_60px_60px] gap-2 cursor-pointer hover:bg-muted/40 ' +
           (selectedPid === node.pid ? 'bg-primary/10' : '')
         }
+        data-testid="process-node"
       >
         <span className="truncate">
           <Ascii>
@@ -135,6 +136,7 @@ function ProcessesPage() {
               }}
               placeholder="&gt; search pid/cmd"
               className="w-40 border border-border bg-background px-2 py-0.5 text-xs"
+              data-testid="process-search"
             />
             <select
               value={tf}
@@ -142,6 +144,7 @@ function ProcessesPage() {
                 setTf(e.target.value);
               }}
               className="border border-border bg-background px-1 text-xs"
+              data-testid="process-type-filter"
             >
               <option value="all">all</option>
               <option value="agent">agent</option>
@@ -176,26 +179,26 @@ function ProcessesPage() {
         </div>
       </Panel>
 
-      <Panel title={selected ? `pid: ${selected.pid}` : 'select a process'}>
+      <Panel title={selected ? `pid: ${selected.pid}` : 'select a process'} dataTestId="process-details">
         {selected ? (
           <div className="space-y-3 p-3 text-xs">
             <div className="grid grid-cols-2 gap-y-1">
               <span className="text-dim">pid</span>
-              <span>{selected.pid}</span>
+              <span data-testid="process-detail-pid">{selected.pid}</span>
               <span className="text-dim">ppid</span>
-              <span>{selected.ppid}</span>
+              <span data-testid="process-detail-ppid">{selected.ppid}</span>
               <span className="text-dim">cmd</span>
-              <span className="truncate">{selected.cmd}</span>
+              <span className="truncate" data-testid="process-detail-cmd">{selected.cmd}</span>
               <span className="text-dim">user</span>
-              <span>{selected.user}</span>
+              <span data-testid="process-detail-user">{selected.user}</span>
               <span className="text-dim">tty</span>
-              <span>{selected.tty ?? '-'}</span>
+              <span data-testid="process-detail-tty">{selected.tty ?? '-'}</span>
               <span className="text-dim">type</span>
-              <span className={TYPE_COLOR[selected.type]}>{selected.type}</span>
+              <span className={TYPE_COLOR[selected.type]} data-testid="process-detail-type">{selected.type}</span>
               {selectedAgent && (
                 <>
                   <span className="text-dim">agent</span>
-                  <span className="text-primary">{selectedAgent.name}</span>
+                  <span className="text-primary" data-testid="process-detail-agent">{selectedAgent.name}</span>
                 </>
               )}
             </div>

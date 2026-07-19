@@ -314,6 +314,14 @@ export class Supervisor {
     this.store.seedFromDiscovery(rows);
   }
 
+  /** Reset all live state. Intended for E2E isolation between specs. */
+  reset(): void {
+    this.store.clear();
+    this.openTerminalsByPid.clear();
+    this.processRowsCache = null;
+    this.subagentKeysByToolUseId.clear();
+  }
+
   /** Normalise cwd — re‑exported so callers don't import identity directly. */
   static normaliseCwd = normaliseCwd;
 }

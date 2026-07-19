@@ -209,6 +209,7 @@ function AgentsPage() {
                 }}
                 placeholder="search name / task / id"
                 className="w-48 bg-transparent outline-none"
+                data-testid="agent-search"
               />
             </div>
             <Divider />
@@ -219,6 +220,7 @@ function AgentsPage() {
                   setGroupBy(e.target.value as GroupBy);
                 }}
                 className="border border-border bg-background px-1"
+                data-testid="agent-group-select"
               >
                 <option value="project">project</option>
                 <option value="session">session</option>
@@ -233,6 +235,7 @@ function AgentsPage() {
                   setSortBy(e.target.value as SortBy);
                 }}
                 className="border border-border bg-background px-1"
+                data-testid="agent-sort-select"
               >
                 <option value="name">name</option>
                 <option value="cost">cost ↓</option>
@@ -325,6 +328,7 @@ function AgentsPage() {
                       toggleGroup(g.key);
                     }}
                     className="sticky top-0 z-10 flex w-full items-center gap-2 border-b border-border bg-panel px-1 py-1 hover:bg-muted/30"
+                    data-testid="group-header"
                   >
                     {collapsedG ? <ChevronRight className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                     {groupBy === 'project' && <Folder className="h-3 w-3" style={{ color: g.color }} />}
@@ -385,7 +389,7 @@ function AgentInspector({
   );
 
   return (
-    <Panel title={selected ? `inspector: ${selected.name}` : 'select an agent'}>
+    <Panel title={selected ? `inspector: ${selected.name}` : 'select an agent'} dataTestId="agent-inspector">
       {selected ? (
         <div className="space-y-3 p-3 text-xs">
           <div className="flex items-center gap-2">
@@ -405,21 +409,21 @@ function AgentInspector({
           )}
           <div className="grid grid-cols-2 gap-x-2 gap-y-1">
             <span className="text-dim">id</span>
-            <span className="truncate">{selected.id}</span>
+            <span className="truncate" data-testid="agent-inspector-id">{selected.id}</span>
             <span className="text-dim">project</span>
-            <span className="truncate">{selectedProject?.path ?? '-'}</span>
+            <span className="truncate" data-testid="agent-inspector-project">{selectedProject?.path ?? '-'}</span>
             <span className="text-dim">branch</span>
-            <span>{selectedProject?.branch ?? '-'}</span>
+            <span data-testid="agent-inspector-branch">{selectedProject?.branch ?? '-'}</span>
             <span className="text-dim">session</span>
-            <span className="truncate">{selected.sessionId}</span>
+            <span className="truncate" data-testid="agent-inspector-session">{selected.sessionId}</span>
             <span className="text-dim">origin</span>
-            <span>{selected.origin}</span>
+            <span data-testid="agent-inspector-origin">{selected.origin}</span>
             <span className="text-dim">pid</span>
-            <span>{selected.pid ?? '-'}</span>
+            <span data-testid="agent-inspector-pid">{selected.pid ?? '-'}</span>
             <span className="text-dim">model</span>
-            <span>{selected.model ?? '-'}</span>
+            <span data-testid="agent-inspector-model">{selected.model ?? '-'}</span>
             <span className="text-dim">skill</span>
-            <span>{selected.skill ?? '-'}</span>
+            <span data-testid="agent-inspector-skill">{selected.skill ?? '-'}</span>
           </div>
           <div className="grid grid-cols-4 border-t border-border pt-2 text-center">
             <M l="tasks" v={<Volatile fallback="—">{selected.metrics.tasks}</Volatile>} />
@@ -432,6 +436,7 @@ function AgentInspector({
               <button type="button"
                 onClick={() => { toast.success(`approved · ${selected.name}`); }}
                 className="border border-accent px-2 py-1 text-accent hover:bg-accent hover:text-background"
+                data-testid="approve-button"
               >
                 &gt; approve
               </button>
@@ -610,6 +615,7 @@ function TreeNode({
           'flex cursor-pointer items-center gap-2 px-1 py-0.5 hover:bg-muted/40 ' +
           (selectedId === node.id ? 'border-l-2 border-primary bg-primary/10' : '')
         }
+        data-testid="agent-node"
       >
         <Ascii>
           {prefix}
