@@ -66,6 +66,7 @@ function EventsPage() {
               placeholder="&gt; filter"
               aria-label="Filter events"
               className="w-40 border border-border bg-background px-2 py-0.5"
+              data-testid="event-search"
             />
             <select
               value={eventType}
@@ -74,6 +75,7 @@ function EventsPage() {
               }}
               aria-label="Event type"
               className="border border-border bg-background px-1"
+              data-testid="event-type-filter"
             >
               {TYPES.map((t) => (
                 <option key={t} value={t}>
@@ -88,6 +90,7 @@ function EventsPage() {
                 onChange={(e) => {
                   setFollow(e.target.checked);
                 }}
+                data-testid="event-follow"
               />{' '}
               follow
             </label>
@@ -114,6 +117,7 @@ function EventsPage() {
                     }
                   }}
                   className="grid cursor-pointer grid-cols-[100px_140px_120px_60px_1fr] gap-2 px-2 hover:bg-muted/40"
+                  data-testid="event-row"
                 >
                   <span className="text-dim">
                     <Volatile fallback="--:--:--.---">{new Date(e.ts).toISOString().slice(11, 23)}</Volatile>
@@ -148,7 +152,7 @@ function EventsPage() {
             </div>
             <div>
               <div className="mb-1 text-[10px] uppercase text-muted-foreground">payload</div>
-              <pre className="max-h-80 overflow-auto border border-border bg-background p-2 text-[11px]">
+              <pre className="max-h-80 overflow-auto border border-border bg-background p-2 text-[11px]" data-testid="event-payload">
                 {JSON.stringify(selected.payload, null, 2)}
               </pre>
             </div>

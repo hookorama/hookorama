@@ -15,14 +15,16 @@ export function Panel({
   right,
   children,
   className,
+  dataTestId,
 }: {
   readonly title?: string;
   readonly right?: ReactNode;
   readonly children: ReactNode;
   readonly className?: string;
+  readonly dataTestId?: string;
 }): ReactElement {
   return (
-    <div className={cn('border border-border bg-panel', className)}>
+    <div className={cn('border border-border bg-panel', className)} data-testid={dataTestId}>
       {title && (
         <div className="flex items-center border-b border-border px-3 py-1.5">
           <div className="text-xs uppercase tracking-widest text-primary">▚ {title}</div>
@@ -57,7 +59,7 @@ export function StatusDot({ status }: { readonly status: Status }): ReactElement
     default:
       color = 'bg-muted-foreground';
   }
-  return <span className={cn('inline-block h-2 w-2', color)} />;
+  return <span className={cn('inline-block h-2 w-2', color)} data-testid={`status-dot-${status}`} />;
 }
 
 export function Kpi({
@@ -73,9 +75,9 @@ export function Kpi({
 }): ReactElement {
   const color = kpiTone(tone);
   return (
-    <div className="border border-border bg-panel p-3">
-      <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</div>
-      <div className={cn('mt-1 font-mono text-2xl', color)}>{value}</div>
+    <div className="border border-border bg-panel p-3" data-testid="kpi">
+      <div className="text-[10px] uppercase tracking-widest text-muted-foreground" data-testid="kpi-label">{label}</div>
+      <div className={cn('mt-1 font-mono text-2xl', color)} data-testid="kpi-value">{value}</div>
       {sub && <div className="mt-1 text-[10px] text-muted-foreground">{sub}</div>}
     </div>
   );
@@ -92,6 +94,7 @@ export function ProjectTag({ project, size = 'sm' }: { readonly project?: Projec
     <span
       className={cn('inline-flex items-center gap-1 border border-current font-mono uppercase tracking-wider', pad)}
       style={{ color: project.color, borderColor: project.color }}
+      data-testid="project-tag"
     >
       <span className="inline-block h-1.5 w-1.5" style={{ background: project.color }} />
       {project.name}
@@ -129,6 +132,7 @@ export function ShortcutTile({
     <Link
       to={to}
       className="group flex items-start gap-3 border border-border bg-panel p-3 hover:border-primary"
+      data-testid={`shortcut-${title}`}
     >
       <Icon className="mt-0.5 h-4 w-4 text-primary" />
       <div className="flex-1">
@@ -158,12 +162,12 @@ export function KpiTile({
 }): ReactElement {
   const color = kpiTone(tone);
   return (
-    <Link to={to} className="group block border border-border bg-panel p-3 hover:border-primary">
-      <div className="flex items-center gap-1 text-[10px] uppercase tracking-widest text-muted-foreground">
+    <Link to={to} className="group block border border-border bg-panel p-3 hover:border-primary" data-testid="kpi-tile">
+      <div className="flex items-center gap-1 text-[10px] uppercase tracking-widest text-muted-foreground" data-testid="kpi-tile-label">
         {Icon && <Icon className="h-3 w-3" />}
         {label}
       </div>
-      <div className={cn('mt-1 font-mono text-2xl', color)}>{value}</div>
+      <div className={cn('mt-1 font-mono text-2xl', color)} data-testid="kpi-tile-value">{value}</div>
       {sub && <div className="mt-1 text-[10px] text-muted-foreground">{sub}</div>}
       {hint && <div className="mt-0.5 text-[10px] text-dim">&gt; {hint}</div>}
     </Link>
