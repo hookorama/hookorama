@@ -1,5 +1,11 @@
 import { type Page, type Locator, expect } from '@playwright/test';
 
+const CONNECTION_PATTERNS = {
+  live: /live/i,
+  offline: /offline/i,
+  error: /error/i,
+};
+
 export class Dashboard {
   constructor(protected readonly page: Page) {}
 
@@ -13,7 +19,7 @@ export class Dashboard {
   }
 
   async expectConnection(status: 'live' | 'offline' | 'error'): Promise<void> {
-    await expect(this.connectionBadge()).toHaveText(new RegExp(status, 'i'));
+    await expect(this.connectionBadge()).toHaveText(CONNECTION_PATTERNS[status]);
   }
 
   headerAgents(): Locator {
@@ -35,7 +41,7 @@ export class Dashboard {
 
 export class OverviewPage extends Dashboard {
   kpiTile(label: string): Locator {
-    return this.page.getByTestId('kpi-tile').filter({ hasText: new RegExp(label, 'i') });
+    return this.page.getByTestId('kpi-tile').filter({ hasText: label }).first();
   }
 
   kpiValue(label: string): Locator {
@@ -75,11 +81,11 @@ export class AgentsPage extends Dashboard {
   }
 
   filterButton(name: string): Locator {
-    return this.page.getByRole('button', { name: new RegExp(`^${name}$`, 'i') }).first();
+    return this.page.getByRole('button', { name, exact: true }).first();
   }
 
   agentNode(name: string): Locator {
-    return this.page.getByTestId('agent-node').filter({ hasText: new RegExp(name, 'i') });
+    return this.page.getByTestId('agent-node').filter({ hasText: name }).first();
   }
 
   async selectAgent(name: string): Promise<void> {
@@ -105,7 +111,7 @@ export class ProcessesPage extends Dashboard {
   }
 
   processNode(cmd: string): Locator {
-    return this.page.getByTestId('process-node').filter({ hasText: new RegExp(cmd, 'i') });
+    return this.page.getByTestId('process-node').filter({ hasText: cmd });
   }
 
   async selectProcess(cmd: string): Promise<void> {
@@ -117,7 +123,7 @@ export class ProcessesPage extends Dashboard {
   }
 
   focusVsCodeButton(): Locator {
-    return this.page.getByRole('button', { name: /focus vscode/i });
+    return this.page.getByRole('button', { name: 'focus vscode' }).first();
   }
 }
 
@@ -135,7 +141,7 @@ export class EventsPage extends Dashboard {
   }
 
   eventRow(summary: string): Locator {
-    return this.page.getByTestId('event-row').filter({ hasText: new RegExp(summary, 'i') });
+    return this.page.getByTestId('event-row').filter({ hasText: summary }).first();
   }
 
   async selectEvent(summary: string): Promise<void> {
@@ -157,27 +163,27 @@ export class AnalyticsPage extends Dashboard {
   }
 
   projectFilter(name: string): Locator {
-    return this.page.getByTestId('project-filter-button').filter({ hasText: new RegExp(name, 'i') });
+    return this.page.getByTestId('project-filter-button').filter({ hasText: name }).first();
   }
 
   kpiValue(label: string): Locator {
-    return this.page.getByTestId('kpi').filter({ hasText: new RegExp(label, 'i') }).getByTestId('kpi-value');
+    return this.page.getByTestId('kpi').filter({ hasText: label }).first().getByTestId('kpi-value');
   }
 
   rollupRow(name: string): Locator {
-    return this.page.getByTestId('project-rollup-row').filter({ hasText: new RegExp(name, 'i') });
+    return this.page.getByTestId('project-rollup-row').filter({ hasText: name }).first();
   }
 
   topAgentRow(name: string): Locator {
-    return this.page.getByTestId('top-agent-row').filter({ hasText: new RegExp(name, 'i') });
+    return this.page.getByTestId('top-agent-row').filter({ hasText: name }).first();
   }
 
   skillRow(name: string): Locator {
-    return this.page.getByTestId('skill-row').filter({ hasText: new RegExp(name, 'i') });
+    return this.page.getByTestId('skill-row').filter({ hasText: name }).first();
   }
 
   modelRow(name: string): Locator {
-    return this.page.getByTestId('model-row').filter({ hasText: new RegExp(name, 'i') });
+    return this.page.getByTestId('model-row').filter({ hasText: name }).first();
   }
 
   usageRows(): Locator {

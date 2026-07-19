@@ -13,6 +13,12 @@ export interface AgentOptions {
 
 let counter = 0;
 
+function resolveMockFlag(mock?: boolean): string {
+  if (mock === true) return '1';
+  if (process.env['E2E_MOCK_OLLAMA'] === '1') return '1';
+  return '0';
+}
+
 export async function startAgent(opts: AgentOptions): Promise<string> {
   const sessionName = `e2e-agent-${++counter}`;
   const env: NodeJS.ProcessEnv = {
@@ -23,7 +29,7 @@ export async function startAgent(opts: AgentOptions): Promise<string> {
     E2E_PROJECT_ID: opts.projectId,
     E2E_OLLAMA_MODEL: opts.model ?? process.env['E2E_OLLAMA_MODEL'] ?? 'qwen2.5:0.5b',
     E2E_AGENT_SKILL: opts.skill ?? 'e2e',
-    E2E_MOCK_OLLAMA: opts.mock === true ? '1' : process.env['E2E_MOCK_OLLAMA'] === '1' ? '1' : '0',
+    E2E_MOCK_OLLAMA: resolveMockFlag(opts.mock),
   };
 
   await killSession(sessionName);

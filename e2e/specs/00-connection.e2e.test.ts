@@ -27,10 +27,19 @@ test.describe('connection and navigation', () => {
       'analytics',
     ];
 
+    type Route = 'overview' | 'projects' | 'agents' | 'processes' | 'events' | 'analytics';
+    const patterns: Record<Route, RegExp> = {
+      overview: /\/$/,
+      projects: /\/projects/,
+      agents: /\/agents/,
+      processes: /\/processes/,
+      events: /\/events/,
+      analytics: /\/analytics/,
+    };
+
     for (const label of routes) {
       await dashboard.navigateTo(label);
-      const expected = label === 'overview' ? /\/$/ : new RegExp(`/${label}`);
-      await expect(page).toHaveURL(expected);
+      await expect(page).toHaveURL(patterns[label]);
     }
   });
 });

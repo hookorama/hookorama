@@ -5,9 +5,12 @@
 
 import { spawn } from 'node:child_process';
 
+const SAFE_PATH = '/root/.bun/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin';
+
 function runTmux(args: readonly string[], env?: NodeJS.ProcessEnv): Promise<void> {
   return new Promise((resolve, reject) => {
-    const child = spawn('tmux', args, { stdio: 'ignore', env });
+    const safeEnv = env === undefined ? { ...process.env, PATH: SAFE_PATH } : { ...env, PATH: SAFE_PATH };
+    const child = spawn('tmux', args, { stdio: 'ignore', env: safeEnv });
     child.on('error', reject);
     child.on('close', (code) => {
       if (code === 0) {
@@ -28,7 +31,7 @@ export async function spawnSession(
   const envArgs: string[] = [];
   if (env) {
     for (const [key, value] of Object.entries(env)) {
-      if (value !== undefined) envArgs.push(`${key}=${String(value)}`);
+      if (typeof value === 'string') envArgs.push(`${key}=${value}`);
     }
   }
   await runTmux(['new-session', '-d', '-s', name, '-c', cwd, 'env', ...envArgs, ...command]);

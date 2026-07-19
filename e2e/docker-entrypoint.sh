@@ -12,9 +12,9 @@ TEST_EXIT=0
 
 cleanup() {
   echo "==> cleaning up"
-  [[ -n "${DASHBOARD_PID:-}" ]] && kill "$DASHBOARD_PID" 2>/dev/null || true
-  [[ -n "${SUPERVISOR_PID:-}" ]] && kill "$SUPERVISOR_PID" 2>/dev/null || true
-  [[ -n "${OLLAMA_PID:-}" ]] && kill "$OLLAMA_PID" 2>/dev/null || true
+  if [[ -n "${DASHBOARD_PID:-}" ]]; then kill "$DASHBOARD_PID" 2>/dev/null || true; fi
+  if [[ -n "${SUPERVISOR_PID:-}" ]]; then kill "$SUPERVISOR_PID" 2>/dev/null || true; fi
+  if [[ -n "${OLLAMA_PID:-}" ]]; then kill "$OLLAMA_PID" 2>/dev/null || true; fi
 }
 trap cleanup EXIT
 
@@ -47,7 +47,7 @@ for _ in $(seq 1 30); do
   sleep 0.5
 done
 
-if [ ! -f packages/cli/dist/web-app/index.html ]; then
+if [[ ! -f packages/cli/dist/web-app/index.html ]]; then
   echo "==> building dashboard bundle"
   bun run build
 fi

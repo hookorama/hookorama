@@ -9,10 +9,8 @@ ENV PATH="${BUN_INSTALL}/bin:${PATH}"
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends curl ca-certificates unzip zstd tmux \
-  && rm -rf /var/lib/apt/lists/*
-
-# Install Bun.
-RUN curl -fsSL https://bun.sh/install | bash
+  && rm -rf /var/lib/apt/lists/* \
+  && curl -fsSL https://bun.sh/install | bash
 
 ARG E2E_MOCK_OLLAMA=0
 # Install Ollama unless mock mode is requested.
@@ -28,12 +26,14 @@ COPY .agents .agents
 COPY docs docs
 COPY README.md LICENSE CHANGELOG.md ./
 
-RUN bun install
-RUN bun run build
+RUN bun install && bun run build
 
 ARG E2E_OLLAMA_MODEL=qwen2.5:0.5b
 ENV E2E_OLLAMA_MODEL=${E2E_OLLAMA_MODEL}
 ENV E2E_MOCK_OLLAMA=${E2E_MOCK_OLLAMA}
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+
+# The container needs root to spawn tmux sessions and optionally the Ollama service.
+USER root
 
 ENTRYPOINT ["bash", "e2e/docker-entrypoint.sh"]

@@ -60,7 +60,7 @@ async function dispatch(status: Status, payload: HookPayload = {}): Promise<void
   });
 
   if (!response.ok) {
-    console.error('hook dispatch failed:', response.status, await response.text());
+    console.error('hook dispatch failed:', response.status);
     process.exitCode = 1;
   }
 }
@@ -129,9 +129,9 @@ async function handlePrompt(raw: string): Promise<boolean> {
     tasks += 1;
     cost += COST_PER_CALL;
     await dispatch('done', { currentTask: answer || undefined });
-  } catch (error) {
+  } catch {
     errors += 1;
-    console.error('ollama error:', error instanceof Error ? error.message : error);
+    console.error('ollama call failed');
     await dispatch('error', { currentTask: 'ollama call failed' });
   }
 
@@ -160,7 +160,9 @@ async function main(): Promise<void> {
   rl.close();
 }
 
-main().catch((error) => {
-  console.error('agent fixture failed:', error);
+try {
+  await main();
+} catch {
+  console.error('agent fixture failed');
   process.exitCode = 1;
-});
+}

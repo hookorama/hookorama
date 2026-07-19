@@ -114,32 +114,11 @@ export class WireServer {
     request: Request,
     server: Bun.Server<undefined>,
   ): Response | Promise<Response> | undefined {
-    const url = new URL(request.url);
-
     if (request.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: CORS_HEADERS });
     }
 
-    if (url.pathname === '/api/state' && request.method === 'GET') {
-      return this.handleState();
-    }
-
-    if (url.pathname === '/api/processes' && request.method === 'GET') {
-      return this.handleProcesses();
-    }
-
-    if (url.pathname === '/api/hook' && request.method === 'POST') {
-      return this.handleHook(request);
-    }
-
-    if (url.pathname === '/api/reset' && request.method === 'POST' && process.env['E2E_ALLOW_RESET'] === '1') {
-      return this.handleReset();
-    }
-
-    if (url.pathname === '/api/terminals' && request.method === 'POST') {
-      return this.handleTerminals(request);
-    }
-
+    const url = new URL(request.url);
     if (url.pathname === '/ws' && request.method === 'GET') {
       if (server.upgrade(request)) {
         return undefined;
@@ -150,10 +129,26 @@ export class WireServer {
       });
     }
 
-    if (request.method === 'OPTIONS') {
-      return new Response(null, { status: 204, headers: CORS_HEADERS });
-    }
+    return this.handleHttpRequest(request, url);
+  }
 
+  private handleHttpRequest(request: Request, url: URL): Response | Promise<Response> {
+    const { pathname } = url;
+    if (pathname === '/api/state' && request.method === 'GET') {
+      return this.handleState();
+    }
+    if (pathname === '/api/processes' && request.method === 'GET') {
+      return this.handleProcesses();
+    }
+    if (pathname === '/api/hook' && request.method === 'POST') {
+      return this.handleHook(request);
+    }
+    if (pathname === '/api/reset' && request.method === 'POST' && process.env['E2E_ALLOW_RESET'] === '1') {
+      return this.handleReset();
+    }
+    if (pathname === '/api/terminals' && request.method === 'POST') {
+      return this.handleTerminals(request);
+    }
     return new Response('Not found', { status: 404, headers: CORS_HEADERS });
   }
 
