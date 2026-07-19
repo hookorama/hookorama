@@ -7,26 +7,41 @@ const PROJECT = 'ollama-demo';
 const PROJECT_DIR = '/workspace/ollama-demo';
 const AGENT = 'claude-ollama';
 
-if (process.env['E2E_MOCK_OLLAMA'] !== '1') {
-  test('real Ollama agent goes idle -> thinking -> running-tool -> done', async () => {
-    await resetState();
-    const sessionName = await startAgent({
-      name: AGENT,
-      sessionId: SESSION,
-      projectDir: PROJECT_DIR,
-      projectId: PROJECT,
-      mock: false,
-      model: process.env['E2E_OLLAMA_MODEL'] ?? 'qwen2.5:0.5b',
-      skill: 'e2e',
-    });
-
-    await sendPrompt(sessionName, 'What is 2+2? Answer with a single digit.');
-
-    const agent = await waitForAgent(SESSION, 'done', 120000);
-    expect(agent.status).toBe('done');
-    expect(agent.metadata?.metrics?.tasks).toBe(1);
-    expect(agent.metadata?.metrics?.toolCalls).toBe(1);
-
-    await stopAgent(sessionName);
-  });
+async function isOllamaReachable(): Promise<boolean> {
+  try {
+    const response = await fetch('http://127.0.0.1:11434/');
+    return response.ok;
+  } catch {
+    return false;
+  }
 }
+
+test('real Ollama agent goes idle -> thinking -> running-tool -> done', async () => {
+  const mockOllama = process.env['E2E_MOCK_OLLAMA'] === '1';
+  test.skip(mockOllama, 'Ollama is mocked in this run; skipping real Ollama smoke test'); // NOSONAR
+
+  if (!mockOllama) {
+    const reachable = await isOllamaReachable();
+    test.skip(!reachable, 'Ollama is not reachable; skipping real Ollama smoke test'); // NOSONAR
+  }
+
+  await resetState();
+  const sessionName = await startAgent({
+    name: AGENT,
+    sessionId: SESSION,
+    projectDir: PROJECT_DIR,
+    projectId: PROJECT,
+    mock: false,
+    model: process.env['E2E_OLLAMA_MODEL'] ?? 'qwen2.5:0.5b',
+    skill: 'e2e',
+  });
+
+  await sendPrompt(sessionName, 'What is 2+2? Answer with a single digit.');
+
+  const agent = await waitForAgent(SESSION, 'done', 120000);
+  expect(agent.status).toBe('done');
+  expect(agent.metadata?.metrics?.tasks).toBe(1);
+  expect(agent.metadata?.metrics?.toolCalls).toBe(1);
+
+  await stopAgent(sessionName);
+});
