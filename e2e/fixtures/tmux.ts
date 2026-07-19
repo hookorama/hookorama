@@ -5,9 +5,11 @@
 
 import { spawn } from 'node:child_process';
 
+const SAFE_PATH = '/usr/local/bun/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin';
+
 function runTmux(args: readonly string[]): Promise<void> {
   return new Promise((resolve, reject) => {
-    const child = spawn('tmux', args, { stdio: 'ignore' });
+    const child = spawn('tmux', args, { stdio: 'ignore', env: { PATH: SAFE_PATH } });
     child.on('error', reject);
     child.on('close', (code) => {
       if (code === 0) {
