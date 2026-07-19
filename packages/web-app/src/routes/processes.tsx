@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState, type ReactElement } from 'react';
+import { useMemo, useState, type ReactElement } from 'react';
 import { toast } from 'sonner';
+import { useInitialSelection } from '@/lib/hooks.js';
 import { useHookoramaStore, selectProcessTree } from '@/lib/store.js';
 import type { Process } from '@/lib/types.js';
 import { Panel, Ascii } from '@/components/hk/primitives.js';
@@ -110,16 +111,9 @@ function ProcessesPage() {
   const processes = useHookoramaStore((state) => state.processes);
   const agents = useHookoramaStore((state) => state.agents);
   const tree = useMemo(() => selectProcessTree({ processes }), [processes]);
-  const [selPid, setSelPid] = useState<number | null>(processes[0]?.pid ?? null);
+  const [selPid, setSelPid] = useInitialSelection(processes, (p) => p.pid);
   const [q, setQ] = useState('');
   const [tf, setTf] = useState('all');
-
-  useEffect(() => {
-    const first = processes[0];
-    if (first && (selPid === null || !processes.some((p) => p.pid === selPid))) {
-      setSelPid(first.pid);
-    }
-  }, [selPid, processes]);
 
   const pidSet = new Set(processes.map((p) => p.pid));
   const roots = processes

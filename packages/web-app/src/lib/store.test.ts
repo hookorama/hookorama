@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import type { HookEvent as WireHookEvent, ProcessEntry, WireSnapshot } from '@hookorama/client';
 import { selectAgentTree, selectProcessTree, useHookoramaStore } from './store.js';
 import type { Agent, Process } from './types.js';
@@ -15,6 +15,25 @@ function makeEntry(partial: Partial<ProcessEntry> & Pick<ProcessEntry, 'key' | '
 }
 
 describe('useHookoramaStore', () => {
+  beforeEach(() => {
+    useHookoramaStore.setState({
+      projects: [],
+      agents: [],
+      processes: [],
+      events: [],
+      notifications: [],
+      notificationAcks: new Set<string>(),
+      scanlines: false,
+      buckets: [],
+      agentTotals: new Map(),
+      completedProjectTotals: new Map(),
+      nextBucketId: 0,
+      skillHistory: {},
+      modelHistory: {},
+      connection: 'disconnected',
+    });
+  });
+
   it('maps a live snapshot to agents, projects and notifications', () => {
     const snapshot: WireSnapshot = {
       at: new Date().toISOString(),
@@ -188,5 +207,157 @@ describe('useHookoramaStore', () => {
     expect(skillHistory['refactor']).toBe(3);
     expect(modelHistory['claude-sonnet-4.5']?.calls).toBe(5);
     expect(modelHistory['claude-sonnet-4.5']?.cost).toBe(0.2);
+  });
+
+  it('stores per-project metric snapshots in buckets', () => {
+    const snapshot: WireSnapshot = {
+      at: new Date().toISOString(),
+      entries: [
+        makeEntry({
+          key: 'pid:1',
+          status: 'thinking',
+          cwd: '/home/user/p1',
+          sessionId: 's1',
+          metadata: {
+            projectId: 'p1',
+            metrics: { tasks: 1, toolCalls: 2, cost: 0.1, errors: 0 },
+          },
+        }),
+        makeEntry({
+          key: 'pid:2',
+          status: 'error',
+          cwd: '/home/user/p2',
+          sessionId: 's2',
+          metadata: {
+            projectId: 'p2',
+            metrics: { tasks: 2, toolCalls: 1, cost: 0.2, errors: 1 },
+          },
+        }),
+      ],
+    };
+
+    useHookoramaStore.getState().syncSnapshot(snapshot);
+
+    const { buckets } = useHookoramaStore.getState();
+    const bucket = buckets.at(-1);
+    expect(bucket).not.toBeUndefined();
+    expect(bucket?.byProject.get('p1')?.tasks).toBe(1);
+    expect(bucket?.byProject.get('p2')?.errors).toBe(1);
+    expect(bucket?.errors).toBe(1);
+  });
+
+  it('preserves lastErrorAt across snapshots for the same session', () => {
+    const t1 = new Date('2026-01-01T00:00:00.000Z').toISOString();
+    const snapshot1: WireSnapshot = {
+      at: t1,
+      entries: [
+        makeEntry({
+          key: 'pid:1',
+          status: 'error',
+          cwd: '/home/user/p1',
+          sessionId: 's1',
+          metadata: {
+            projectId: 'p1',
+            lastErrorAt: t1,
+            metrics: { tasks: 0, toolCalls: 0, cost: 0, errors: 1 },
+          },
+        }),
+      ],
+    };
+    useHookoramaStore.getState().syncSnapshot(snapshot1);
+    const first = useHookoramaStore.getState().agents[0]?.lastErrorAt;
+    expect(first).toBe(Date.parse(t1));
+
+    const t2 = new Date('2026-01-01T00:00:01.000Z').toISOString();
+    const snapshot2: WireSnapshot = {
+      at: t2,
+      entries: [
+        makeEntry({
+          key: 'pid:1',
+          status: 'error',
+          at: t2,
+          cwd: '/home/user/p1',
+          sessionId: 's1',
+          metadata: {
+            projectId: 'p1',
+            metrics: { tasks: 0, toolCalls: 0, cost: 0, errors: 1 },
+          },
+        }),
+      ],
+    };
+    useHookoramaStore.getState().syncSnapshot(snapshot2);
+
+    const { agents } = useHookoramaStore.getState();
+    expect(agents[0]?.lastErrorAt).toBe(Date.parse(t1));
+  });
+
+  it('does not reuse lastErrorAt when the session changes', () => {
+    const t1 = new Date('2026-01-01T00:00:00.000Z').toISOString();
+    const snapshot1: WireSnapshot = {
+      at: t1,
+      entries: [
+        makeEntry({
+          key: 'pid:1',
+          status: 'error',
+          at: t1,
+          cwd: '/home/user/p1',
+          sessionId: 's1',
+          metadata: {
+            projectId: 'p1',
+            lastErrorAt: t1,
+            metrics: { tasks: 0, toolCalls: 0, cost: 0, errors: 1 },
+          },
+        }),
+      ],
+    };
+    useHookoramaStore.getState().syncSnapshot(snapshot1);
+
+    const t2 = new Date('2026-01-01T00:00:01.000Z').toISOString();
+    const snapshot2: WireSnapshot = {
+      at: t2,
+      entries: [
+        makeEntry({
+          key: 'pid:1',
+          status: 'error',
+          at: t2,
+          cwd: '/home/user/p1',
+          sessionId: 's2',
+          metadata: {
+            projectId: 'p1',
+            metrics: { tasks: 0, toolCalls: 0, cost: 0, errors: 1 },
+          },
+        }),
+      ],
+    };
+    useHookoramaStore.getState().syncSnapshot(snapshot2);
+
+    const { agents } = useHookoramaStore.getState();
+    expect(agents[0]?.lastErrorAt).toBe(Date.parse(t2));
+  });
+
+  it('falls back to updatedAt for an invalid lastErrorAt timestamp', () => {
+    const snapshotAt = new Date('2026-01-01T00:00:00.000Z').toISOString();
+    const entryAt = new Date('2026-01-01T00:00:01.000Z').toISOString();
+    const snapshot: WireSnapshot = {
+      at: snapshotAt,
+      entries: [
+        makeEntry({
+          key: 'pid:1',
+          status: 'error',
+          at: entryAt,
+          cwd: '/home/user/p1',
+          sessionId: 's1',
+          metadata: {
+            projectId: 'p1',
+            lastErrorAt: 'not-a-timestamp',
+            metrics: { tasks: 0, toolCalls: 0, cost: 0, errors: 1 },
+          },
+        }),
+      ],
+    };
+    useHookoramaStore.getState().syncSnapshot(snapshot);
+
+    const { agents } = useHookoramaStore.getState();
+    expect(agents[0]?.lastErrorAt).toBe(Date.parse(entryAt));
   });
 });

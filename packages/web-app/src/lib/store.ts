@@ -1,13 +1,12 @@
 import { create } from 'zustand';
 import type { WireSnapshot, HookEvent as WireHookEvent, ProcessEntry } from '@hookorama/client';
-import type { Agent, EventType, HookEvent, Notification, NotificationKind, Origin, Process, Project } from './types.js';
+import type { Agent, EventType, HookEvent, Metrics, Notification, NotificationKind, Origin, Process, Project } from './types.js';
 
 const PROJECT_COLORS = ['#39ff14', '#ffb000', '#22d3ee', '#ff5c8a', '#a78bfa'];
 
 const ORIGINS = new Set<string>(['terminal', 'vscode', 'jetbrains', 'ci']);
 
-interface Bucket {
-  ts: number;
+interface ProjectMetrics {
   tasks: number;
   toolCalls: number;
   cost: number;
@@ -15,16 +14,85 @@ interface Bucket {
   errors: number;
 }
 
-const MAX_BUCKETS = 2000;
+interface AgentTotal {
+  projectId: string;
+  updatedAt: number;
+  metrics: Metrics;
+}
 
-function updateBuckets(buckets: Bucket[], agents: Agent[]): Bucket[] {
+interface Bucket {
+  id: number;
+  ts: number;
+  tasks: number;
+  toolCalls: number;
+  cost: number;
+  active: number;
+  errors: number;
+  byProject: Map<string, ProjectMetrics>;
+}
+
+const MAX_BUCKETS = 2000;
+const MAX_AGENT_TOTALS = 500;
+
+function emptyProjectMetrics(): ProjectMetrics {
+  return { tasks: 0, toolCalls: 0, cost: 0, active: 0, errors: 0 };
+}
+
+function updateBuckets(
+  buckets: Bucket[],
+  agents: Agent[],
+  agentTotals: Map<string, AgentTotal>,
+  completedProjectTotals: Map<string, ProjectMetrics>,
+  nextBucketId: number,
+): Bucket[] {
+  const byProject = new Map<string, ProjectMetrics>();
+  const totals = emptyProjectMetrics();
+
+  function addMetrics(projectId: string, metrics: Metrics) {
+    let pm = byProject.get(projectId);
+    if (!pm) {
+      pm = emptyProjectMetrics();
+      byProject.set(projectId, pm);
+    }
+    pm.tasks += metrics.tasks;
+    pm.toolCalls += metrics.toolCalls;
+    pm.cost += metrics.cost;
+    pm.errors += metrics.errors;
+
+    totals.tasks += metrics.tasks;
+    totals.toolCalls += metrics.toolCalls;
+    totals.cost += metrics.cost;
+    totals.errors += metrics.errors;
+  }
+
+  // Cumulative totals are built from active/recent agents plus pruned
+  // per-project totals, so completed agents still contribute to range-based
+  // KPIs without retaining an unbounded per-agent history.
+  for (const { projectId, metrics } of agentTotals.values()) {
+    addMetrics(projectId, metrics);
+  }
+  for (const [projectId, metrics] of completedProjectTotals.entries()) {
+    addMetrics(projectId, metrics);
+  }
+
+  // Active counts reflect the currently running/thinking agents only.
+  for (const a of agents) {
+    if (a.status === 'running-tool' || a.status === 'thinking') {
+      const pm = byProject.get(a.projectId);
+      if (pm) pm.active += 1;
+      totals.active += 1;
+    }
+  }
+
   const bucket: Bucket = {
+    id: nextBucketId,
     ts: Date.now(),
-    tasks: agents.reduce((s, a) => s + a.metrics.tasks, 0),
-    toolCalls: agents.reduce((s, a) => s + a.metrics.toolCalls, 0),
-    cost: agents.reduce((s, a) => s + a.metrics.cost, 0),
-    active: agents.filter((a) => a.status === 'running-tool' || a.status === 'thinking').length,
-    errors: agents.filter((a) => a.status === 'error').length,
+    tasks: totals.tasks,
+    toolCalls: totals.toolCalls,
+    cost: totals.cost,
+    active: totals.active,
+    errors: totals.errors,
+    byProject,
   };
   return [...buckets, bucket].slice(-MAX_BUCKETS);
 }
@@ -61,6 +129,9 @@ interface Store {
   notificationAcks: Set<string>;
   scanlines: boolean;
   buckets: Bucket[];
+  agentTotals: Map<string, AgentTotal>;
+  completedProjectTotals: Map<string, ProjectMetrics>;
+  nextBucketId: number;
   skillHistory: Record<string, number>;
   modelHistory: Record<string, { calls: number; cost: number }>;
   connection: Connection;
@@ -106,18 +177,42 @@ function parseOrigin(raw: string | undefined): Origin {
   return raw !== undefined && ORIGINS.has(raw) ? (raw as Origin) : 'terminal';
 }
 
+function sameProcessSession(entry: ProcessEntry, previous: Agent): boolean {
+  // Only carry error timestamps forward when the snapshot row is confirmed
+  // to belong to the same process/session, otherwise a reused PID can hide
+  // a new failure behind an already-acknowledged notification. The 'unknown'
+  // sentinel means the previous row had no sessionId, so we cannot confirm
+  // a match and must treat the current row as a new process/session.
+  if (entry.sessionId === undefined) return false;
+  if (previous.sessionId === 'unknown') return false;
+  return entry.sessionId === previous.sessionId;
+}
+
+function deriveLastErrorAt(entry: ProcessEntry, updatedAt: number, previous?: Agent): number | undefined {
+  let parsed: number | undefined;
+  if (entry.metadata?.lastErrorAt !== undefined) {
+    const ts = Date.parse(entry.metadata.lastErrorAt);
+    if (!Number.isNaN(ts)) parsed = ts;
+  }
+
+  if (parsed === undefined && entry.status === 'error') {
+    if (previous?.status === 'error' && sameProcessSession(entry, previous)) {
+      parsed = previous.lastErrorAt ?? updatedAt;
+    } else {
+      parsed = updatedAt;
+    }
+  }
+  return parsed;
+}
+
 function toAgentOptions(entry: ProcessEntry, updatedAt: number, previous?: Agent): Partial<Agent> {
   const options: Partial<Agent> = {};
   if (entry.metadata?.model !== undefined) options.model = entry.metadata.model;
   if (entry.metadata?.skill !== undefined) options.skill = entry.metadata.skill;
   if (entry.metadata?.currentTask !== undefined) options.currentTask = entry.metadata.currentTask;
   if (entry.metadata?.waitingReason !== undefined) options.waitingReason = entry.metadata.waitingReason;
-  if (entry.metadata?.lastErrorAt !== undefined) {
-    const ts = Date.parse(entry.metadata.lastErrorAt);
-    if (!Number.isNaN(ts)) options.lastErrorAt = ts;
-  } else if (entry.status === 'error') {
-    options.lastErrorAt = previous?.status === 'error' ? previous.lastErrorAt ?? updatedAt : updatedAt;
-  }
+  const lastErrorAt = deriveLastErrorAt(entry, updatedAt, previous);
+  if (lastErrorAt !== undefined) options.lastErrorAt = lastErrorAt;
   return options;
 }
 
@@ -137,7 +232,9 @@ function toAgent(entry: ProcessEntry, previous?: Agent): Agent {
     ...toAgentOptions(entry, updatedAt, previous),
     createdAt: updatedAt,
     updatedAt,
-    metrics: entry.metadata?.metrics ?? { tasks: 0, toolCalls: 0, cost: 0, errors: 0 },
+    metrics:
+      entry.metadata?.metrics ??
+      (previous !== undefined && sameProcessSession(entry, previous) ? previous.metrics : { tasks: 0, toolCalls: 0, cost: 0, errors: 0 }),
     ...(entry.parentKey !== undefined ? { parentId: entry.parentKey } : {}),
   };
 }
@@ -220,6 +317,9 @@ export const useHookoramaStore = create<Store>((set) => ({
   notificationAcks: new Set<string>(),
   scanlines: false,
   buckets: [],
+  agentTotals: new Map(),
+  completedProjectTotals: new Map(),
+  nextBucketId: 0,
   skillHistory: {},
   modelHistory: {},
   connection: 'disconnected',
@@ -237,12 +337,45 @@ export const useHookoramaStore = create<Store>((set) => ({
         notifications: state.notifications,
         notificationAcks: state.notificationAcks,
       });
+      const agentTotals = new Map(state.agentTotals);
+      const completedProjectTotals = new Map(state.completedProjectTotals);
+
+      // Update current agents first so their latest `updatedAt` prevents them
+      // from being pruned, then fold only truly stale sessions into completed
+      // project totals.
+      for (const a of agents) {
+        const key = `${a.id}:${a.sessionId}`;
+        agentTotals.set(key, { projectId: a.projectId, updatedAt: a.updatedAt, metrics: a.metrics });
+      }
+
+      if (agentTotals.size > MAX_AGENT_TOTALS) {
+        const entries = Array.from(agentTotals.entries());
+        entries.sort((a, b) => a[1].updatedAt - b[1].updatedAt);
+        const pruneCount = entries.length - MAX_AGENT_TOTALS;
+        for (let i = 0; i < pruneCount; i += 1) {
+          const [key, value] = entries[i]!;
+          const projectId = value.projectId;
+          const existing = completedProjectTotals.get(projectId);
+          const pm = existing ? { ...existing } : emptyProjectMetrics();
+          pm.tasks += value.metrics.tasks;
+          pm.toolCalls += value.metrics.toolCalls;
+          pm.cost += value.metrics.cost;
+          pm.errors += value.metrics.errors;
+          completedProjectTotals.set(projectId, pm);
+          agentTotals.delete(key);
+        }
+      }
+
+      const nextBucketId = state.nextBucketId + 1;
       return {
         connection: 'connected',
         agents,
         projects,
         notifications,
-        buckets: updateBuckets(state.buckets, agents),
+        buckets: updateBuckets(state.buckets, agents, agentTotals, completedProjectTotals, nextBucketId),
+        agentTotals,
+        completedProjectTotals,
+        nextBucketId,
         skillHistory: updateSkillHistory(agents),
         modelHistory: updateModelHistory(agents),
       };

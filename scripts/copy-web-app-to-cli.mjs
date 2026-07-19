@@ -7,7 +7,7 @@
  * Run from the repository root (the `build` script does this).
  */
 
-import { cp, rm, rename } from 'node:fs/promises';
+import { cp, rm } from 'node:fs/promises';
 
 const src = 'packages/web-app/dist';
 const dst = 'packages/cli/dist/web-app';
@@ -23,20 +23,23 @@ try {
   } else {
     console.error('failed to copy web-app:', err);
   }
+  await rm(tmp, { recursive: true, force: true });
   process.exit(1);
 }
 
 try {
   await rm(dst, { recursive: true, force: true });
-  await rename(tmp, dst);
+  await cp(tmp, dst, { recursive: true, force: true });
 } catch (err) {
   console.error('failed to replace dashboard bundle:', err);
-  try {
-    await cp(tmp, dst, { recursive: true, force: true });
-  } catch {
-    // ignore secondary errors; the original failure is what matters
-  }
   await rm(tmp, { recursive: true, force: true });
+  process.exit(1);
+}
+
+try {
+  await rm(tmp, { recursive: true, force: true });
+} catch (err) {
+  console.error('failed to clean up staging directory %s:', tmp, err);
   process.exit(1);
 }
 

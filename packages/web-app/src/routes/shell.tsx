@@ -231,8 +231,14 @@ export function Shell(): ReactElement {
     const store = useHookoramaStore;
     client.setOnOpen(() => { setConnection('connected'); });
     client.setOnClose(() => { setConnection('disconnected'); });
-    client.setOnError(() => {
-      if (store.getState().connection !== 'connected') {
+    client.setOnError((error) => {
+      // SupervisorClient multiplexes protocol/parse errors (Error instances)
+      // and transport events (Event instances) onto this callback. Transport
+      // errors should flip the connection badge; parse/type errors are not
+      // fatal connection failures, so surface them as warnings instead.
+      if (error instanceof Error) {
+        console.warn('supervisor protocol error:', error.message);
+      } else if (store.getState().connection !== 'connected') {
         setConnection('error');
       }
     });
