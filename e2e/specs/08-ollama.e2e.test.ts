@@ -7,23 +7,9 @@ const PROJECT = 'ollama-demo';
 const PROJECT_DIR = '/workspace/ollama-demo';
 const AGENT = 'claude-ollama';
 
-async function isOllamaReachable(): Promise<boolean> {
-  try {
-    const response = await fetch('http://127.0.0.1:11434/');
-    return response.ok;
-  } catch {
-    return false;
-  }
-}
-
 test('real Ollama agent goes idle -> thinking -> running-tool -> done', async () => {
   const mockOllama = process.env['E2E_MOCK_OLLAMA'] === '1';
   test.skip(mockOllama, 'Ollama is mocked in this run; skipping real Ollama smoke test'); // NOSONAR
-
-  if (!mockOllama) {
-    const reachable = await isOllamaReachable();
-    test.skip(!reachable, 'Ollama is not reachable; skipping real Ollama smoke test'); // NOSONAR
-  }
 
   await resetState();
   const sessionName = await startAgent({
