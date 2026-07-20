@@ -76,6 +76,10 @@ if ! curl -s http://127.0.0.1:3000 >/dev/null 2>&1; then
 fi
 
 echo "==> running E2E tests"
+<<<<<<< HEAD
 bunx --no-install playwright test --config e2e/playwright.config.ts || TEST_EXIT=$?
+=======
+npx playwright test --config e2e/playwright.config.ts || TEST_EXIT=$?
+>>>>>>> origin/main
 
 exit "$TEST_EXIT"
