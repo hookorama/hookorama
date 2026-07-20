@@ -19,6 +19,6 @@
   },
   "dependencies": {
     "@hookorama/client": "workspace:^0.1.0",
-    "@sysutils/ps": "^1.2.0"
+    "@sysutils/ps": "^1.2.1"
   }
 }
