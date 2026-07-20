@@ -29,7 +29,7 @@ failed in five concrete ways (documented in `docs/adr/0002-v1-postmortem.md`).
 
 > **Scope of this PR.** PR 2 ships the supervisor _skeleton_:
 > identity resolution, in-memory state, the PID-file slot, the
-> process-discovery walkers, the public `Supervisor` class, and
+> process-discovery adapter over `@sysutils/ps`, the public `Supervisor` class, and
 > the test surface that exercises them. The NDJSON/HTTP wire
 > servers, signal handling, idempotent auto-start, platform
 > service-install, and the Drizzle history layer ship in later
@@ -85,9 +85,9 @@ pid?, pidChain?, parentKey?, terminalName? }`. `parentKey` is
   set only for virtual subagent nodes (see below). Status rows
   are populated exclusively by incoming hook events — process
   discovery does not contribute live status. On every
-  supervisor startup a fresh discovery snapshot from `/proc`
-  (Linux), `ps` (macOS), or `wmic` (Windows) is retained in a
-  side `Map<pid, ProcessRow>` so a future cwd-only fallback
+  supervisor startup a fresh discovery snapshot is fetched from
+  `@sysutils/ps` (`listProcesses({ fields: ['pid','ppid','command','user','startedAt'] })`)
+  and retained in a side `Map<pid, ProcessRow>` so a future cwd-only fallback
   (when the extension is unavailable) can resolve a pid chain
   to a command name.
 
@@ -168,6 +168,9 @@ actualKey[]` index so three or more subagents sharing the same
   ships in PR 3.
 - Service install (deferred) gives the supervisor a stable
   lifecycle that does not depend on any IDE window being open.
+- Process discovery is delegated to `@sysutils/ps`, removing
+  `/proc`, `ps`, and `wmic` parsing from the supervisor and
+  keeping the Windows/macOS parity fixes in one maintained place.
 
 ### Negative
 
@@ -183,6 +186,9 @@ actualKey[]` index so three or more subagents sharing the same
 - We commit to a pid‑first model that is harder to debug than
   cwd‑only. The "ambiguous" badge in the UI is the only user
   visible mitigation.
+- The supervisor now depends on `@sysutils/ps` and its optional
+  platform packages; updates and compatibility are owned by that
+  package.
 
 ### Reversibility
 
@@ -206,6 +212,11 @@ change.
   pins the contract, not the implementation.
 - **Tied to the VS Code extension's lifecycle.** Rejected by
   P‑5 — the supervisor must outlive any single IDE window.
+- **Keep per‑platform walkers (`/proc`, `ps`, `wmic`).** Rejected:
+  the supervisor does not own the OS parsing logic; `@sysutils/ps`
+  already provides `pid`, `ppid`, `command`, `user`, and `startedAt`
+  for Linux, macOS, and Windows, and keeps parity fixes in one
+  place.
 
 ## Open questions
 
@@ -230,7 +241,7 @@ change.
   `packages/supervisor/src/supervisor.ts` (the public Supervisor
   class), `packages/supervisor/src/index.ts` (the package
   barrel), `packages/supervisor/src/process-discovery/`
-  (per-platform process walkers),
+  (thin adapter over `@sysutils/ps`),
   `packages/supervisor/src/state/` (the live state map and
   subagent handling), `packages/supervisor/src/lifecycle/`
   (PID file + cross-platform `isProcessRunning`).
