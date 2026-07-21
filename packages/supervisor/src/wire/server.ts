@@ -162,8 +162,8 @@ export class WireServer {
 
   private isLoopbackAddress(address: Bun.SocketAddress | null): boolean {
     if (address === null) return false;
-    const ip = address.address;
-    return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
+    const ip = address.address.toLowerCase();
+    return ip === '::1' || ip.startsWith('127.') || ip.startsWith('::ffff:127.');
   }
 
   private handleReset(request: Request, server: Bun.Server<undefined>): Response {
