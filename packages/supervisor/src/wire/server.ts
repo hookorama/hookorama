@@ -129,10 +129,14 @@ export class WireServer {
       });
     }
 
-    return this.handleHttpRequest(request, url);
+    return this.handleHttpRequest(request, url, server);
   }
 
-  private handleHttpRequest(request: Request, url: URL): Response | Promise<Response> {
+  private handleHttpRequest(
+    request: Request,
+    url: URL,
+    server: Bun.Server<undefined>,
+  ): Response | Promise<Response> {
     const { pathname } = url;
     if (pathname === '/api/state' && request.method === 'GET') {
       return this.handleState();
@@ -144,7 +148,7 @@ export class WireServer {
       return this.handleHook(request);
     }
     if (pathname === '/api/reset' && request.method === 'POST' && process.env['E2E_ALLOW_RESET'] === '1') {
-      return this.handleReset(request);
+      return this.handleReset(request, server);
     }
     if (pathname === '/api/terminals' && request.method === 'POST') {
       return this.handleTerminals(request);
@@ -156,14 +160,15 @@ export class WireServer {
     return Response.json(this.buildSnapshot(), { headers: CORS_HEADERS });
   }
 
-  private isLocalResetOrigin(origin: string | null): boolean {
-    if (origin === null) return true;
-    return /^(https?:\/\/)(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(origin);
+  private isLoopbackAddress(address: Bun.SocketAddress | null): boolean {
+    if (address === null) return false;
+    const ip = address.address;
+    return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
   }
 
-  private handleReset(request: Request): Response {
-    const origin = request.headers.get('origin');
-    if (!this.isLocalResetOrigin(origin)) {
+  private handleReset(request: Request, server: Bun.Server<undefined>): Response {
+    const client = server.requestIP(request);
+    if (!this.isLoopbackAddress(client)) {
       return new Response('forbidden', { status: 403, headers: CORS_HEADERS });
     }
     this.supervisor.reset();

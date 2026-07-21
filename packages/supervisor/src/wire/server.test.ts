@@ -143,29 +143,21 @@ describe('WireServer', () => {
     }
   });
 
-  it('allows POST /api/reset only from local origins when E2E_ALLOW_RESET is set', async () => {
+  it('allows POST /api/reset from loopback peers when E2E_ALLOW_RESET is set', async () => {
     harness = await setup();
     const prev = process.env['E2E_ALLOW_RESET'];
     process.env['E2E_ALLOW_RESET'] = '1';
     try {
       const baseUrl = harness.server.url().toString();
-      const local = await fetch(`${baseUrl}/api/reset`, {
-        method: 'POST',
-        headers: { Origin: 'http://127.0.0.1:3000' },
-      });
-      expect(local.status).toBe(204);
 
-      const ipv6 = await fetch(`${baseUrl}/api/reset`, {
-        method: 'POST',
-        headers: { Origin: 'http://[::1]:3000' },
-      });
-      expect(ipv6.status).toBe(204);
+      const noOrigin = await fetch(`${baseUrl}/api/reset`, { method: 'POST' });
+      expect(noOrigin.status).toBe(204);
 
-      const remote = await fetch(`${baseUrl}/api/reset`, {
+      const withOrigin = await fetch(`${baseUrl}/api/reset`, {
         method: 'POST',
-        headers: { Origin: 'http://evil.com' },
+        headers: { Origin: 'http://example.com' },
       });
-      expect(remote.status).toBe(403);
+      expect(withOrigin.status).toBe(204);
     } finally {
       if (prev !== undefined) {
         process.env['E2E_ALLOW_RESET'] = prev;
