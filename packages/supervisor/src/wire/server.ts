@@ -158,7 +158,7 @@ export class WireServer {
 
   private isLocalResetOrigin(origin: string | null): boolean {
     if (origin === null) return true;
-    return /^(https?:\/\/)(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+    return /^(https?:\/\/)(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(origin);
   }
 
   private handleReset(request: Request): Response {

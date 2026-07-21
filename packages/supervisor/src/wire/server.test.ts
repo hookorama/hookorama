@@ -155,6 +155,12 @@ describe('WireServer', () => {
       });
       expect(local.status).toBe(204);
 
+      const ipv6 = await fetch(`${baseUrl}/api/reset`, {
+        method: 'POST',
+        headers: { Origin: 'http://[::1]:3000' },
+      });
+      expect(ipv6.status).toBe(204);
+
       const remote = await fetch(`${baseUrl}/api/reset`, {
         method: 'POST',
         headers: { Origin: 'http://evil.com' },
