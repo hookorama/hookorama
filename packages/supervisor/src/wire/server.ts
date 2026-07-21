@@ -144,7 +144,7 @@ export class WireServer {
       return this.handleHook(request);
     }
     if (pathname === '/api/reset' && request.method === 'POST' && process.env['E2E_ALLOW_RESET'] === '1') {
-      return this.handleReset();
+      return this.handleReset(request);
     }
     if (pathname === '/api/terminals' && request.method === 'POST') {
       return this.handleTerminals(request);
@@ -156,7 +156,16 @@ export class WireServer {
     return Response.json(this.buildSnapshot(), { headers: CORS_HEADERS });
   }
 
-  private handleReset(): Response {
+  private isLocalResetOrigin(origin: string | null): boolean {
+    if (origin === null) return true;
+    return /^(https?:\/\/)(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+  }
+
+  private handleReset(request: Request): Response {
+    const origin = request.headers.get('origin');
+    if (!this.isLocalResetOrigin(origin)) {
+      return new Response('forbidden', { status: 403, headers: CORS_HEADERS });
+    }
     this.supervisor.reset();
     this.broadcastSnapshot();
     return new Response(null, { status: 204, headers: CORS_HEADERS });
