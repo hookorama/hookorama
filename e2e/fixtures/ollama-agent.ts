@@ -60,8 +60,7 @@ async function dispatch(status: Status, payload: HookPayload = {}): Promise<void
   });
 
   if (!response.ok) {
-    console.error('hook dispatch failed:', response.status);
-    process.exitCode = 1;
+    throw new Error(`hook dispatch failed: ${response.status}`);
   }
 }
 

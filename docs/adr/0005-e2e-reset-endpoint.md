@@ -31,19 +31,19 @@ into later assertions. Examples of observed flakiness:
 ## Decision
 
 Add a gated `POST /api/reset` endpoint to the supervisor that clears the live
-state map and stops process discovery. The endpoint is **only** active when the
+state map and the process discovery cache. The endpoint is **only** active when the
 environment variable `E2E_ALLOW_RESET=1` is set, so it cannot be enabled by
 accident in a real user installation.
 
 ### Supervisor changes
 
 - `StateStore.clear()` removes all entries from the live `Map`.
-- `Supervisor.reset()` calls `StateStore.clear()` and resets the process
-  discovery walker.
+- `Supervisor.reset()` calls `StateStore.clear()` and clears the process
+  discovery cache.
 - `POST /api/reset` in `packages/supervisor/src/wire/server.ts` calls
   `Supervisor.reset()` and returns `204 No Content`.
-- The web server startup refuses to mount the route when `E2E_ALLOW_RESET` is
-  not set.
+- The route is gated per-request on `process.env['E2E_ALLOW_RESET'] === '1'`;
+  when unset the `POST` falls through to a `404`.
 
 ### E2E harness changes
 

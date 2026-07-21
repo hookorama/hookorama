@@ -129,10 +129,14 @@ export class WireServer {
       });
     }
 
-    return this.handleHttpRequest(request, url);
+    return this.handleHttpRequest(request, url, server);
   }
 
-  private handleHttpRequest(request: Request, url: URL): Response | Promise<Response> {
+  private handleHttpRequest(
+    request: Request,
+    url: URL,
+    server: Bun.Server<undefined>,
+  ): Response | Promise<Response> {
     const { pathname } = url;
     if (pathname === '/api/state' && request.method === 'GET') {
       return this.handleState();
@@ -144,7 +148,7 @@ export class WireServer {
       return this.handleHook(request);
     }
     if (pathname === '/api/reset' && request.method === 'POST' && process.env['E2E_ALLOW_RESET'] === '1') {
-      return this.handleReset();
+      return this.handleReset(request, server);
     }
     if (pathname === '/api/terminals' && request.method === 'POST') {
       return this.handleTerminals(request);
@@ -156,7 +160,17 @@ export class WireServer {
     return Response.json(this.buildSnapshot(), { headers: CORS_HEADERS });
   }
 
-  private handleReset(): Response {
+  private isLoopbackAddress(address: Bun.SocketAddress | null): boolean {
+    if (address === null) return false;
+    const ip = address.address.toLowerCase();
+    return ip === '::1' || ip.startsWith('127.') || ip.startsWith('::ffff:127.');
+  }
+
+  private handleReset(request: Request, server: Bun.Server<undefined>): Response {
+    const client = server.requestIP(request);
+    if (!this.isLoopbackAddress(client)) {
+      return new Response('forbidden', { status: 403, headers: CORS_HEADERS });
+    }
     this.supervisor.reset();
     this.broadcastSnapshot();
     return new Response(null, { status: 204, headers: CORS_HEADERS });

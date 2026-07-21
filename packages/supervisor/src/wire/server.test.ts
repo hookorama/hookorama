@@ -128,4 +128,42 @@ describe('WireServer', () => {
     const processes = await client.fetchProcesses();
     expect(processes).toEqual([]);
   });
+
+  it('rejects POST /api/reset when E2E_ALLOW_RESET is not set', async () => {
+    harness = await setup();
+    const prev = process.env['E2E_ALLOW_RESET'];
+    delete process.env['E2E_ALLOW_RESET'];
+    try {
+      const response = await fetch(`${harness.server.url()}/api/reset`, { method: 'POST' });
+      expect(response.status).toBe(404);
+    } finally {
+      if (prev !== undefined) {
+        process.env['E2E_ALLOW_RESET'] = prev;
+      }
+    }
+  });
+
+  it('allows POST /api/reset from loopback peers when E2E_ALLOW_RESET is set', async () => {
+    harness = await setup();
+    const prev = process.env['E2E_ALLOW_RESET'];
+    process.env['E2E_ALLOW_RESET'] = '1';
+    try {
+      const baseUrl = harness.server.url().toString();
+
+      const noOrigin = await fetch(`${baseUrl}/api/reset`, { method: 'POST' });
+      expect(noOrigin.status).toBe(204);
+
+      const withOrigin = await fetch(`${baseUrl}/api/reset`, {
+        method: 'POST',
+        headers: { Origin: 'http://example.com' },
+      });
+      expect(withOrigin.status).toBe(204);
+    } finally {
+      if (prev !== undefined) {
+        process.env['E2E_ALLOW_RESET'] = prev;
+      } else {
+        delete process.env['E2E_ALLOW_RESET'];
+      }
+    }
+  });
 });

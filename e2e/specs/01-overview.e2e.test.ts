@@ -73,8 +73,17 @@ test.describe('overview lifecycle', () => {
 
   test('shortcuts route to agents, projects and processes', async ({ page }) => {
     const overview = new OverviewPage(page);
+
     await overview.goto();
     await overview.shortcut('agent tree').click();
     await expect(page).toHaveURL(/\/agents/);
+
+    await overview.goto();
+    await overview.shortcut('projects').click();
+    await expect(page).toHaveURL(/\/projects/);
+
+    await overview.goto();
+    await overview.shortcut('processes').click();
+    await expect(page).toHaveURL(/\/processes/);
   });
 });

@@ -18,7 +18,7 @@
     "typecheck": "tsdown && tsc -b --noEmit packages/client packages/supervisor packages/cli packages/extension packages/web-app && tsc -p e2e/tsconfig.json --noEmit",
     "lint": "oxlint . --ignore-pattern .worktrees",
     "test": "bun --bun vitest run --passWithNoTests --exclude .worktrees --exclude e2e",
-    "test:e2e": "npx playwright test --config e2e/playwright.config.ts",
+    "test:e2e": "bunx --no-install playwright test --config e2e/playwright.config.ts",
     "test:e2e:build": "docker build -f e2e/Dockerfile -t hookorama-e2e .",
     "test:e2e:docker": "docker run --rm --init -p 3000:3000 hookorama-e2e",
     "test:e2e:ci": "docker run --rm --init -e CI=true hookorama-e2e",

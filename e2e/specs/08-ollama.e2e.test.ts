@@ -7,7 +7,7 @@ const PROJECT = 'ollama-demo';
 const PROJECT_DIR = '/workspace/ollama-demo';
 const AGENT = 'claude-ollama';
 
-test('real Ollama agent goes idle -> thinking -> running-tool -> done', async () => {
+test('real Ollama agent completes a task and reports metrics', async () => {
   const mockOllama = process.env['E2E_MOCK_OLLAMA'] === '1';
   test.skip(mockOllama, 'Ollama is mocked in this run; skipping real Ollama smoke test'); // NOSONAR
 
