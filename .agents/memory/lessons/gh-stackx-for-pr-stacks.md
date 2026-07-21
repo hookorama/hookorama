@@ -33,4 +33,4 @@ plain `gh pr create` / `gh pr merge` directly.
     `gh pr merge`.
 - New PRs are created as drafts unless `--open` is passed.
 - Local stack metadata lives in `.git/gh-stack` and must not be committed.
-- Extension source repo: `C:\Users\petrp\Documents\GitHub\gh-stackx`.
+- Extension source repo: `https://github.com/ThePlenkov/gh-stackx`.
