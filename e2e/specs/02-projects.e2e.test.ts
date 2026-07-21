@@ -35,6 +35,7 @@ test.describe('projects', () => {
     await expect(projects.projectStat(row, 'run')).toHaveText('0');
     await expect(projects.projectStat(row, 'wait')).toHaveText('1');
     await expect(projects.projectStat(row, 'tasks')).toHaveText('0');
+    await expect(projects.projectStat(row, 'cost')).toHaveText('$0.000');
 
     await row.click();
     await expect(page).toHaveURL(/\/agents/);
