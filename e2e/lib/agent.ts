@@ -29,12 +29,22 @@ export async function startAgent(opts: AgentOptions): Promise<string> {
     E2E_OLLAMA_MODEL: opts.model ?? process.env['E2E_OLLAMA_MODEL'] ?? 'qwen2.5:0.5b',
     E2E_AGENT_SKILL: opts.skill ?? 'e2e',
     E2E_MOCK_OLLAMA: resolveMockFlag(opts.mock),
+    ...(process.env['E2E_SUPERVISOR_URL'] ? { E2E_SUPERVISOR_URL: process.env['E2E_SUPERVISOR_URL'] } : {}),
+    ...(process.env['E2E_OLLAMA_URL'] ? { E2E_OLLAMA_URL: process.env['E2E_OLLAMA_URL'] } : {}),
+    ...(process.env['E2E_AGENT_ORIGIN'] ? { E2E_AGENT_ORIGIN: process.env['E2E_AGENT_ORIGIN'] } : {}),
   };
 
   await killSession(sessionName);
-  await spawnSession(sessionName, process.cwd(), ['bun', 'e2e/fixtures/ollama-agent.ts'], env);
-  await waitForAgent(opts.sessionId, 'idle', 10000);
-  return sessionName;
+  try {
+    await spawnSession(sessionName, process.cwd(), ['bun', 'e2e/fixtures/ollama-agent.ts'], env);
+    await waitForAgent(opts.sessionId, 'idle', 10000);
+    return sessionName;
+  } catch (error) {
+    await killSession(sessionName).catch(() => {
+      // Session may already be gone.
+    });
+    throw error;
+  }
 }
 
 export async function sendPrompt(sessionName: string, text: string): Promise<void> {

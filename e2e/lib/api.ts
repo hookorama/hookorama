@@ -1,4 +1,4 @@
-import type { HookRequest, ProcessEntry, Status, WireSnapshot } from '@hookorama/client';
+import type { HookRequest, ProcessEntry, ProcessRow, Status, WireSnapshot } from '@hookorama/client';
 
 const baseUrl = process.env['E2E_SUPERVISOR_URL'] ?? 'http://127.0.0.1:7354';
 
@@ -9,12 +9,18 @@ export async function resetState(): Promise<void> {
   }
 }
 
-export async function getSnapshot(): Promise<WireSnapshot> {
-  const response = await fetch(`${baseUrl}/api/state`);
-  if (!response.ok) {
-    throw new Error(`GET /api/state failed: ${response.status}`);
+export async function getSnapshot(timeoutMs = 5000): Promise<WireSnapshot> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(`${baseUrl}/api/state`, { signal: controller.signal });
+    if (!response.ok) {
+      throw new Error(`GET /api/state failed: ${response.status}`);
+    }
+    return (await response.json()) as WireSnapshot;
+  } finally {
+    clearTimeout(timer);
   }
-  return (await response.json()) as WireSnapshot;
 }
 
 export async function sendHook(request: HookRequest): Promise<void> {
@@ -28,12 +34,12 @@ export async function sendHook(request: HookRequest): Promise<void> {
   }
 }
 
-export async function getProcesses(): Promise<unknown[]> {
+export async function getProcesses(): Promise<ProcessRow[]> {
   const response = await fetch(`${baseUrl}/api/processes`);
   if (!response.ok) {
     throw new Error(`GET /api/processes failed: ${response.status}`);
   }
-  return (await response.json()) as unknown[];
+  return (await response.json()) as ProcessRow[];
 }
 
 export function findAgent(snapshot: WireSnapshot, sessionId: string): ProcessEntry | undefined {
@@ -49,7 +55,17 @@ export async function waitForAgent(
   let last: ProcessEntry | undefined;
 
   while (Date.now() < deadline) {
-    const snapshot = await getSnapshot();
+    const remaining = deadline - Date.now();
+    const snapshotTimeout = Math.min(5000, Math.max(0, remaining));
+    let snapshot: WireSnapshot;
+    try {
+      snapshot = await getSnapshot(snapshotTimeout);
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        continue;
+      }
+      throw error;
+    }
     const entry = findAgent(snapshot, sessionId);
     if (entry !== undefined && entry.status === status) {
       return entry;

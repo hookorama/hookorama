@@ -35,7 +35,7 @@ if [[ "${E2E_MOCK_OLLAMA:-0}" != "1" ]]; then
   fi
 
   echo "==> pulling Ollama model ${E2E_OLLAMA_MODEL:-qwen2.5:0.5b}"
-  ollama pull "${E2E_OLLAMA_MODEL:-qwen2.5:0.5b}" || true
+  ollama pull "${E2E_OLLAMA_MODEL:-qwen2.5:0.5b}"
 fi
 
 export E2E_ALLOW_RESET=1
