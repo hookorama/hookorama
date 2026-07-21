@@ -3,7 +3,7 @@ import type { ProcessInfo } from '@sysutils/ps';
 import { pickDiscovery, SysutilsPsDiscovery, toProcessRow } from './index.js';
 
 describe('toProcessRow', () => {
-  test('maps a full ProcessInfo to a ProcessRow', () => {
+  test('uses the process name as command to match legacy walkers', () => {
     const info: ProcessInfo = {
       pid: 42,
       ppid: 1,
@@ -15,28 +15,28 @@ describe('toProcessRow', () => {
     expect(toProcessRow(info)).toEqual({
       pid: 42,
       ppid: 1,
-      command: '/bin/sh -c foo',
+      command: 'sh',
       user: 'alice',
       startedAt: 1704067200000,
     });
   });
 
-  test('falls back command to name when command is null', () => {
+  test('falls back command to full command line when name is empty', () => {
     const info: ProcessInfo = {
       pid: 7,
       ppid: 0,
-      name: 'kernel-worker',
-      command: null,
+      name: '',
+      command: '/usr/bin/some-worker --flag',
     };
     expect(toProcessRow(info)).toEqual({
       pid: 7,
       ppid: 0,
-      command: 'kernel-worker',
+      command: '/usr/bin/some-worker --flag',
     });
   });
 
-  test('defaults command to empty string when both command and name are missing', () => {
-    const info: ProcessInfo = { pid: 99, ppid: 1, name: '' };
+  test('defaults command to empty string when name and command are missing', () => {
+    const info: ProcessInfo = { pid: 99, ppid: 1, name: '', command: null };
     expect(toProcessRow(info)).toEqual({ pid: 99, ppid: 1, command: '' });
   });
 

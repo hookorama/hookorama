@@ -7,6 +7,10 @@
  * only reads. `@sysutils/ps` owns the cross-platform native backends;
  * this file is a thin adapter that maps its `ProcessInfo` shape to
  * the supervisor's internal `ProcessRow`.
+ *
+ * We use `ProcessInfo.name` (the executable / comm field) as the row
+ * `command` to match the previous per-OS walkers, which exposed a
+ * short process name rather than the full command line.
  */
 
 import { listProcesses, type ProcessInfo } from '@sysutils/ps';
@@ -28,7 +32,7 @@ export function toProcessRow(info: ProcessInfo): ProcessRow {
   return {
     pid: info.pid,
     ppid: info.ppid,
-    command: info.command ?? info.name ?? '',
+    command: info.name || (info.command ?? ''),
     ...(info.user !== null && info.user !== undefined ? { user: info.user } : {}),
     ...(info.startedAt !== null && info.startedAt !== undefined ? { startedAt: info.startedAt } : {}),
   };
@@ -42,7 +46,7 @@ export function toProcessRow(info: ProcessInfo): ProcessRow {
 export class SysutilsPsDiscovery implements ProcessDiscovery {
   async list(): Promise<readonly ProcessRow[]> {
     const rows = await listProcesses({
-      fields: ['pid', 'ppid', 'command', 'user', 'startedAt'],
+      fields: ['pid', 'ppid', 'name', 'command', 'user', 'startedAt'],
     });
     return rows.map(toProcessRow);
   }
