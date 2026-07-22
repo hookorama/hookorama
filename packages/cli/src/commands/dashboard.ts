@@ -6,6 +6,10 @@
  */
 
 import { spawn } from 'node:child_process';
+import { createReadStream } from 'node:fs';
+import { readFile, stat } from 'node:fs/promises';
+import http from 'node:http';
+import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -19,28 +23,31 @@ async function findCliPackageDir(): Promise<string> {
   let dir = path.dirname(fileURLToPath(import.meta.url));
   for (let depth = 0; depth < 20; depth += 1) {
     const pkgPath = path.resolve(dir, 'package.json');
-    const file = Bun.file(pkgPath);
-    const [exists] = await handle(file.exists());
-    if (!exists) {
+    const [fileStat, statErr] = await handle(stat(pkgPath));
+    if (statErr !== undefined || !fileStat?.isFile()) {
       const parent = path.dirname(dir);
       if (parent === dir) break;
       dir = parent;
       continue;
     }
-    const [raw] = await handle(file.text());
-    if (typeof raw !== 'string') {
+
+    const [raw, readErr] = await handle(readFile(pkgPath, 'utf8'));
+    if (readErr !== undefined || typeof raw !== 'string') {
       const parent = path.dirname(dir);
       if (parent === dir) break;
       dir = parent;
       continue;
     }
-    const [pkg] = await handle(Promise.resolve().then(() => JSON.parse(raw) as { name?: string }));
-    if (pkg?.name === '@hookorama/cli') {
-      return dir;
+
+    const [pkg, parseErr] = await handle(Promise.resolve().then(() => JSON.parse(raw) as { name?: string }));
+    if (parseErr !== undefined || pkg?.name !== '@hookorama/cli') {
+      const parent = path.dirname(dir);
+      if (parent === dir) break;
+      dir = parent;
+      continue;
     }
-    const parent = path.dirname(dir);
-    if (parent === dir) break;
-    dir = parent;
+
+    return dir;
   }
   return Promise.reject(new Error('cannot find @hookorama/cli package root'));
 }
@@ -51,16 +58,16 @@ async function findBuiltWebApp(cliDir: string): Promise<string | undefined> {
     path.resolve(cliDir, '..', 'web-app', 'dist'),
   ];
   for (const dir of candidates) {
-    const index = Bun.file(path.resolve(dir, 'index.html'));
-    if (await index.exists()) return dir;
+    const [fileStat, statErr] = await handle(stat(path.resolve(dir, 'index.html')));
+    if (statErr === undefined && fileStat?.isFile()) return dir;
   }
   return undefined;
 }
 
 async function findSourceWebApp(cliDir: string): Promise<string | undefined> {
   const dir = path.resolve(cliDir, '..', 'web-app');
-  const pkg = Bun.file(path.resolve(dir, 'package.json'));
-  if (await pkg.exists()) return dir;
+  const [fileStat, statErr] = await handle(stat(path.resolve(dir, 'package.json')));
+  if (statErr === undefined && fileStat?.isFile()) return dir;
   return undefined;
 }
 
@@ -87,45 +94,60 @@ function mimeType(filePath: string): string {
 }
 
 function serveStatic(webAppDir: string, port = 3000): void {
-  const server = Bun.serve({
-    port,
-    hostname: '127.0.0.1',
-    async fetch(req) {
-      const url = new URL(req.url);
-      const relative = url.pathname === '/' ? 'index.html' : url.pathname;
-      const resolved = path.join(webAppDir, relative);
-      const relativeToRoot = path.relative(path.resolve(webAppDir), resolved);
-      const forbidden =
-        relativeToRoot === '..' ||
-        relativeToRoot.startsWith(`..${path.sep}`) ||
-        path.isAbsolute(relativeToRoot);
-      if (forbidden) {
-        return new Response('Forbidden', { status: 403 });
-      }
+  const server = http.createServer(async (req, res) => {
+    const url = new URL(req.url ?? '/', `http://${req.headers.host ?? `127.0.0.1:${port}`}`);
+    const relative = url.pathname === '/' ? 'index.html' : url.pathname;
+    const resolved = path.join(webAppDir, relative);
+    const relativeToRoot = path.relative(path.resolve(webAppDir), resolved);
+    const forbidden =
+      relativeToRoot === '..' ||
+      relativeToRoot.startsWith(`..${path.sep}`) ||
+      path.isAbsolute(relativeToRoot);
+    if (forbidden) {
+      res.writeHead(403, { 'content-type': 'text/plain' });
+      res.end('Forbidden');
+      return;
+    }
 
-      let file = Bun.file(resolved);
-      let stat = await file.stat().catch(() => undefined);
-      if (stat?.isDirectory()) {
-        file = Bun.file(path.join(resolved, 'index.html'));
-        stat = await file.stat().catch(() => undefined);
-      }
-      if (!stat?.isFile()) {
-        file = Bun.file(path.join(webAppDir, 'index.html'));
-        stat = await file.stat().catch(() => undefined);
-      }
-      if (!stat?.isFile()) {
-        return new Response('Not found', { status: 404 });
-      }
-      return new Response(file, {
-        headers: { 'content-type': mimeType(file.name ?? '') },
-      });
-    },
+    let target = resolved;
+    let [fileStat] = await handle(stat(target));
+    if (fileStat?.isDirectory()) {
+      target = path.join(resolved, 'index.html');
+      [fileStat] = await handle(stat(target));
+    }
+    if (!fileStat?.isFile()) {
+      target = path.join(webAppDir, 'index.html');
+      [fileStat] = await handle(stat(target));
+    }
+    if (!fileStat?.isFile()) {
+      res.writeHead(404, { 'content-type': 'text/plain' });
+      res.end('Not found');
+      return;
+    }
+
+    res.writeHead(200, { 'content-type': mimeType(target) });
+    createReadStream(target).pipe(res);
   });
-  console.warn(`dashboard running at http://127.0.0.1:${server.port}/`);
+
+  server.listen(port, '127.0.0.1', () => {
+    const address = server.address();
+    const actualPort = typeof address === 'object' && address !== null ? address.port : port;
+    console.warn(`dashboard running at http://127.0.0.1:${actualPort}/`);
+  });
 }
 
 async function startDevServer(webAppDir: string): Promise<void> {
-  const child = spawn(process.execPath, ['run', 'dev'], {
+  const require = createRequire(import.meta.url);
+  let viteBin: string;
+  try {
+    viteBin = require.resolve('vite/bin/vite.js');
+  } catch {
+    console.error('vite is not installed; cannot start dashboard dev server');
+    process.exitCode = 1;
+    return;
+  }
+
+  const child = spawn(process.execPath, [viteBin], {
     cwd: webAppDir,
     stdio: 'inherit',
     windowsHide: true,

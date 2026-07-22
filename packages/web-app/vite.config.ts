@@ -40,13 +40,13 @@ function supervisorPlugin(): Plugin {
   return {
     name: 'hookorama:supervisor',
     apply: 'serve',
-    async configureServer(_server) {
+    async configureServer(server) {
       if (await isPortReachable()) {
         console.warn(`supervisor already running on ${supervisorHost}:${supervisorPort}/`);
         return;
       }
 
-      child = spawn(process.execPath, ['src/main.ts'], { cwd: supervisorDir });
+      child = spawn(process.execPath, ['--import', 'tsx', 'src/main.ts'], { cwd: supervisorDir });
 
       function killSupervisor() {
         if (child !== null) {
@@ -98,9 +98,9 @@ function supervisorPlugin(): Plugin {
         return Promise.reject(new Error('supervisor did not become ready'));
       }
 
-      return () => {
+      server.httpServer.on('close', () => {
         killSupervisor();
-      };
+      });
     },
   };
 }

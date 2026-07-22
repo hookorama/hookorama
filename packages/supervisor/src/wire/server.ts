@@ -4,9 +4,15 @@
  * Serves `GET /api/state`, `POST /api/hook`, `POST /api/terminals`,
  * and `WebSocket /ws` on a loopback address. All state changes are
  * broadcast to every connected WebSocket client.
+ *
+ * Implementation uses Node's native `http` module and the `ws` package so
+ * the supervisor can run on any Node-compatible TypeScript runtime.
  */
 
 import { randomUUID } from 'node:crypto';
+import http from 'node:http';
+import type { AddressInfo } from 'node:net';
+import { WebSocket, WebSocketServer } from 'ws';
 import type {
   AgentMetadata,
   HookEvent,
@@ -69,7 +75,9 @@ export class WireServer {
   private readonly supervisor: Supervisor;
   private readonly port: number;
   private readonly hostname: string;
-  private server: Bun.Server<undefined> | null = null;
+  private httpServer: http.Server | null = null;
+  private wss: WebSocketServer | null = null;
+  private readonly clients = new Set<WebSocket>();
 
   constructor(supervisor: Supervisor, options: WireServerOptions = {}) {
     this.supervisor = supervisor;
@@ -78,64 +86,166 @@ export class WireServer {
   }
 
   start(): Promise<void> {
-    this.server = Bun.serve({
-      port: this.port,
-      hostname: this.hostname,
-      fetch: (request, server) => this.handleRequest(request, server),
-      websocket: {
-        data: undefined,
-        open: (ws) => {
-          this.onOpen(ws);
-        },
-        message: () => {
-          /* client -> supervisor messages are not used in this PR */
-        },
-        close: (ws) => {
-          this.onClose(ws);
-        },
-      },
+    const wss = new WebSocketServer({ noServer: true });
+    this.wss = wss;
+
+    wss.on('connection', (ws) => {
+      this.onOpen(ws);
+      ws.on('close', () => {
+        this.onClose(ws);
+      });
+      ws.on('error', (err) => {
+        console.warn('websocket error:', err);
+      });
     });
-    return Promise.resolve();
+
+    const httpServer = http.createServer(async (req, res) => {
+      try {
+        const body = await this.readBody(req);
+        const request = this.toRequest(req, body);
+        const response = await this.handleRequest(request, req.socket.remoteAddress);
+        await this.sendResponse(res, response);
+      } catch (err) {
+        console.warn('http handler error:', err);
+        if (!res.headersSent) {
+          res.writeHead(500, { 'content-type': 'text/plain' });
+        }
+        if (!res.writableEnded) {
+          res.end('Internal server error');
+        }
+      }
+    });
+
+    httpServer.on('upgrade', (request, socket, head) => {
+      const url = new URL(
+        request.url ?? '/',
+        `http://${request.headers.host ?? `${this.hostname}:${this.port}`}`,
+      );
+      if (url.pathname !== '/ws') {
+        socket.destroy();
+        return;
+      }
+      wss.handleUpgrade(request, socket, head, (ws) => {
+        wss.emit('connection', ws, request);
+      });
+    });
+
+    this.httpServer = httpServer;
+
+    return new Promise((resolve, reject) => {
+      const onError = (err: Error): void => {
+        httpServer.off('error', onError);
+        reject(err);
+      };
+      httpServer.once('error', onError);
+      httpServer.listen(this.port, this.hostname, () => {
+        httpServer.off('error', onError);
+        resolve();
+      });
+    });
   }
 
   async stop(): Promise<void> {
-    await this.server?.stop(true);
-    this.server = null;
+    return new Promise((resolve, reject) => {
+      let pending = 0;
+      const done = (err?: Error): void => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        pending -= 1;
+        if (pending === 0) {
+          resolve();
+        }
+      };
+
+      this.clients.clear();
+
+      if (this.wss !== null) {
+        pending += 1;
+        this.wss.close(done);
+        this.wss = null;
+      }
+      if (this.httpServer !== null) {
+        pending += 1;
+        this.httpServer.close(() => done());
+        this.httpServer = null;
+      }
+
+      if (pending === 0) {
+        resolve();
+      }
+    });
   }
 
   url(): URL {
-    if (this.server === null) {
+    if (this.httpServer === null) {
       throw new Error('WireServer is not started');
     }
-    return this.server.url;
+    const address = this.httpServer.address();
+    if (address === null || typeof address === 'string') {
+      throw new Error('WireServer is not listening on TCP');
+    }
+    return new URL(`http://${this.hostname}:${(address as AddressInfo).port}/`);
   }
 
-  private handleRequest(
-    request: Request,
-    server: Bun.Server<undefined>,
-  ): Response | Promise<Response> | undefined {
+  private toRequest(req: http.IncomingMessage, body: Buffer | undefined): Request {
+    const host = req.headers.host ?? `${this.hostname}:${this.port}`;
+    const url = new URL(req.url ?? '/', `http://${host}`).toString();
+    const headers = new Headers();
+    for (const [key, value] of Object.entries(req.headers)) {
+      if (value === undefined) continue;
+      if (Array.isArray(value)) {
+        for (const v of value) {
+          headers.append(key, v);
+        }
+      } else {
+        headers.set(key, value);
+      }
+    }
+
+    const method = req.method ?? 'GET';
+    if (body === undefined || method === 'GET' || method === 'HEAD') {
+      return new Request(url, { method, headers });
+    }
+
+    return new Request(url, { method, headers, body });
+  }
+
+  private async readBody(req: http.IncomingMessage): Promise<Buffer | undefined> {
+    if (req.method !== 'POST' && req.method !== 'PUT' && req.method !== 'PATCH') {
+      return undefined;
+    }
+    const chunks: Buffer[] = [];
+    for await (const chunk of req) {
+      chunks.push(chunk as Buffer);
+    }
+    return Buffer.concat(chunks);
+  }
+
+  private async sendResponse(res: http.ServerResponse, response: Response): Promise<void> {
+    const headers: http.OutgoingHttpHeaders = {};
+    for (const [key, value] of response.headers) {
+      headers[key] = value;
+    }
+    res.writeHead(response.status, headers);
+    const body = Buffer.from(await response.arrayBuffer());
+    res.end(body);
+  }
+
+  private handleRequest(request: Request, clientIp?: string): Response | Promise<Response> {
     if (request.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: CORS_HEADERS });
     }
 
     const url = new URL(request.url);
-    if (url.pathname === '/ws' && request.method === 'GET') {
-      if (server.upgrade(request)) {
-        return undefined;
-      }
-      return new Response('WebSocket upgrade failed', {
-        status: 500,
-        headers: CORS_HEADERS,
-      });
-    }
-
-    return this.handleHttpRequest(request, url, server);
+    return this.handleHttpRequest(request, url, clientIp);
   }
 
   private handleHttpRequest(
     request: Request,
     url: URL,
-    server: Bun.Server<undefined>,
+    clientIp?: string,
   ): Response | Promise<Response> {
     const { pathname } = url;
     if (pathname === '/api/state' && request.method === 'GET') {
@@ -148,7 +258,7 @@ export class WireServer {
       return this.handleHook(request);
     }
     if (pathname === '/api/reset' && request.method === 'POST' && process.env['E2E_ALLOW_RESET'] === '1') {
-      return this.handleReset(request, server);
+      return this.handleReset(request, clientIp);
     }
     if (pathname === '/api/terminals' && request.method === 'POST') {
       return this.handleTerminals(request);
@@ -160,15 +270,15 @@ export class WireServer {
     return Response.json(this.buildSnapshot(), { headers: CORS_HEADERS });
   }
 
-  private isLoopbackAddress(address: Bun.SocketAddress | null): boolean {
-    if (address === null) return false;
-    const ip = address.address.toLowerCase();
+  private isLoopbackAddress(clientIp?: string | null): boolean {
+    if (clientIp === undefined || clientIp === null) return false;
+    const ip = clientIp.toLowerCase();
     return ip === '::1' || ip.startsWith('127.') || ip.startsWith('::ffff:127.');
   }
 
-  private handleReset(request: Request, server: Bun.Server<undefined>): Response {
-    const client = server.requestIP(request);
-    if (!this.isLoopbackAddress(client)) {
+  private handleReset(request: Request, clientIp?: string): Response {
+    void request;
+    if (!this.isLoopbackAddress(clientIp)) {
       return new Response('forbidden', { status: 403, headers: CORS_HEADERS });
     }
     this.supervisor.reset();
@@ -308,21 +418,23 @@ export class WireServer {
     };
   }
 
-  private onOpen(ws: Bun.ServerWebSocket<undefined>): void {
-    ws.subscribe('broadcast');
+  private onOpen(ws: WebSocket): void {
+    this.clients.add(ws);
     this.sendSnapshot(ws);
   }
 
-  private onClose(ws: Bun.ServerWebSocket<undefined>): void {
-    ws.unsubscribe('broadcast');
+  private onClose(ws: WebSocket): void {
+    this.clients.delete(ws);
   }
 
-  private sendSnapshot(ws: Bun.ServerWebSocket<undefined>): void {
+  private sendSnapshot(ws: WebSocket): void {
     const message: WireMessage = {
       type: 'snapshot',
       data: this.buildSnapshot(),
     };
-    ws.send(JSON.stringify(message));
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(message));
+    }
   }
 
   private broadcastSnapshot(): void {
@@ -330,7 +442,12 @@ export class WireServer {
       type: 'snapshot',
       data: this.buildSnapshot(),
     };
-    this.server?.publish('broadcast', JSON.stringify(message));
+    const payload = JSON.stringify(message);
+    for (const ws of this.clients) {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(payload);
+      }
+    }
   }
 
   private broadcastEvent(event: HookEvent): void {
@@ -338,7 +455,12 @@ export class WireServer {
       type: 'event',
       data: event,
     };
-    this.server?.publish('broadcast', JSON.stringify(message));
+    const payload = JSON.stringify(message);
+    for (const ws of this.clients) {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(payload);
+      }
+    }
   }
 
   private buildSnapshot(): WireSnapshot {
