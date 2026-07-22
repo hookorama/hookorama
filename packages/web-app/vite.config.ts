@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';
+import { execSync, spawn } from 'node:child_process';
 import { createConnection } from 'node:net';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
@@ -11,6 +11,21 @@ const projectDir = path.dirname(fileURLToPath(import.meta.url));
 const supervisorDir = path.resolve(projectDir, '../supervisor');
 const supervisorHost = '127.0.0.1';
 const supervisorPort = 7354;
+
+function resolveBunPath(): string {
+  const command = process.platform === 'win32' ? 'where bun' : 'which bun';
+  try {
+    const output = execSync(command, { encoding: 'utf8' }).trim();
+    const first = output.split('\n')[0]?.trim();
+    if (first) return first;
+  } catch (error) {
+    // `bun` is not in PATH; the error below explains the requirement.
+    void error;
+  }
+  throw new Error(
+    'Bun executable not found in PATH. The Hookorama supervisor is written for Bun and cannot run under Node.',
+  );
+}
 
 function isPortReachable(timeoutMs = 500): Promise<boolean> {
   return new Promise((resolve) => {
@@ -40,13 +55,13 @@ function supervisorPlugin(): Plugin {
   return {
     name: 'hookorama:supervisor',
     apply: 'serve',
-    async configureServer(_server) {
+    async configureServer(server) {
       if (await isPortReachable()) {
         console.warn(`supervisor already running on ${supervisorHost}:${supervisorPort}/`);
         return;
       }
 
-      child = spawn(process.execPath, ['src/main.ts'], { cwd: supervisorDir });
+      child = spawn(resolveBunPath(), ['src/main.ts'], { cwd: supervisorDir });
 
       function killSupervisor() {
         if (child !== null) {
@@ -98,9 +113,9 @@ function supervisorPlugin(): Plugin {
         return Promise.reject(new Error('supervisor did not become ready'));
       }
 
-      return () => {
+      server.httpServer.on('close', () => {
         killSupervisor();
-      };
+      });
     },
   };
 }
