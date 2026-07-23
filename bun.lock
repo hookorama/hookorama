@@ -5,6 +5,7 @@
     "": {
       "name": "hookorama",
       "devDependencies": {
+        "@hookorama/cli": "workspace:*",
         "@hookorama/client": "workspace:*",
         "@playwright/test": "^1.61.1",
         "@types/bun": "^1.3.14",
