@@ -15,10 +15,14 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "bun --bun vitest run --passWithNoTests",
-    "start": "bun src/main.ts"
+    "start": "tsx src/main.ts"
   },
   "dependencies": {
     "@hookorama/client": "workspace:^0.1.0",
-    "@sysutils/ps": "^1.2.1"
+    "@sysutils/ps": "^1.2.1",
+    "ws": "8.18.2"
+  },
+  "devDependencies": {
+    "@types/ws": "8.5.12"
   }
 }

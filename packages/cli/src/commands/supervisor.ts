@@ -19,7 +19,7 @@ export async function supervisorStart(): Promise<void> {
     return;
   }
 
-  // Bun.serve keeps the process alive once the server is started.
+  // The running http/ws server keeps the process alive once started.
 }
 
 export async function supervisorStop(): Promise<void> {
